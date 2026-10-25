@@ -1,0 +1,59 @@
+services:
+  fullvendor:
+    image: ghcr.io/fullvendor/php:7.4-apache-dev
+    build:
+      context: ./docker/
+      target: dev
+
+    environment:
+      MYSQL_DATABASE: 'appfv'
+      MYSQL_USER: 'appfv'
+      MYSQL_PASSWORD: 'fullvendorPWD'
+      MYSQL_HOST: 'database'
+      BASE_URL: 'http://test.birdviewmall.com'
+      CI_ENV: 'development'
+      MEMCACHED_HOST: 'memcached'
+      COOKIE_DOMAIN: 'test.birdviewmall.com'
+      MVC_TOKEN_REFRESH_SECRET: ${MVC_TOKEN_REFRESH_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./:/var/www/html
+
+  database:
+    image: mariadb:10.6.16-focal
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/init.db:/docker-entrypoint-initdb.d/:ro
+    environment:
+      MYSQL_DATABASE: 'appfv'
+      MYSQL_USER: 'appfv'
+      MYSQL_PASSWORD: 'fullvendorPWD'
+      MYSQL_ROOT_PASSWORD: 'toordrowssap'
+    ports:
+      - 3306:3306
+
+  memcached:
+    image: memcached
+    ports:
+      - "11211:11211"
+
+  mailpit:
+    image: 'axllent/mailpit:latest'
+    ports:
+      - '${FORWARD_MAILPIT_PORT:-1025}:1025'
+      - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+
+  phpmyadmin:
+    image: 'phpmyadmin'
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: 'database'
+
+volumes:
+  mysql_data:

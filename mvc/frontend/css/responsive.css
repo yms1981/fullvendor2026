@@ -1,0 +1,480 @@
+/*******************************************************
+    Template Name    : Tulip - Travel Agency Landing Page Template
+    Author           : Cute
+    Version          : 1.0
+    Created          : 2020
+    File Description : Main Responsive file of the template
+*******************************************************/
+
+@media only screen and (min-width: 1080px) and (max-width: 1920px){
+	.slide__overlay {
+		min-height: 1100px;
+	}
+}
+
+@media only screen and (min-width: 900px) and (max-width: 1440px){
+	.slide__overlay {
+		min-height: 900px;
+	}
+}
+@media only screen and (min-width: 1024px) and (max-width: 1366px) {
+
+}
+@media only screen and (min-width: 992px) and (max-width: 1280px) {
+	.slide__text {
+		width: 85%;
+		background: rgba(0, 0, 0, 0.7);
+		padding: 100px 100px;
+		margin: 0 auto;
+		left: 0;
+	}
+	.slide__overlay {
+		display: none;
+	}
+	.single-tour-img img {
+		min-height: 300px;
+	}
+	.shadows {
+		font-size: 165px;
+	}
+
+
+}
+
+@media only screen and (min-width: 991px) and (max-width: 1024px) {
+	.about-content {
+		padding: 35px 70px;
+	}
+	.about-images {
+		margin-left: -90px;
+	}
+	.about-images .video-btn {
+		margin-left: -50px;
+	}
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+	.slide__text {
+		width: 85%;
+		background: rgba(0, 0, 0, 0.7);
+		padding: 50px 30px;
+		margin: 0 auto;
+		left: 0;
+		text-align: center;
+	}
+	.slide__overlay {
+		display: none;
+	}
+	.shadows {
+		font-size: 165px;
+	}
+	.slide__text-heading {
+		font-size: 45px;
+	}
+	.single-tour {
+		margin-bottom: 30px;
+		margin-top: 0 !important;
+	}
+	.tour-more-btn {
+		margin-top: 0;
+	}
+	.counter-item {
+		margin-top: 0px;
+	}
+	.single-counter {
+		margin-top: 30px;
+	}
+	.footer-link:nth-child(4) {
+		margin-top: 30px;
+	}
+}
+@media only screen and (min-width: 767px) and (max-width: 991px) {
+
+	.navbar-b.navbar-trans .nav-item, .navbar-b.navbar-reduce .nav-item {
+		padding-right: 5px;
+	}
+	.about-content {
+		padding: 50px 40px;
+		padding-right: 40px;
+	}
+	.about-images {
+		margin-left: 0;
+	}
+	.about-images .video-btn {
+		margin-left: 0;
+	}
+	.shadow-title {
+		left: 0;
+		top: -70px;
+	}
+	.shadows {
+		font-size: 120px;
+	}
+	.choose-title {
+		padding-top: 30px;
+	}
+	.blog-item {
+		margin-bottom: 30px;
+	}
+	.blog-item:last-child {
+		margin-bottom: 0px;
+	}
+
+}
+
+@media only screen and (max-width: 767px) {
+
+	.navbar-b.navbar-trans .nav-item, .navbar-b.navbar-reduce .nav-item {
+		padding-right: 5px;
+	}
+	.slide__text {
+		width: 85%;
+		background: rgba(0, 0, 0, 0.7);
+		padding: 15px 15px;
+		margin: 0 auto;
+		left: 0;
+		text-align: center;
+	}
+	.slide__overlay {
+		display: none;
+	}
+	.section-title h2 {
+		font-size: 33px;
+	}
+	.shadows {
+		font-size: 55px;
+	}
+	.slide__text-heading {
+		font-size: 25px;
+	}
+	.slide__text-desc {
+		font-size: 14px;
+	}
+	.slide__button-link {
+		margin-top: 20px;
+	}
+	.slider-pagi {
+		left: 43%;
+	}
+	.slider-pagi {
+		bottom: 25px;
+	}
+	.about-content {
+		padding: 50px 40px;
+		padding-right: 40px;
+	}
+	.about-images {
+		margin-left: 0;
+	}
+	.about-images .video-btn {
+		margin-left: 0;
+	}
+	.shadow-title {
+		left: 0;
+		top: -70px;
+	}
+	.shadows {
+		font-size: 120px;
+	}
+	.choose-title {
+		padding-top: 30px;
+	}
+	.blog-item {
+		margin-bottom: 30px;
+	}
+	.blog-item:last-child {
+		margin-bottom: 0px;
+	}
+	.single-tour {
+		margin-bottom: 30px;
+		margin-top: 0 !important;
+	}
+	.single-tour-info {
+		padding: 20px 15px;
+	}
+	.tour-more-btn {
+		margin-top: 0;
+	}
+	.icon-block {
+		margin-bottom: 30px;
+	}
+	.color1-block {
+		margin-top: 0;
+	}
+	.color3-block {
+		margin-top: 0;
+	}
+	.color4-block {
+		margin-top: 0;
+	}
+	.single-destination img {
+		min-height: 250px;
+	}
+	.testimonial-area .owl-carousel .owl-nav {
+		display: none;
+	}
+	.single-testimonial .testi-content-inner {
+		padding: 15px 15px;
+		margin: 0;
+	}
+	.shadow {
+		display: none;
+	}
+	.blog .item .cont {
+		width: unset;
+		margin-top: -20px;
+	}
+	.counter-item {
+		margin-top: 30px;
+	}
+	.single-counter {
+		margin-top: 30px;
+	}
+	.contact-information {
+		margin-bottom: 30px;
+	}
+	.footer-top-area .footer-link {
+		margin-bottom: 30px;
+	}
+	.footer-top-area .Subscribe-form .form-group .subscribe-button {
+		width: 40%;
+	}
+	.footer-social-list {
+		text-align: center !important;
+	}
+	.copyright-text {
+		text-align: center !important;
+	}
+}
+
+
+
+@media only screen and (max-width: 479px) {
+	.navbar-b.navbar-trans .nav-item, .navbar-b.navbar-reduce .nav-item {
+		padding-right: 5px;
+	}
+	.navbar-b.navbar-trans .show > .nav-link, .navbar-b.navbar-trans .active > .nav-link, .navbar-b.navbar-trans .nav-link.show, .navbar-b.navbar-trans .nav-link.active {
+		color: #000;
+	}
+	.navbar-brand img{
+		width: 195px !important;
+	}
+	.mobile_app_bg{
+		display: contents;
+	}
+	.slide__text {
+		width: 85%;
+		background: rgba(0, 0, 0, 0.7);
+		padding: 30px 15px;
+		margin: 0 auto;
+		left: 0;
+		text-align: center;
+	}
+	.slide__overlay {
+		display: none;
+	}
+	.shadows {
+		display: none;
+	}
+	.slide__text-heading {
+		font-size: 25px;
+	}
+	.slide__text-desc {
+		font-size: 14px;
+	}
+	.slide__button-link {
+		margin-top: 20px;
+	}
+	.slider-pagi {
+		left: 40%;
+	}
+	.section-title h2 {
+		font-size: 33px;
+	}
+	.single-tour {
+		margin-bottom: 30px;
+		margin-top: 0 !important;
+	}
+	.single-tour-info {
+		padding: 30px 15px;
+	}
+	.tour-more-btn {
+		margin-top: 0;
+	}
+	.about-content {
+		padding: 50px 40px;
+		padding-right: 40px;
+	}
+	.about-content h2 {
+		font-size: 28px;
+	}
+	.about-content h3 {
+		font-size: 18px;
+	}
+	.about-images {
+		margin-left: 0;
+	}
+	.about-images .video-btn {
+		margin-left: 0;
+	}
+	.shadow-title {
+		left: 0;
+		top: -70px;
+	}
+	.shadows {
+		display: none;
+	}
+	.choose-title {
+		padding-top: 30px;
+	}
+	.blog-item {
+		margin-bottom: 30px;
+	}
+	.blog-item:last-child {
+		margin-bottom: 0px;
+	}
+	.icon-block {
+		margin-bottom: 30px;
+	}
+	.color1-block {
+		margin-top: 0;
+	}
+	.color3-block {
+		margin-top: 0;
+	}
+	.color4-block {
+		margin-top: 0;
+	}
+	.single-destination img {
+		min-height: 250px;
+	}
+	.testimonial-area .owl-carousel .owl-nav {
+		display: none;
+	}
+	.single-testimonial .testi-content-inner {
+		padding: 15px 15px;
+		margin: 0;
+	}
+	.blog .item .cont {
+		width: unset;
+		margin-top: 0;
+	}
+	.counter-item {
+		margin-top: 0px;
+	}
+	.single-counter {
+		margin-top: 30px;
+	}
+	.footer-top-area .footer-link {
+		margin-bottom: 30px;
+	}
+	.footer-top-area .Subscribe-form .form-group .subscribe-button {
+		width: 40%;
+	}
+	.footer-social-list {
+		text-align: center !important;
+	}
+	.copyright-text {
+		text-align: center !important;
+	}
+}
+
+
+@media screen and (max-width: 320px) and (min-width: 0px){
+	.navbar-b.navbar-trans .nav-item, .navbar-b.navbar-reduce .nav-item {
+		padding-right: 5px;
+	}
+	.navbar-b.navbar-trans .show > .nav-link, .navbar-b.navbar-trans .active > .nav-link, .navbar-b.navbar-trans .nav-link.show, .navbar-b.navbar-trans .nav-link.active {
+		color: #000;
+	}
+	.slide__text {
+		width: 85%;
+		background: rgba(0, 0, 0, 0.7);
+		padding: 30px 15px;
+		margin: 0 auto;
+		left: 0;
+		text-align: center;
+	}
+	.slide__overlay {
+		display: none;
+	}
+	.shadows {
+		display: none;
+	}
+	.slide__text-heading {
+		font-size: 25px;
+	}
+	.slide__text-desc {
+		font-size: 14px;
+	}
+	.slide__button-link {
+		margin-top: 20px;
+	}
+	.section-title h2 {
+		font-size: 24px;
+	}
+	.slider-pagi {
+		left: 40%;
+	}
+	.single-tour {
+		margin-bottom: 30px;
+		margin-top: 0 !important;
+	}
+	.single-tour-info {
+		padding: 20px 15px;
+	}
+	.tour-more-btn {
+		margin-top: 0;
+	}
+	.about-content {
+		padding: 30px 15px;
+		padding-right: 15px;
+	}
+	.choose-title h2 {
+		font-size: 24px;
+	}
+	.icon-block {
+		margin-bottom: 30px;
+	}
+	.color1-block {
+		margin-top: 0;
+	}
+	.color3-block {
+		margin-top: 0;
+	}
+	.color4-block {
+		margin-top: 0;
+	}
+	.single-destination img {
+		min-height: 250px;
+	}
+	.testimonial-area .owl-carousel .owl-nav {
+		display: none;
+	}
+	.single-testimonial .testi-content-inner {
+		padding: 15px 15px;
+		margin: 0;
+	}
+	.blog .item .cont {
+		width: unset;
+		margin-top: 0;
+	}
+	.counter-item {
+		margin-top: 0px;
+	}
+	.single-counter {
+		margin-top: 30px;
+	}
+	.footer-top-area .footer-link {
+		margin-bottom: 30px;
+	}
+	.footer-top-area .Subscribe-form .form-group .subscribe-button {
+		width: 40%;
+	}
+	.footer-social-list {
+		text-align: center !important;
+	}
+	.copyright-text {
+		text-align: center !important;
+	}
+}

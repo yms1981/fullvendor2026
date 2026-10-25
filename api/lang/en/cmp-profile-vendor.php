@@ -1,0 +1,20 @@
+<?php
+ return [
+  'list_profile_vendor' => 'Seller Profile List',
+  'add_new_profile_vendor' => 'Add New Seller Profile',
+  'name_profile' => 'Profile Name',
+  'order_discount' => 'Order discount',
+  'order_net_discount' => 'Order net discount',
+  'change_price' => 'Change Price',
+  'create_customer' => 'Create Customer',
+  'created' => 'Join date',
+  'actions' => 'Actions',
+  'send_catalog' => 'Send Catalogo',
+  'delete_success' => 'Seller profile deleted successfully',
+  'si' => 'Yes',
+  'allowed_discount' => 'Allow orders Discounts up to(%)',
+  'allowed_discount_neto' => 'Allow order discounts up to net discount',
+  'save' => 'Save',
+  'update' => 'Update',
+  'delete_profile_seller' => 'Delete Profile Seller',
+];

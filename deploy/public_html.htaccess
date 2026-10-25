@@ -1,0 +1,24 @@
+# Pegar este archivo como public_html/.htaccess
+# cuando el dominio apunta a la raíz del repositorio
+# (public_html/mvc = panel, public_html/api = Laravel).
+# No uses el .htaccess de XAMPP: ese lleva RewriteBase /mvc/.
+
+DirectoryIndex index.php
+RewriteEngine On
+
+# Código y secretos de Laravel fuera de la web
+RewriteRule ^api/\.env$ - [F,L]
+RewriteRule ^api/(vendor|storage|bootstrap|database|app|config|routes|resources|tests|docker)/ - [F,L]
+
+# /api/v2 y /api/v3 → Laravel (api/public/index.php)
+RewriteRule ^api(?:/|$) api-front.php [L,QSA]
+
+# CSS, JS e imágenes del panel, que viven dentro de la carpeta mvc/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/mvc/$1 -f
+RewriteRule ^(.*)$ mvc/$1 [L]
+
+# El resto lo atiende CodeIgniter (index.php de public_html)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L,QSA]

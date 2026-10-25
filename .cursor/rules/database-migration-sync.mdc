@@ -1,0 +1,79 @@
+---
+description: Sincronizar siempre cambios de BD con los scripts de migración (schema, vistas, datos fijos)
+alwaysApply: true
+---
+
+# Regla: BD y migración siempre alineadas
+
+Cualquier cambio en la base de datos **debe quedar reflejado en los artefactos de migración del repo**. No basta con aplicarlo solo en MariaDB local o en el servidor.
+
+## Fuente de verdad en el repositorio
+
+| Qué cambió | Dónde actualizar |
+|------------|------------------|
+| Tablas, columnas, índices | `api/database/sql/appfv_full_schema.sql` |
+| Vistas | `api/database/sql/views/*.sql` y sección de vistas del dump |
+| Datos fijos (countries, states, cities, languages, currency_formats, currencybycountries, format_date, format_numeric) | `api/database/sql/seed_data/*.sql` + `manifest.json` |
+| Cambio puntual documentado | `api/database/sql/YYYY_*.sql` (opcional, además del dump) |
+| Evolución Laravel | `api/database/migrations/*.php` **y** exportar al dump cuando el cambio ya está en BD |
+
+## Tablas con datos fijos obligatorios
+
+Siempre incluir en `seed_data` cuando se modifiquen datos:
+
+- `countries`, `states`, `cities`
+- `languages`
+- `currency_formats`, `currencybycountries`
+- `format_date`, `format_numeric`
+
+## Flujo obligatorio tras cambiar la BD
+
+1. Aplicar el cambio (migración Laravel, SQL manual o ajuste en BD).
+2. **Exportar** al repo:
+   ```bash
+   cd api && php artisan schema:export
+   ```
+   o, con Docker:
+   ```bash
+   bash api/database/scripts/export_all_migration_assets.sh
+   ```
+3. **Verificar** que no hay deriva:
+   ```bash
+   cd api && php artisan schema:audit
+   ```
+   Debe terminar en éxito. Si falla, exportar de nuevo o corregir la BD.
+4. Incluir en el commit los archivos actualizados bajo `api/database/sql/`.
+
+## Al implementar cambios (agente / desarrollador)
+
+- Si creas o modificas una **migración Laravel** que altere esquema o datos de referencia: ejecuta `schema:export` y confirma `schema:audit` antes de dar por cerrada la tarea.
+- Si el usuario pide cambios **directos en SQL** o en tablas/vistas: actualiza los scripts de migración en el mismo cambio; no dejar la BD adelantada respecto al repo.
+- En servidor nuevo o despliegue: usar `php artisan schema:sync --force` (estructura + datos fijos + vistas).
+- **`php artisan migrate`** redirige a `schema:sync` (no ejecuta migraciones Laravel legacy del directorio `database/migrations/`).
+- Tablas con PK renombrada (currency, admin, plan, subscriptions): `php artisan schema:legacy-audit` / se aplican con `schema:sync --force`.
+
+## Comandos de referencia
+
+| Comando | Uso |
+|---------|-----|
+| `php artisan schema:legacy-audit` | Detecta tablas legacy (PK renombrada: currency, admin, plan, subscriptions) |
+| `php artisan schema:legacy-audit --apply` | Aplica migraciones legacy |
+| `php artisan migrate --force` | Alias de `schema:sync --force` (setup inicial / despliegue; incluye legacy) |
+| `php artisan schema:export` | Exporta dump, vistas y datos fijos desde la BD conectada |
+| `php artisan schema:sync --dry-run` | Qué aplicaría en destino |
+| `php artisan schema:sync --force` | Aplica en destino (estructura + datos fijos + vistas + **admin /admin**) |
+| `php artisan schema:ensure-admin` | Solo verifica/crea admin@fullvendor.com si falta |
+
+## Admin de plataforma (/admin)
+
+Tras `schema:sync`, se verifica que exista un registro en `admin` vinculado a `users` para el login de `/admin`.
+
+- Email: `admin@fullvendor.com`
+- Usuario de login: `admin` (campo `username`)
+- Contraseña en tabla `admin`: texto plano `123456` (como exige el login actual de la API)
+- Variables opcionales: `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_USERNAME`, `PLATFORM_ADMIN_PASSWORD`, `PLATFORM_ADMIN_NAME`
+
+## Prohibido
+
+- Cambiar esquema o datos fijos en BD **sin** actualizar `api/database/sql/`.
+- Asumir que `docker/DDL/` sustituye al dump; el dump y `seed_data` en `api/database/sql/` son la referencia para `schema:sync`.

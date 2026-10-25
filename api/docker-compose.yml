@@ -1,0 +1,199 @@
+services:
+    laravel.test:
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.3
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+                MYSQL_CLIENT: mariadb-client
+        image: sail-8.3/app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '${APP_PORT:-80}:80'
+            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
+        volumes:
+            - '.:/var/www/html'
+            - '../mvc/uploads:/var/www/mvc_uploads'
+            # Plantillas de envío editadas en MVC (Settings → Send templates)
+            - '../mvc/application/data/send_templates:/var/www/html/storage/app/send_templates'
+        networks:
+            - sail
+        depends_on:
+            - meilisearch
+            - mailpit
+            - selenium
+            - mariadb
+            - memcached
+            - minio
+    meilisearch:
+        image: 'getmeili/meilisearch:latest'
+        ports:
+            - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
+        environment:
+            MEILI_NO_ANALYTICS: '${MEILISEARCH_NO_ANALYTICS:-false}'
+        volumes:
+            - 'sail-meilisearch:/meili_data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - wget
+                - '--no-verbose'
+                - '--spider'
+                - 'http://127.0.0.1:7700/health'
+            retries: 3
+            timeout: 5s
+    mailpit:
+        image: 'axllent/mailpit:latest'
+        ports:
+            - '${FORWARD_MAILPIT_PORT:-1025}:1025'
+            - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+        networks:
+            - sail
+    selenium:
+        image: selenium/standalone-chrome
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        volumes:
+            - '/dev/shm:/dev/shm'
+        environment:
+            SE_NODE_MAX_SESSIONS: 4
+            SE_NODE_OVERRIDE_MAX_SESSIONS: 'true'
+        ports:
+            # UI noVNC opcional para depurar sesiones (http://localhost:7900)
+            - '${FORWARD_SELENIUM_PORT:-7900}:7900'
+        networks:
+            - sail
+        shm_size: '2gb'
+    mariadb:
+        image: 'mariadb:10'
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        volumes:
+            - 'sail-mariadb:/var/lib/mysql'
+            - './vendor/laravel/sail/database/mariadb/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - '../docker/init.db:/docker-entrypoint-initdb.d/'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - healthcheck.sh
+                - '--connect'
+                - '--innodb_initialized'
+            retries: 3
+            timeout: 5s
+    memcached:
+        image: 'memcached:alpine'
+        ports:
+            - '${FORWARD_MEMCACHED_PORT:-11211}:11211'
+        networks:
+            - sail
+    fullvendor:
+        image: 'ghcr.io/fullvendor/php:7.4-apache-dev'
+        build:
+            context: ../docker
+        environment:
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_HOST: mariadb
+            BASE_URL: '${APP_URL}'
+            CI_ENV: '${CI_ENV:-development}'
+            MEMCACHED_HOST: memcached
+            COOKIE_DOMAIN: '${APP_COOKIE_DOMAIN}'
+            ENVIRONMENT: develop
+            MAIL_HOST: '${MAIL_HOST:-mailpit}'
+            MAIL_PORT: '${MAIL_PORT:-1025}'
+            MAIL_USERNAME: '${MAIL_USERNAME:-}'
+            MAIL_PASSWORD: '${MAIL_PASSWORD:-}'
+            MAIL_ENCRYPTION: '${MAIL_ENCRYPTION:-}'
+            MAIL_AUTH: '${MAIL_AUTH:-false}'
+            # MVC (send catalog PHPMailer): misma clave que la API si MAIL_PASSWORD no se expande
+            SENDGRID_API_KEY: '${SENDGRID_API_KEY:-}'
+            MAIL_FROM_ADDRESS: '${MAIL_FROM_ADDRESS:-info@fullvendor.com}'
+            MAIL_FROM_NAME: '${MAIL_FROM_NAME:-Fullvendor}'
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - '../mvc/:/var/www/html'
+            # Traducciones JSON (api/lang) visibles para fv_lang_json_flat_section / getLangJsonSection
+            - './lang:/var/www/api/lang'
+        networks:
+            - sail
+    phpmyadmin:
+        image: phpmyadmin
+        ports:
+            - '${FORWARD_PHPMYADMIN_PORT:-8080}:80'
+        environment:
+            PMA_HOST: mariadb
+        networks:
+            - sail
+    minio:
+        image: 'coollabsio/minio:latest'
+        ports:
+            - '${FORWARD_MINIO_PORT:-9000}:9000'
+            - '${FORWARD_MINIO_CONSOLE_PORT:-8900}:8900'
+        environment:
+            MINIO_ROOT_USER: '${MINIO_ROOT_USER:-sail}'
+            MINIO_ROOT_PASSWORD: '${MINIO_ROOT_PASSWORD:-password}'
+        volumes:
+            - 'sail-minio:/data/minio'
+        networks:
+            - sail
+        command: 'minio server /data/minio --console-address ":8900"'
+        healthcheck:
+            test:
+                - CMD
+                - mc
+                - ready
+                - local
+            retries: 3
+            timeout: 5s
+    create_images_buckets:
+        image: 'coollabsio/minio:latest'
+        depends_on:
+            minio:
+                condition: service_healthy
+        networks:
+            - sail
+        restart: on-failure
+        environment:
+            MINIO_ACCESS_KEY: '${MINIO_ROOT_USER:-sail}'
+            MINIO_SECRET_KEY: '${MINIO_ROOT_PASSWORD:-password}'
+            MINIO_ENDPOINT: 'http://minio:9000'
+        entrypoint: >
+            /bin/sh -c "
+            sleep 2;
+            /usr/bin/mc --insecure alias set dockerminio http://minio:9000 ${MINIO_ROOT_USER:-sail} ${MINIO_ROOT_PASSWORD:-password};
+            /usr/bin/mc --insecure mb --ignore-existing dockerminio/images;
+            exit 0;
+            "
+networks:
+    sail:
+        driver: bridge
+volumes:
+    sail-meilisearch:
+        driver: local
+    sail-mariadb:
+        driver: local
+    sail-minio:
+        driver: local

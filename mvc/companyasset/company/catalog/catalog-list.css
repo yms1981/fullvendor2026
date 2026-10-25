@@ -1,0 +1,502 @@
+/* Catálogos — ajustes puntuales (espaciado base: company-crud-modern.css) */
+
+.catalog-list-table th[data-field="catalog_name"],
+.catalog-list-table td[data-field="catalog_name"] {
+    text-align: left !important;
+    vertical-align: middle !important;
+    width: 34%;
+    max-width: 420px;
+}
+
+.catalog-list-table .fv-catalog-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.catalog-list-table .fv-catalog-list-icon {
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1px solid #e5e7eb;
+}
+
+.catalog-list-table .fv-catalog-list-icon__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 6px;
+}
+
+.catalog-list-table .fv-catalog-list-icon__placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #64748b;
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.catalog-list-table .fv-catalog-name-row__text {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.catalog-list-table td[data-field="catalog_name"] .fv-crud-cell-link,
+.catalog-list-table td[data-field="catalog_name"] a,
+.catalog-list-table td[data-field="catalog_name"] .fv-catalog-name-cell__title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-list-table td[data-field="catalog_name"] .fv-crud-cell-link,
+.catalog-list-table td[data-field="catalog_name"] a {
+    color: #2563eb;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.catalog-list-table td[data-field="catalog_name"] .fv-crud-cell-link:hover,
+.catalog-list-table td[data-field="catalog_name"] a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.catalog-list-table .fv-catalog-name-cell__title {
+    font-weight: 600;
+    color: var(--fv-text, #111827);
+    line-height: 1.4;
+}
+
+.catalog-list-table th[data-field="created"],
+.catalog-list-table td[data-field="created"] {
+    width: 130px;
+    text-align: center !important;
+    white-space: nowrap;
+}
+
+.catalog-list-table .fv-catalog-date-cell {
+    font-variant-numeric: tabular-nums;
+    color: var(--fv-text, #111827);
+}
+
+.catalog-list-table th[data-field="status"],
+.catalog-list-table td[data-field="status"] {
+    width: 110px;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.catalog-list-table td[data-field="status"] .custom-control.custom-switch {
+    display: inline-block;
+    margin: 0 auto;
+    padding-left: 2.25rem;
+    min-height: 1.5rem;
+}
+
+.catalog-list-table th.crud-list-actions-column,
+.catalog-list-table td.crud-list-actions-column {
+    width: 1%;
+    min-width: max-content;
+    max-width: none;
+    white-space: nowrap;
+    text-align: right !important;
+    vertical-align: middle !important;
+}
+
+/* La grilla moderna fija Acciones a 108px y centra los iconos.
+   En catálogos hay varios botones: la columna se ajusta a ellos y queda a la derecha. */
+#main-content .catalog-list-table th.fv-modern-grid__actions,
+#main-content .catalog-list-table td.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active .catalog-list-table th.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active .catalog-list-table td.fv-modern-grid__actions {
+    width: 1% !important;
+    min-width: max-content !important;
+    max-width: none !important;
+}
+
+.catalog-list-table thead th a.sort,
+.catalog-list-table thead th .fv-crud-sort-link {
+    color: #0f172a !important;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.catalog-list-table thead th a.sort .fv-crud-sort-link__text,
+.catalog-list-table thead th a.sort u {
+    text-decoration: none;
+    color: inherit;
+}
+
+.catalog-list-table tbody tr.fv-catalog-row--default {
+    background: #ffffff;
+}
+
+.catalog-list-table tbody tr.fv-catalog-row--default:hover {
+    background: var(--fv-table-hover, #fef2f2) !important;
+}
+
+.catalog-list-table .fv-catalog-default-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.2rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    line-height: 1.2;
+}
+
+.catalog-list-table .fv-crud-actions,
+#main-content .catalog-list-table .fv-modern-grid__actions-inner,
+#main-content .catalog-list-table .fv-crud-row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end !important;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    width: max-content !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+.catalog-list-table .fv-crud-btn--row {
+    width: 2.15rem;
+    height: 2.15rem;
+    min-width: 2.15rem;
+    padding: 0;
+    border-radius: 0.55rem;
+}
+
+/* Modales Catalog */
+.fv-catalog-modal .modal-body {
+    background: var(--fv-modal-bg, #fff7f7);
+}
+
+.fv-catalog-perf__name {
+    font-weight: 700;
+    color: var(--fv-modal-text, #450a0a);
+    font-size: 1rem;
+}
+
+.fv-catalog-perf__period {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.65rem;
+    background: #fff;
+    border: 1px solid var(--fv-modal-border-soft, #fee2e2);
+    color: #7f1d1d;
+    font-size: 0.86rem;
+}
+
+.fv-catalog-perf__period-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.72rem;
+    color: #991b1b;
+}
+
+.fv-catalog-perf__empty {
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.65rem;
+    background: #fffbeb;
+    border: 1px dashed #f59e0b;
+    color: #92400e;
+    font-size: 0.88rem;
+}
+
+.fv-catalog-perf__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+}
+
+@media (max-width: 575.98px) {
+    .fv-catalog-perf__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.fv-catalog-perf__card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.8rem;
+    border-radius: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--fv-modal-border-soft, #fee2e2);
+    min-height: 4.5rem;
+}
+
+.fv-catalog-perf__icon {
+    flex: 0 0 2.35rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+}
+
+.fv-catalog-perf__card--orders .fv-catalog-perf__icon { background: #dc2626; }
+.fv-catalog-perf__card--amount .fv-catalog-perf__icon { background: #059669; }
+.fv-catalog-perf__card--ticket .fv-catalog-perf__icon { background: #d97706; }
+.fv-catalog-perf__card--customers .fv-catalog-perf__icon { background: #2563eb; }
+
+.fv-catalog-perf__meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.fv-catalog-perf__label {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: #7f1d1d;
+    font-weight: 600;
+}
+
+.fv-catalog-perf__value {
+    font-size: 1.05rem;
+    line-height: 1.2;
+    color: #111827;
+    font-variant-numeric: tabular-nums;
+}
+
+.fv-catalog-preview-list {
+    max-height: 220px;
+    overflow: auto;
+    margin-bottom: 0;
+}
+
+.fv-catalog-preview-empty {
+    padding: 0.85rem 1rem;
+    border-radius: 0.65rem;
+    background: #fff;
+    border: 1px dashed #e5e7eb;
+    color: #64748b;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.fv-catalog-live-preview-modal .modal-dialog {
+    max-width: min(1180px, calc(100vw - 1.5rem));
+    width: 100%;
+    margin: 1rem auto;
+}
+
+.fv-catalog-live-preview-modal .modal-content {
+    height: min(88vh, 920px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.fv-catalog-live-preview-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+}
+
+.fv-catalog-live-preview__status {
+    flex: 0 0 auto;
+    min-height: 0;
+    padding: 0 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9f1239;
+}
+
+.fv-catalog-live-preview__status:empty {
+    display: none;
+}
+
+.fv-catalog-live-preview__status:not(:empty) {
+    padding-top: 0.55rem;
+    padding-bottom: 0.35rem;
+}
+
+.fv-catalog-live-preview__frame {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    background: #fff;
+    display: block;
+}
+
+.fv-catalog-download-toolbar {
+    flex: 0 0 auto;
+    padding: 0.75rem 1rem 0.5rem;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fv-catalog-download-toolbar__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.85rem 1.25rem;
+}
+
+.fv-catalog-download-toolbar__field {
+    flex: 1 1 220px;
+    min-width: 180px;
+    margin: 0;
+}
+
+.fv-catalog-download-toolbar__field label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.fv-catalog-download-toolbar__check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+}
+
+.fv-catalog-download-toolbar__hint {
+    margin: 0.55rem 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.fv-catalog-download-preview-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fv-catalog-download-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.fv-catalog-download-loader[hidden] {
+    display: none !important;
+}
+
+.fv-catalog-download-loader__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 220px;
+    max-width: 90%;
+    padding: 1.35rem 1.5rem;
+    border-radius: 0.65rem;
+    background: #fff;
+    text-align: center;
+}
+
+.fv-catalog-download-loader__spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 3px solid #fecaca;
+    border-top-color: #dc2626;
+    border-radius: 50%;
+    animation: fv-catalog-spin 0.75s linear infinite;
+}
+
+.fv-catalog-download-loader__text {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #9f1239;
+}
+
+.fv-catalog-download-loader__bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: #fee2e2;
+    overflow: hidden;
+}
+
+.fv-catalog-download-loader__bar > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: #dc2626;
+    transition: width 0.2s ease;
+}
+
+.fv-catalog-download-export.is-busy {
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+@keyframes fv-catalog-spin {
+    to { transform: rotate(360deg); }
+}
+
+.fv-catalog-hide-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    color: #1d4ed8;
+    font-weight: 600;
+    margin: 0;
+}
+
+.fv-catalog-channel-toggle .especial_label {
+    padding: 0.55rem 0.4rem;
+    cursor: pointer;
+    background: #fff;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fv-catalog-channel-toggle input:checked + .especial_label {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fca5a5 !important;
+    font-weight: 700;
+}

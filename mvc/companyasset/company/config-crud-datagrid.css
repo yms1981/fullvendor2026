@@ -1,0 +1,347 @@
+/* ——— Barra de herramientas CRUD configuración ——— */
+#main-content .fv-config-crud-toolbar,
+#main-content .fv-config-crud-toolbar-wrap .fv-crud-button-bar,
+#main-content .fv-config-crud-toolbar--page {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+#main-content .fv-config-crud-toolbar--page {
+    margin-bottom: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+}
+
+/* ——— Página listado configuración: ancho completo ——— */
+#main-content .fv-config-crud-datagrid-page {
+    width: 100%;
+}
+
+#main-content .fv-config-crud-datagrid-page > .col-12,
+#main-content .fv-config-crud-datagrid-page .fv-modern-grid {
+    width: 100%;
+    max-width: 100%;
+}
+
+#main-content .fv-config-crud-datagrid-page .card-body {
+    padding-bottom: 1rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active {
+    width: 100%;
+    margin-top: 0.75rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__shell {
+    width: 100%;
+    min-height: calc(100vh - 280px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e8edf3;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__scroll {
+    width: 100%;
+    overflow: auto;
+    flex: 1 1 auto;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .dataTables_wrapper {
+    width: 100% !important;
+    padding: 0.75rem 1rem 1rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .dataTables_processing {
+    display: none !important;
+}
+
+/* ——— Tabla DataGrid ——— */
+#main-content .fv-config-crud-datagrid-wrap table.dataTable,
+#main-content .fv-config-crud-datagrid-wrap table.fv-config-crud-datagrid {
+    width: 100% !important;
+    margin-top: 0 !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap table.dataTable thead th,
+#main-content .fv-config-crud-datagrid-wrap table.fv-config-crud-datagrid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f4f6f9 !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
+    padding: 0.65rem 0.75rem !important;
+    white-space: nowrap;
+}
+
+#main-content .fv-config-crud-datagrid-wrap table.dataTable tbody td,
+#main-content .fv-config-crud-datagrid-wrap table.fv-config-crud-datagrid tbody td {
+    vertical-align: middle !important;
+    font-size: 0.875rem;
+    padding: 0.55rem 0.75rem !important;
+    border-top: 1px solid #eef1f4 !important;
+    color: #1f2937;
+}
+
+#main-content .fv-config-crud-datagrid-wrap table.dataTable tbody tr:hover td {
+    background-color: #f8fbff !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap table.dataTable tbody tr:nth-child(even) td {
+    background-color: #fafbfc;
+}
+
+/* Columna acciones (solo iconos) */
+#main-content .fv-config-crud-datagrid-wrap--active th.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active td.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active th.fv-crud-actions-column,
+#main-content .fv-config-crud-datagrid-wrap--active td.crud-list-actions-column {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    min-width: 108px !important;
+    width: 108px !important;
+    max-width: 120px !important;
+    background: #fff !important;
+    box-shadow: -6px 0 12px rgba(15, 23, 42, 0.04);
+    text-align: center !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active thead th.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active thead th.fv-crud-actions-column {
+    z-index: 4;
+    background: #f4f6f9 !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__actions-inner,
+#main-content .fv-config-crud-datagrid-wrap--active .fv-crud-row-actions {
+    display: inline-flex !important;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem !important;
+}
+
+/* Controles DataTables */
+#main-content .fv-config-crud-datagrid-wrap .dataTables_wrapper .dataTables_length,
+#main-content .fv-config-crud-datagrid-wrap .dataTables_wrapper .dataTables_filter {
+    margin-bottom: 0.75rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap .dataTables_wrapper .dataTables_filter input {
+    min-width: 240px;
+    border-radius: 0.35rem;
+    border: 1px solid #dee2e6;
+    padding: 0.35rem 0.65rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap .dataTables_wrapper .dataTables_info {
+    padding-top: 0.85rem;
+    font-size: 0.8125rem;
+    color: #6c757d;
+}
+
+#main-content .fv-config-crud-datagrid-wrap .dataTables_wrapper .paginate_button.current {
+    background: var(--fv-accent, #dc2626) !important;
+    border-color: var(--fv-accent, #dc2626) !important;
+    color: #fff !important;
+}
+
+/* Edición inline */
+#main-content .fv-config-crud-datagrid-wrap td.fv-dt-editable {
+    cursor: cell;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-dt-editable:hover {
+    background-color: #fff8e6 !important;
+    box-shadow: inset 0 0 0 1px #f0c36d;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-dt-editable .fv-dt-inline-input {
+    width: 100%;
+    min-width: 120px;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+    #main-content .fv-config-crud-datagrid-wrap--active .fv-crud-row-actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* Marca visual "por defecto" en columna isDefault */
+.fv-config-crud-datagrid td[data-field="isDefault"],
+.fv-config-crud-datagrid th[data-field="isDefault"] {
+    text-align: center;
+}
+
+.fv-config-crud-default-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.5rem;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.fv-config-crud-default-mark__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(23, 162, 184, 0.12);
+    color: #17a2b8;
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+.fv-config-crud-default-mark__badge .mdi {
+    font-size: inherit;
+    line-height: 1;
+}
+
+.fv-boolean-field-switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.5rem;
+    pointer-events: auto;
+}
+
+#main-content .fv-config-crud-datagrid-wrap th.fv-crud-switch-cell,
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .fv-boolean-field-switch-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 36px;
+    margin: 0 auto;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .custom-control.custom-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    min-height: 1.5rem;
+    padding-left: 2.25rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .custom-control-label {
+    margin-bottom: 0;
+    line-height: 1.5rem;
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .custom-control-label::before {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .custom-control-label::after {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#main-content .fv-config-crud-datagrid-wrap td.fv-crud-switch-cell .custom-control-input:checked ~ .custom-control-label::after {
+    transform: translateY(-50%) translateX(0.75rem);
+}
+
+.fv-config-crud-datagrid td .custom-control.custom-switch {
+    pointer-events: auto;
+}
+
+.fv-config-crud-order-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
+    border: 2px solid #cbd5e1;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.fv-config-crud-order-avatar--default {
+    background: linear-gradient(145deg, #fecaca 0%, #f87171 100%);
+    border-color: #ef4444;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.fv-config-crud-order-avatar__number {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    color: #334155;
+}
+
+.fv-config-crud-order-avatar--default .fv-config-crud-order-avatar__number {
+    color: #fff;
+}
+
+#main-content .fv-config-crud-datagrid thead th.fv-config-crud-order-column {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+}
+
+#main-content .fv-config-crud-datagrid tbody td.fv-config-crud-order-cell {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+}
+
+.fv-currency-country-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 36px;
+}
+
+.fv-currency-country-cell__flag {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.fv-currency-country-cell__flag img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fv-currency-country-cell__name {
+    font-weight: 500;
+    color: #334155;
+}

@@ -1,0 +1,54 @@
+/**
+ * Modales compactos: Asignar / Remover vendedor (lista de clientes).
+ * Hereda cabecera/cuerpo de fv-company-modals.css; solo ajusta tamaño y select.
+ */
+.fv-seller-assign-modal .modal-dialog {
+    max-width: 340px;
+    width: calc(100% - 1.5rem);
+    margin: 1.25rem auto;
+}
+
+.fv-seller-assign-modal.modal .modal-dialog {
+    margin-top: 1.25rem;
+}
+
+.fv-seller-assign-modal .modal-content {
+    overflow: visible;
+}
+
+.fv-seller-assign-modal .modal-body {
+    padding: 0.9rem 1rem 0.65rem !important;
+    overflow: visible;
+}
+
+.fv-seller-assign-modal .modal-body .form-group {
+    margin-bottom: 0;
+}
+
+.fv-seller-assign-modal .bootstrap-select > .dropdown-toggle,
+.fv-seller-assign-modal .bootstrap-select .dropdown-toggle {
+    border: 1px solid #fecaca !important;
+    border-radius: 0.5rem !important;
+    padding: 0.55rem 0.85rem !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-height: 42px;
+}
+
+.fv-seller-assign-modal .bootstrap-select > .dropdown-toggle:focus,
+.fv-seller-assign-modal .bootstrap-select .dropdown-toggle:focus {
+    border-color: #dc2626 !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.2) !important;
+    outline: none !important;
+}
+
+.fv-seller-assign-modal .bootstrap-select .dropdown-menu {
+    border-radius: 0.5rem;
+    border-color: #fecaca;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.fv-seller-assign-modal .modal-footer {
+    padding: 0.65rem 1rem 0.85rem;
+}

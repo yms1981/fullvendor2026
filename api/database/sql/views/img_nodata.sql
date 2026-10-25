@@ -1,0 +1,1 @@
+CREATE OR REPLACE VIEW `img_nodata` AS select `b`.`pro_id` AS `pro_id`,`a`.`product_id` AS `product_id`,`b`.`sku` AS `sku`,`b`.`company_id` AS `company_id` from (`product_images` `a` left join `products` `b` on(`b`.`pro_id` = `a`.`product_id`)) where `a`.`product_id` is null or `a`.`product_id` = 0;

@@ -1,0 +1,624 @@
+.fv-config-import {
+    padding-bottom: 120px;
+}
+
+.fv-config-import__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.fv-config-import__subtitle {
+    color: #6c757d;
+    font-size: 0.9375rem;
+}
+
+.fv-config-import__card {
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+}
+
+.fv-config-import__upload-form {
+    margin-bottom: 0;
+}
+
+.fv-config-import__dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 220px;
+    padding: 1.5rem 1.25rem;
+    border: 2px dashed #cfd8e3;
+    border-radius: 12px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+.fv-config-import__dropzone:hover {
+    border-color: #1ea910;
+    background: #f3fbf3;
+}
+
+.fv-config-import__dropzone-icon {
+    font-size: 2.5rem;
+    color: #1ea910;
+    line-height: 1;
+}
+
+.fv-config-import__dropzone-title {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.fv-config-import__dropzone-hint {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-align: center;
+    max-width: 36rem;
+}
+
+.fv-config-import__dropzone-steps {
+    margin: 0.25rem 0 0;
+    padding-left: 1.15rem;
+    max-width: 34rem;
+    text-align: left;
+    color: #475569;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.fv-config-import__dropzone-steps li + li {
+    margin-top: 0.35rem;
+}
+
+.fv-config-import__dropzone-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.fv-config-import__file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.fv-config-import__file-name {
+    font-size: 0.875rem;
+    color: #374151;
+    min-height: 1.25rem;
+}
+
+.fv-config-import__file-name[data-empty="1"]::before {
+    content: attr(data-placeholder);
+}
+
+.fv-config-import__columns-note {
+    margin-top: 1rem;
+    margin-bottom: 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.fv-config-import__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.fv-config-import__stats--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fv-config-import__stat {
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    box-shadow: 0 1px 6px rgba(15, 23, 42, 0.05);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: 1px solid #eef2f7;
+}
+
+.fv-config-import__stat-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+    line-height: 1.3;
+    min-height: 1.1rem;
+}
+
+.fv-config-import__stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #111827;
+}
+
+.fv-config-import__stat-link {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0 auto;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2rem;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.fv-config-import__stat-link:hover,
+.fv-config-import__stat-link:focus {
+    opacity: 0.82;
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.fv-config-import__stat-link:focus-visible {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+    border-radius: 0.35rem;
+}
+
+.fv-config-import-stats-modal__summary {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.fv-config-import-stats-modal__table-wrap {
+    max-height: 60vh;
+    overflow: auto;
+}
+
+.fv-config-import-stats-modal__pager .btn + .btn {
+    margin-left: 0.35rem;
+}
+
+.fv-config-import__stat--ok .fv-config-import__stat-value {
+    color: #15803d;
+}
+
+.fv-config-import__stat--ok .fv-config-import__stat-link {
+    color: #15803d;
+}
+
+.fv-config-import__stat--error .fv-config-import__stat-value {
+    color: #b91c1c;
+}
+
+.fv-config-import__stat--error .fv-config-import__stat-link {
+    color: #b91c1c;
+}
+
+.fv-config-import__stat--warn .fv-config-import__stat-value {
+    color: #b45309;
+}
+
+.fv-config-import__stat--warn .fv-config-import__stat-link {
+    color: #b45309;
+}
+
+.fv-config-import__change-file {
+    margin-left: 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.fv-config-import__filename {
+    color: #4b5563;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.fv-config-import__table-wrap {
+    max-height: min(62vh, 520px);
+    overflow: auto;
+    border-radius: 0 0 12px 12px;
+}
+
+.fv-config-import__table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 0;
+}
+
+.fv-config-import__table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.fv-config-import__table td {
+    font-size: 0.875rem;
+    vertical-align: middle;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid #eef2f7;
+    color: #1f2937;
+    line-height: 1.45;
+}
+
+.fv-config-import__table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.fv-config-import__table tbody tr:nth-child(even):not(.fv-config-import__row--error):not(.fv-config-import__row--duplicate):not(.fv-config-import__row--skip) {
+    background: #fafbfc;
+}
+
+.fv-config-import__table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.fv-config-import__col-line {
+    width: 3.5rem;
+    min-width: 3.5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.fv-config-import__col-status {
+    min-width: 9.5rem;
+    width: 11rem;
+}
+
+.fv-config-import__status-cell {
+    white-space: nowrap;
+}
+
+.fv-config-import__row--ok:hover {
+    background: #f0fdf4 !important;
+}
+
+.fv-config-import__row--error {
+    background: #fff7f7;
+}
+
+.fv-config-import__row--error:hover {
+    background: #fef2f2 !important;
+}
+
+.fv-config-import__row--skip {
+    background: #f8fafc;
+    opacity: 0.92;
+}
+
+.fv-config-import__row--skip:hover {
+    background: #f1f5f9 !important;
+}
+
+.fv-config-import__row--duplicate {
+    background: #fffbeb;
+}
+
+.fv-config-import__row--duplicate:hover {
+    background: #fef3c7 !important;
+}
+
+.fv-config-import__cell--error {
+    background: #fecaca !important;
+    color: #991b1b;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 #ef4444;
+}
+
+.fv-config-import__error-detail {
+    color: #b91c1c !important;
+    font-size: 0.75rem;
+    white-space: normal;
+    max-width: 14rem;
+}
+
+.fv-config-import__dropzone.is-loading {
+    pointer-events: none;
+    opacity: 0.65;
+}
+
+.fv-config-import__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.fv-config-import__badge--ok {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.fv-config-import__badge--error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.fv-config-import__badge--skip {
+    background: #e2e8f0;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.fv-config-import__badge--warn {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.fv-config-import__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.fv-config-import__template-btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+
+.fv-config-import__legend-card .card-body {
+    padding: 1rem 1.15rem;
+}
+
+.fv-config-import__legend-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.85rem;
+}
+
+.fv-config-import__legend-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.65rem 1.25rem;
+}
+
+.fv-config-import__legend-item {
+    margin: 0;
+}
+
+.fv-config-import__legend-item dt {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 0.15rem;
+}
+
+.fv-config-import__legend-item dd {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+    .fv-config-import__stats,
+    .fv-config-import__stats--4 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .fv-config-import__table thead th,
+    .fv-config-import__table td {
+        padding: 0.55rem 0.65rem;
+        font-size: 0.8125rem;
+    }
+}
+
+.fv-config-import__loader-overlay {
+    display: none !important;
+}
+
+.fv-import-progress {
+    position: fixed;
+    inset: 0;
+    z-index: 10060;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* El aviso de resultado (SweetAlert) debe quedar por encima del progreso. */
+body.swal-open .fv-import-progress,
+.swal-overlay ~ .fv-import-progress,
+.fv-import-progress.is-behind-swal {
+    z-index: 1000 !important;
+    pointer-events: none;
+}
+
+.swal-overlay {
+    z-index: 11000 !important;
+}
+
+.swal-modal {
+    z-index: 11001 !important;
+}
+
+.fv-import-report {
+    max-height: 340px;
+    overflow: auto;
+    text-align: left;
+    white-space: pre-wrap;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #334155;
+}
+
+.fv-import-progress.is-visible {
+    display: flex;
+}
+
+.fv-import-progress__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(3px);
+}
+
+.fv-import-progress__panel {
+    position: relative;
+    width: min(100%, 28rem);
+    padding: 1.5rem 1.35rem 1.25rem;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    text-align: center;
+}
+
+.fv-import-progress__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+    font-size: 1.5rem;
+}
+
+.fv-import-progress__title {
+    margin: 0 0 1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-import-progress__bar-track {
+    height: 0.55rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+}
+
+.fv-import-progress__bar {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #dc2626 0%, #f97316 100%);
+    transition: width 0.25s ease;
+}
+
+.fv-import-progress__percent {
+    margin: 0.55rem 0 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-import-progress__step {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.fv-import-progress__detail {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    min-height: 1.2rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.fv-import-progress__steps {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    text-align: left;
+}
+
+.fv-import-progress__step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.35rem 0;
+    font-size: 0.8125rem;
+    color: #9ca3af;
+}
+
+.fv-import-progress__step-item.is-active {
+    color: #111827;
+    font-weight: 600;
+}
+
+.fv-import-progress__step-item.is-done {
+    color: #059669;
+}
+
+.fv-import-progress__step-marker {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.45;
+    flex-shrink: 0;
+}
+
+.fv-import-progress__step-item.is-active .fv-import-progress__step-marker {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+}
+
+.fv-import-progress__step-item.is-done .fv-import-progress__step-marker {
+    opacity: 1;
+}
+
+.fv-config-import__loader-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.2);
+    color: #111827;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}

@@ -1,0 +1,17 @@
+<?php
+
+namespace {{ namespace }};
+
+use PHPUnit\Framework\TestCase;
+
+class {{ class }} extends ModelBaseTestCase implements ModelWithModificableProperties
+{
+    protected $model = {{class}}.class;
+
+    public function testModify()
+    {
+        /** @var {{class}} $item */
+        $item = $this->createModelInstance();
+        //TODO: implment modifiable asserts
+    }
+}

@@ -1,0 +1,3 @@
+name(char),"Product Categories Names(For Ex Luxury Watchh,laptops)(char)",sku(char),barcode(char),unit_type(char),sale_price(numeric),fob_price(numeric),purchase_price(numeric),stock(use Numeric),MOQ(numeric),"notify_minimum_stock(1=Yes,0=No)(numeric)",tags(char),Location(char),descriptions(char),"status(1=Active,0=Inactive)(numeric)"
+kunu test,laptops,product,uerhhgh,unit,41,20,52,5,56,1,zcszd,,vbgvv,0
+goigi product test,"laptops,Luxury Watchh,plate",unit,hhefergtr,pack,2,25,89,23,2,0,scddf,,jkjj,1

@@ -1,0 +1,1 @@
+CREATE OR REPLACE VIEW `devicesCompanytemp` AS select `gpstracker`.`company_id` AS `company_id`,`gpstracker`.`deviceinfo` AS `deviceinfo` from `gpstracker` group by `gpstracker`.`company_id`,`gpstracker`.`deviceinfo`;

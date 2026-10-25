@@ -1,0 +1,34 @@
+---
+description: Usar siempre el sistema de traducciones del proyecto para textos visibles al usuario
+alwaysApply: true
+---
+
+# Regla: Usar traducciones en todo el proyecto
+
+**Todo lo que se implemente debe usar traducciones.** No se deben hardcodear cadenas visibles al usuario en español ni en inglés.
+
+## Qué hacer
+
+- **Vistas (PHP/Blade):** Usar siempre las claves de los archivos de idioma (por ejemplo `$pageTexts['clave']`, `@lang('archivo.clave')`, `__('archivo.clave')`). Nunca escribir texto fijo para títulos, botones, etiquetas, mensajes o placeholders.
+- **MVC (CodeIgniter):** Los textos deben resolverse con traducciones (p. ej. `$pageTexts` vía API/langmdl y, donde haga falta, el bloque correspondiente en `api/lang/*.json` con `getLangJsonSection()`). **No** usar archivos `api/lang/**/cmp-*.php` como fuente ni incluirlos en PHP.
+- **API (Laravel):** Preferir cadenas alineadas con los JSON en `api/lang/` (`es-ES.json`, `en-EN.json`, etc.); evitar añadir dependencias nuevas en `api/lang/{locale}/cmp-*.php`.
+- **Nuevas cadenas:** Añadir la clave en **todos** los JSON de locale necesarios bajo `api/lang/` (misma estructura entre idiomas) y usar esa clave en el código.
+
+## Ejemplo
+
+En lugar de:
+```php
+<button>Duplicar</button>
+<p>Seleccione el cliente</p>
+```
+
+Usar:
+```php
+<button><?= htmlspecialchars($pageTexts['duplicate'] ?? '') ?></button>
+<p><?= htmlspecialchars($pageTexts['modal_duplicate_select_customer'] ?? '') ?></p>
+```
+
+## Resumen
+
+- Cero cadenas literales para la UI en el código.
+- Todas las cadenas visibles al usuario deben proceder del sistema de traducciones del proyecto.

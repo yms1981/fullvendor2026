@@ -1,0 +1,33 @@
+ARREGLAR TRADUCCION A INGLES
+
+dejar all customers (ok)
+Payment Terms (ok)
+
+Assign catalog order to (ok)
+
+Assign Commercial Data ->  Same as Commercial Data
+
+
+quitar los comercial en commercial data
+quitar los delivery data en delivery data
+
+zipocode es separado
+cellphone es junto
+
+DELIVERY DATA -> Delivery Detail Info
+
+COMMERCIAL DATA -> Commercial Detail Info
+
+
+-- 
+
+company
+
+retiramos shortaname y compan name
+
+
+se va columna company name
+
+cambiar list company por list de users
+
+la foto solo debe verse en la grilla

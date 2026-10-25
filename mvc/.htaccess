@@ -1,0 +1,31 @@
+RewriteOptions inherit
+RewriteEngine On
+
+# Solo si el navegador pidió la carpeta física. Una reescritura interna no debe redirigir.
+RewriteCond %{THE_REQUEST} \s/+mvc/mvc(?:/|\s|\?) [NC]
+RewriteCond %{REQUEST_URI} ^/mvc/mvc/?(.*)$ [NC]
+RewriteRule ^ /mvc/%1 [R=302,L,QSA]
+
+# PWA: cabeceras útiles para el service worker en la raíz
+<IfModule mod_headers.c>
+    <FilesMatch "^(sw\.js)$">
+        Header set Service-Worker-Allowed "/"
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    <FilesMatch "^(manifest\.json)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# No reescribir rutas de API/docs: las sirve el ProxyPass a laravel.test.
+# Sin esto, si el proxy no aplica, CodeIgniter responde la home HTML (200).
+RewriteRule ^api/v2(/|$) - [L]
+RewriteRule ^api/v3(/|$) - [L]
+RewriteRule ^docs(/|$) - [L]
+
+#RewriteCond %{HTTPS} off [OR]
+#RewriteCond %{THE_REQUEST} ^[A-Z]+\ /index\.php(/[^\ ]*)?\ HTTP/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
+

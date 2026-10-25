@@ -1,0 +1,473 @@
+.fv-sendtpl {
+    padding: 1.25rem 1.5rem 2.5rem;
+}
+
+.fv-sendtpl__head h1 {
+    margin: 0.35rem 0 0.4rem;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-sendtpl__head p,
+.fv-sendtpl__placeholders {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.92rem;
+}
+
+.fv-sendtpl__back {
+    color: #dc2626;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.fv-sendtpl__group {
+    margin-top: 1.4rem;
+}
+
+.fv-sendtpl__group h2,
+.fv-sendtpl__preview-title {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-sendtpl__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.fv-sendtpl__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-height: 280px;
+    padding: 0.9rem 1rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.fv-sendtpl__card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.fv-sendtpl__channel,
+.fv-sendtpl__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.fv-sendtpl__channel--whatsapp { background: #dcfce7; color: #166534; }
+.fv-sendtpl__channel--email { background: #fee2e2; color: #991b1b; }
+.fv-sendtpl__channel--sms { background: #e0e7ff; color: #3730a3; }
+.fv-sendtpl__badge { background: #f3f4f6; color: #374151; }
+
+.fv-sendtpl__subject,
+.fv-sendtpl__preview-subject {
+    margin: 0;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-sendtpl__preview-subject {
+    margin: 0 0 0.55rem;
+    padding: 0.55rem 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.fv-sendtpl__mini-preview {
+    flex: 1;
+    min-height: 160px;
+    max-height: 160px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+
+.fv-sendtpl__mini-preview--whatsapp {
+    background: #ece5dd;
+    padding: 0.7rem;
+}
+
+.fv-sendtpl__mini-preview--sms {
+    background: #eef2ff;
+    padding: 0.7rem;
+}
+
+.fv-sendtpl__mini-frame {
+    border: 0;
+    pointer-events: none;
+    background: #fff;
+    transform: scale(0.72);
+    transform-origin: top left;
+    width: 139%;
+    height: 222px;
+}
+
+.fv-sendtpl__bubble {
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: #111827;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.fv-sendtpl__bubble--whatsapp {
+    background: #dcf8c6;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+.fv-sendtpl__bubble--sms {
+    background: #fff;
+    border: 1px solid #c7d2fe;
+}
+
+.fv-sendtpl__bubble--edit {
+    max-width: 640px;
+    font-size: 0.95rem;
+}
+
+.fv-sendtpl__card-actions {
+    display: flex;
+    gap: 0.45rem;
+    margin-top: auto;
+}
+
+.fv-sendtpl__edit,
+.fv-sendtpl__save,
+.fv-sendtpl__reset,
+.fv-sendtpl__preview-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.fv-sendtpl__edit,
+.fv-sendtpl__save {
+    background: #dc2626;
+    color: #fff;
+}
+
+.fv-sendtpl__preview-btn {
+    background: #111827;
+    color: #fff;
+}
+
+.fv-sendtpl__reset {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.fv-sendtpl--edit .fv-sendtpl__form {
+    margin-top: 0;
+}
+
+.fv-sendtpl__workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.1rem;
+    align-items: start;
+    margin-top: 1.1rem;
+}
+
+.fv-sendtpl__editor,
+.fv-sendtpl__live {
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem 1.05rem 1.15rem;
+}
+
+.fv-sendtpl__live {
+    position: sticky;
+    top: 5.5rem;
+    max-height: calc(100vh - 6.5rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.fv-sendtpl__live-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.fv-sendtpl__live-head .fv-sendtpl__preview-title {
+    margin: 0;
+}
+
+.fv-sendtpl__live-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.fv-sendtpl__live-badge.is-updating {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.fv-sendtpl--edit .fv-sendtpl__body {
+    min-height: 22rem;
+}
+
+.fv-sendtpl__designer-hint {
+    margin: 0 0 0.35rem;
+    color: #6b7280;
+    font-size: 0.86rem;
+}
+
+.fv-sendtpl--edit .note-editor.note-frame {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.fv-sendtpl--edit .note-editor.note-frame .note-toolbar {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fv-sendtpl--edit .note-editor.note-frame .note-statusbar {
+    background: #f9fafb;
+}
+
+.fv-sendtpl--edit .note-editable {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #1f2937;
+}
+
+.fv-sendtpl--edit textarea.is-designer {
+    display: none;
+}
+
+.fv-sendtpl--edit .fv-sendtpl__preview {
+    flex: 1;
+    min-height: 22rem;
+    border-radius: 10px;
+}
+
+.fv-sendtpl--edit .fv-sendtpl__bubble--edit {
+    flex: 1;
+    max-width: none;
+    overflow: auto;
+}
+
+.fv-sendtpl__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 1100px) {
+    .fv-sendtpl__workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .fv-sendtpl__live {
+        position: static;
+        max-height: none;
+    }
+}
+
+.fv-sendtpl__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.fv-sendtpl__input,
+.fv-sendtpl__body {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.92rem;
+    color: #111827;
+}
+
+.fv-sendtpl__body.is-html {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+}
+
+.fv-sendtpl__actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.fv-sendtpl__notice {
+    margin: 0.8rem 0 0;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #065f46;
+    font-weight: 600;
+}
+
+.fv-sendtpl__preview {
+    width: 100%;
+    min-height: 420px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.fv-sendtpl__preview-title {
+    margin-top: 1.4rem;
+}
+
+body.fv-sendtpl-modal-open {
+    overflow: hidden;
+}
+
+.fv-sendtpl-modal[hidden] {
+    display: none !important;
+}
+
+.fv-sendtpl-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.fv-sendtpl-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.55);
+}
+
+.fv-sendtpl-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(920px, 100%);
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+.fv-sendtpl-modal__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fv-sendtpl-modal__head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-sendtpl-modal__close {
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #111827;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.fv-sendtpl-modal__subject {
+    margin: 0;
+    padding: 0.75rem 1rem 0;
+    font-weight: 700;
+    color: #111827;
+}
+
+.fv-sendtpl-modal__body {
+    padding: 0.85rem 1rem 1rem;
+    overflow: auto;
+}
+
+.fv-sendtpl-modal__frame {
+    width: 100%;
+    min-height: 480px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.fv-sendtpl-modal__text {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #111827;
+}
+
+.fv-sendtpl-modal__text--whatsapp {
+    background: #dcf8c6;
+    max-width: 520px;
+}
+
+.fv-sendtpl-modal__text--sms {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    max-width: 420px;
+}
+
+@media (max-width: 980px) {
+    .fv-sendtpl__grid {
+        grid-template-columns: 1fr;
+    }
+}

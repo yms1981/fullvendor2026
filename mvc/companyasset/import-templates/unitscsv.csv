@@ -1,0 +1,3 @@
+unit,description,formato,decimales,default
+Unidad,Ejemplo unidad,entero,0,1
+Caja,Ejemplo caja,decimal,2,0

@@ -1,0 +1,20 @@
+<?php
+ return [
+  'list_profile_vendor' => 'Lista de Perfil de Vendedores',
+  'add_new_profile_vendor' => 'Agregar Nuevo Perfil Vendedor',
+  'name_profile' => 'Nombre de perfil',
+  'order_discount' => 'Ordenar descuento',
+  'order_net_discount' => 'Descuento neto de orden',
+  'change_price' => 'Cambiar precio',
+  'create_customer' => 'Crear Cliente',
+  'created' => 'Alta',
+  'actions' => 'Accion',
+  'send_catalog' => 'Enviar Catalogo',
+  'delete_success' => 'Perfil de vendedor eliminado con exito',
+  'si' => 'Si',
+  'allowed_discount' => 'Permitir pedidos Descuentos de hasta(%)',
+  'allowed_discount_neto' => 'Permitir descuentos en pedidos hasta el descuento neto',
+  'save' => 'Guardar',
+  'update' => 'Actualizar',
+  'delete_profile_seller' => 'Eliminar Perfil Vendedor',
+];

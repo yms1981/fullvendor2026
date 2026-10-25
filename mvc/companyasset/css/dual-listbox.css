@@ -1,0 +1,117 @@
+
+.dual-listbox .dual-listbox__search {
+	width: 225px;
+	border: 1px solid #EBEDF3;
+	color: #3F4254;
+	outline: none !important;
+	border-radius: 0.42rem;
+}
+.dual-listbox .dual-listbox__search:active, .dual-listbox .dual-listbox__search:focus {
+	border-color: #D8DFD7 !important;
+}
+.dual-listbox .dual-listbox__search.dual-listbox__search--hidden {
+	display: none;
+}
+.dual-listbox .dual-listbox__container {
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+	-ms-flex-wrap: wrap;
+	flex-wrap: wrap;
+}
+.dual-listbox .dual-listbox__container > div:not(.dual-listbox__buttons) {
+	width: auto;
+	-webkit-box-flex: 1;
+	-ms-flex-positive: 1;
+	flex-grow: 1;
+	-ms-flex-preferred-size: 0;
+	flex-basis: 0;
+}
+.dual-listbox .dual-listbox__container .dual-listbox__title {
+	color: #3F4254;
+	font-weight: 500;
+	font-size: 1.1rem;
+	font-weight: bold;
+	padding: 0.75rem 0.75rem;
+	border: 1px solid #EBEDF3;
+	border-bottom: 0;
+	border-top-left-radius: 0.42rem;
+	border-top-right-radius: 0.42rem;
+}
+.dual-listbox .dual-listbox__container .dual-listbox__buttons {
+	margin: 0 1.5rem;
+}
+.dual-listbox .dual-listbox__container .dual-listbox__buttons .dual-listbox__button {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border-radius: none;
+	border: none;
+	cursor: pointer;
+	background-color: #1EA910;
+	border-color: #1EA910;
+	outline: none !important;
+	margin: 0;
+	padding: 0;
+	border-radius: 0.42rem;
+	margin-bottom: 0.5rem !important;
+	padding: 0.55rem 0.75rem;
+	color: #fff;
+	font-weight: 500;
+	font-size: 0.9rem;
+	-webkit-transition: all 0.3s ease;
+	transition: all 0.3s ease;
+}
+
+.dual-listbox .dual-listbox__container .dual-listbox__buttons .btn-remove{
+
+	
+	background-color: #CF1C00;
+	border-color: #CF1C00;
+	
+}
+
+.dual-listbox .dual-listbox__container .dual-listbox__selected,
+.dual-listbox .dual-listbox__container .dual-listbox__available {
+	width: auto;
+	color: #3F4254;
+	border: 1px solid #EBEDF3;
+	border-bottom-left-radius: 0.42rem;
+	border-bottom-right-radius: 0.42rem;
+}
+.dual-listbox .dual-listbox__container .dual-listbox__selected .dual-listbox__item,
+.dual-listbox .dual-listbox__container .dual-listbox__available .dual-listbox__item {
+	padding: 0.75rem 0.75rem;
+	border-bottom: 1px solid #EBEDF3;
+}
+.dual-listbox .dual-listbox__container .dual-listbox__selected .dual-listbox__item:last-child,
+.dual-listbox .dual-listbox__container .dual-listbox__available .dual-listbox__item:last-child {
+	border-bottom: 0;
+}
+/*.dual-listbox .dual-listbox__container .dual-listbox__selected .dual-listbox__item.dual-listbox__item--selected,
+.dual-listbox .dual-listbox__container .dual-listbox__available .dual-listbox__item.dual-listbox__item--selected {
+	background-color: #F3F6F9;
+}*/
+
+.dual-listbox .dual-listbox__container .dual-listbox__available .dual-listbox__item .css-order{
+	display: none;
+}
+
+.dual-listbox .dual-listbox__container .dual-listbox__selected .dual-listbox__item .css-order{
+	display: block;
+    background-color: #FFF633;
+    border-radius: 99%;
+    width: 35px !important;
+    height: 35px;
+    float: left;
+    text-align: center;
+    padding: 2px;
+    margin-right: 10px;
+}
+
+.dual-listbox .dual-listbox__item.dual-listbox__item--selected, .dual-listbox .dual-listbox__item:active {
+  background-color: #D8DFD7;
+}
+

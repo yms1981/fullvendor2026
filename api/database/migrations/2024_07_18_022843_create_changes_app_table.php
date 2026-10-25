@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('changes_app', function (Blueprint $table) {
+            $table->bigInteger('id', true);
+            $table->bigInteger('company_id')->default(0);
+            $table->dateTime('created')->useCurrent();
+            $table->integer('read')->default(0);
+            $table->string('email', 300)->nullable();
+            $table->bigInteger('user_id')->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('changes_app');
+    }
+};

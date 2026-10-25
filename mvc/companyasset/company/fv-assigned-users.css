@@ -1,0 +1,92 @@
+.fv-assigned-users-card {
+    overflow: visible;
+}
+
+.fv-assigned-users-card__header {
+    gap: 0.75rem;
+}
+
+.fv-assigned-users-card__title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.fv-assigned-users-card__add-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.fv-assigned-users-card__add-btn i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.fv-assigned-users-table-wrap {
+    overflow-x: auto;
+}
+
+.fv-assigned-users-table__actions-col {
+    width: 6.5rem;
+    min-width: 6.5rem;
+    white-space: nowrap;
+}
+
+.fv-assigned-users-table__actions {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.fv-assigned-users-table__actions .fv-crud-btn--row {
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fv-assigned-users-table__actions .fv-crud-btn--row i {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.fv-warehouse-user-picker__list {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 0.35rem;
+}
+
+.fv-warehouse-user-picker__table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8f9fa;
+}
+
+.fv-warehouse-user-picker__col-select {
+    width: 2.5rem;
+}
+
+.fv-warehouse-user-picker__row {
+    cursor: pointer;
+}
+
+.fv-warehouse-user-picker__row.is-selected,
+.fv-warehouse-user-picker__row:hover {
+    background-color: rgba(220, 53, 69, 0.08);
+}
+
+.fv-warehouse-user-picker__row.is-selected td {
+    font-weight: 600;
+}

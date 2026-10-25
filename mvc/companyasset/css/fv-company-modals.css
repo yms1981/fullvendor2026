@@ -1,0 +1,550 @@
+/**
+ * FullVendor — Diseño unificado de modales (área company).
+ * Cabecera clara (icono rojo, última palabra en acento), cuerpo rosado, footer.
+ */
+:root {
+    --fv-modal-accent: #dc2626;
+    --fv-modal-accent-dark: #b91c1c;
+    --fv-modal-accent-light: #ef4444;
+    --fv-modal-bg: #fff7f7;
+    --fv-modal-border: #fecaca;
+    --fv-modal-border-soft: #fee2e2;
+    --fv-modal-label: #7f1d1d;
+    --fv-modal-text: #450a0a;
+    --fv-modal-placeholder: #d4a4a4;
+}
+
+/* Contenedor */
+body .modal .modal-content {
+    background-color: #fff;
+    border: none;
+    border-radius: 0.85rem;
+    box-shadow: 0 1.25rem 3.5rem rgba(15, 23, 42, 0.18), 0 0.25rem 0.75rem rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+/* Cabecera: card claro, icono rojo y última palabra en acento */
+body .modal .modal-header {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1.1rem;
+    overflow: hidden;
+    background: linear-gradient(90deg, #ffffff 0%, #ffffff 46%, #fff1f2 100%) !important;
+    color: #111827;
+    border-bottom: 1px solid #ffe4e6;
+}
+
+body .modal .modal-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 52%;
+    background:
+        linear-gradient(115deg, transparent 0 16%, rgba(255, 255, 255, 0.72) 16% 30%, transparent 30% 42%, rgba(254, 205, 211, 0.55) 42% 58%, transparent 58% 70%, rgba(255, 255, 255, 0.8) 70% 84%, transparent 84%),
+        radial-gradient(rgba(220, 38, 38, 0.16) 1px, transparent 1.15px);
+    background-size: auto, 14px 14px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%);
+    mask-image: linear-gradient(90deg, transparent, #000 22%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body .modal .modal-header::after {
+    display: none;
+}
+
+body .modal .modal-header__lead,
+body .modal .modal-header .modal-title,
+body .modal .modal-header .close,
+body .modal .modal-header .modal-subtitle {
+    position: relative;
+    z-index: 1;
+}
+
+body .modal .modal-header__lead {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+body .modal .modal-header__copy {
+    min-width: 0;
+}
+
+body .modal .modal-header .modal-title {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-transform: none !important;
+    color: #111827 !important;
+}
+
+body .modal .modal-header__accent {
+    color: #dc2626;
+}
+
+body .modal .modal-header .modal-subtitle,
+body .modal .modal-subtitle {
+    margin: 0.22rem 0 0;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #6b7280;
+}
+
+body .modal .modal-header .modal-header__avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+    box-shadow: 0 8px 16px rgba(220, 38, 38, 0.28);
+}
+
+body .modal .modal-header .modal-header__avatar .mdi,
+body .modal .modal-header .modal-header__avatar .fa,
+body .modal .modal-header .modal-header__avatar .fas,
+body .modal .modal-header .modal-header__avatar .fa-solid {
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #fff;
+}
+
+body .modal .modal-header .close {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    z-index: 5;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.15rem !important;
+    height: 2.15rem !important;
+    min-width: 2.15rem;
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    color: #6b7280 !important;
+    text-shadow: none;
+    font-weight: 400;
+    font-size: 1.05rem;
+    line-height: 1;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 50%;
+    background: #fff !important;
+    float: none !important;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+body .modal .modal-header .close span,
+body .modal .modal-dialog .modal-content .modal-header .close span,
+body .modal .modal-header .close .fa,
+body .modal .modal-header .close .fas,
+body .modal .modal-header .close .mdi {
+    color: #6b7280 !important;
+    font-size: 1.15rem !important;
+    font-weight: 600;
+    line-height: 1;
+    opacity: 1 !important;
+}
+
+body .modal .modal-header .close:hover {
+    opacity: 1;
+    color: #dc2626 !important;
+    background: #fff1f2;
+    transform: scale(1.06);
+    box-shadow: 0 0.25rem 0.65rem rgba(220, 38, 38, 0.12);
+}
+
+body .modal .modal-header .close:hover span,
+body .modal .modal-header .close:hover .fa,
+body .modal .modal-header .close:hover .fas,
+body .modal .modal-header .close:hover .mdi {
+    color: #dc2626 !important;
+}
+
+body .modal .modal-header .close:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.18);
+}
+
+/* Cuerpo */
+body .modal .modal-body {
+    padding: 1.25rem 1.5rem;
+    background-color: var(--fv-modal-bg);
+}
+
+/* Labels (no checkboxes / botones) */
+body .modal .modal-body .form-group > label,
+body .modal .modal-body .mb-3 > label,
+body .modal .modal-body label.col-form-label,
+body .modal .modal-body .control-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--fv-modal-label);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+body .modal .modal-body label.custom-control-label,
+body .modal .modal-body label.especial_label,
+body .modal .modal-body label.btn {
+    font-weight: inherit;
+    color: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: inherit;
+}
+
+body .modal .modal-body label .text-danger,
+body .modal .modal-body label .color-red {
+    color: var(--fv-modal-accent) !important;
+}
+
+/* Campos */
+body .modal .modal-body .form-control:not(textarea),
+body .modal .modal-body select.form-control {
+    height: 2.4rem;
+    min-height: 2.4rem;
+    font-size: 0.9rem;
+    background-color: #fff;
+    border: 1px solid var(--fv-modal-border);
+    border-radius: 0.5rem;
+    color: var(--fv-modal-text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body .modal .modal-body textarea.form-control {
+    min-height: 5rem;
+    height: auto;
+    font-size: 0.9rem;
+    background-color: #fff;
+    border: 1px solid var(--fv-modal-border);
+    border-radius: 0.5rem;
+    color: var(--fv-modal-text);
+}
+
+body .modal .modal-body .form-control:focus,
+body .modal .modal-body select.form-control:focus,
+body .modal .modal-body textarea.form-control:focus {
+    border-color: var(--fv-modal-accent);
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.2);
+}
+
+body .modal .modal-body .form-control::placeholder {
+    color: var(--fv-modal-placeholder);
+}
+
+/* Inputs con icono interno */
+body .modal .modal-input-icon {
+    position: relative;
+}
+
+body .modal .modal-input-icon > .mdi,
+body .modal .modal-input-icon > .fa,
+body .modal .modal-input-icon > .fas,
+body .modal .modal-input-icon > .far {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fv-modal-accent);
+    font-size: 0.95rem;
+    pointer-events: none;
+    z-index: 2;
+}
+
+body .modal .modal-input-icon > .form-control,
+body .modal .modal-input-icon > .input-group > .form-control {
+    padding-left: 2.1rem;
+}
+
+body .modal .modal-input-icon > select.form-control {
+    padding-left: 2.1rem;
+}
+
+body .modal .modal-input-icon > textarea.form-control {
+    padding-left: 2.1rem;
+    padding-top: 0.65rem;
+}
+
+body .modal .modal-input-icon > textarea.form-control + .mdi,
+body .modal .modal-input-icon > .mdi:has(+ textarea),
+body .modal .modal-input-icon:has(> textarea) > .mdi {
+    top: 0.9rem;
+    transform: none;
+}
+
+/* Auto-iconos inyectados por JS */
+body .modal .modal-input-icon.fv-modal-auto-icon {
+    display: block;
+    width: 100%;
+}
+
+/* Prefijos tel / input-group */
+body .modal .modal-body .input-group-text {
+    background-color: var(--fv-modal-accent);
+    border-color: var(--fv-modal-accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+body .modal .modal-body .custom-control-input:checked ~ .custom-control-label::before {
+    background-color: var(--fv-modal-accent);
+    border-color: var(--fv-modal-accent);
+}
+
+body .modal .modal-body .custom-control-input:focus ~ .custom-control-label::before {
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.2);
+}
+
+/* Select2 dentro de modales */
+body .modal .select2-container {
+    width: 100% !important;
+}
+
+body .modal .select2-container .select2-selection--single {
+    height: 2.4rem !important;
+    border: 1px solid var(--fv-modal-border) !important;
+    border-radius: 0.5rem !important;
+    background-color: #fff !important;
+}
+
+body .modal .select2-container--default.select2-container--focus .select2-selection--single,
+body .modal .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--fv-modal-accent) !important;
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.2);
+}
+
+body .modal .select2-container .select2-selection__rendered {
+    line-height: 2.3rem !important;
+    color: var(--fv-modal-text);
+}
+
+body .modal .select2-container .select2-selection__arrow {
+    height: 2.3rem !important;
+}
+
+/* Bootstrap-select */
+body .modal .bootstrap-select > .dropdown-toggle {
+    border: 1px solid var(--fv-modal-border) !important;
+    border-radius: 0.5rem !important;
+    background: #fff !important;
+    min-height: 2.4rem;
+}
+
+body .modal .bootstrap-select > .dropdown-toggle:focus {
+    border-color: var(--fv-modal-accent) !important;
+    box-shadow: 0 0 0 0.18rem rgba(220, 38, 38, 0.2) !important;
+}
+
+/* Secciones / divisores */
+body .modal .modal-section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.45), transparent);
+    margin: 0.55rem 0 0.7rem;
+}
+
+body .modal .modal-body h6.text-uppercase,
+body .modal .modal-body .text-muted.text-uppercase {
+    color: var(--fv-modal-label) !important;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--fv-modal-border);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Footer */
+body .modal .modal-footer {
+    padding: 0.85rem 1.25rem;
+    background-color: #fff;
+    border-top: 1px solid var(--fv-modal-border-soft);
+}
+
+body .modal .modal-footer .btn {
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+body .modal .modal-footer .btn-success,
+body .modal .modal-footer .btn-primary,
+body .modal .modal-footer .btn-danger {
+    background-color: var(--fv-modal-accent);
+    border-color: var(--fv-modal-accent);
+    color: #fff;
+    box-shadow: 0 0.4rem 0.85rem rgba(220, 38, 38, 0.3);
+}
+
+body .modal .modal-footer .btn-success:hover:not(:disabled),
+body .modal .modal-footer .btn-primary:hover:not(:disabled),
+body .modal .modal-footer .btn-danger:hover:not(:disabled) {
+    background-color: var(--fv-modal-accent-dark);
+    border-color: var(--fv-modal-accent-dark);
+    color: #fff;
+}
+
+body .modal .modal-footer .btn-secondary,
+body .modal .modal-footer .btn-light,
+body .modal .modal-footer .btn-outline-secondary,
+body .modal .modal-footer .btn-default {
+    background-color: #fff;
+    border-color: var(--fv-modal-accent);
+    color: var(--fv-modal-accent);
+}
+
+body .modal .modal-footer .btn-secondary:hover,
+body .modal .modal-footer .btn-light:hover,
+body .modal .modal-footer .btn-outline-secondary:hover,
+body .modal .modal-footer .btn-default:hover {
+    background-color: var(--fv-modal-accent);
+    border-color: var(--fv-modal-accent);
+    color: #fff;
+}
+
+/* Modal imprimir orden: angosto, botones compactos, Cerrar con icono a la derecha */
+#exampleModal .fv-order-print-modal__dialog {
+    max-width: 360px;
+    width: calc(100% - 1.5rem);
+}
+
+#exampleModal .modal-header {
+    padding: 0.7rem 0.85rem;
+}
+
+#exampleModal .modal-header .modal-title {
+    font-size: 0.9rem;
+}
+
+#exampleModal .modal-header .close {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-left: auto;
+    color: #6b7280 !important;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    opacity: 1;
+    z-index: 3;
+}
+
+#exampleModal .modal-header .close .fa,
+#exampleModal .modal-header .close span {
+    color: #6b7280 !important;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+#exampleModal .modal-body {
+    padding: 0.75rem 0.85rem;
+    background-color: #fff;
+}
+
+#exampleModal .modal-body textarea.form-control {
+    min-height: 5rem;
+    font-size: 0.82rem;
+}
+
+#exampleModal .fv-order-print-modal__footer {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.65rem;
+}
+
+#exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 1.85rem;
+    height: 1.85rem;
+    margin: 0;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    border-radius: 0.4rem;
+    background-color: var(--fv-modal-accent) !important;
+    border: 1px solid var(--fv-modal-accent) !important;
+    color: #fff !important;
+    box-shadow: none;
+    text-transform: uppercase;
+}
+
+#exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn i {
+    font-size: 0.7rem;
+    flex-shrink: 0;
+    color: #fff;
+}
+
+#exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn:hover,
+#exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn:focus {
+    background-color: var(--fv-modal-accent-dark) !important;
+    border-color: var(--fv-modal-accent-dark) !important;
+    color: #fff !important;
+}
+
+#exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn--close {
+    order: 3;
+}
+
+@media (max-width: 575px) {
+    #exampleModal .fv-order-print-modal__dialog {
+        max-width: calc(100% - 1rem);
+        margin: 0.5rem auto;
+    }
+    #exampleModal .fv-order-print-modal__footer {
+        flex-wrap: wrap;
+    }
+    #exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn {
+        flex: 1 1 calc(50% - 0.3rem);
+    }
+    #exampleModal .fv-order-print-modal__footer .fv-order-print-modal__btn--close {
+        flex: 1 1 100%;
+        order: 9;
+    }
+}
+
+/* Excepciones: no aplicar a overlays que no son Bootstrap modal estándar */
+.swal2-container .modal-content,
+.swal2-popup {
+    /* SweetAlert tiene su propio estilo */
+}

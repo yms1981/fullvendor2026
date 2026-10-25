@@ -1,0 +1,13 @@
+<?php
+
+namespace App\OpenApi\Schemas;
+
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(
+    schema: 'VwinventoryRequest',
+    properties: [
+    ]
+)]
+class VwInventoryRequestSchema {}
+

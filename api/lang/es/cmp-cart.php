@@ -1,0 +1,22 @@
+<?php
+ return [
+  'notify_customer' => 'Notificar al cliente',
+  'copy_link' => 'Copiar Link',
+  'submit_order' => 'Confirmar Orden',
+  'delete_thiscart' => 'Eliminar Carrito',
+  'back' => 'Atras',
+  'creado' => 'Creado',
+  'detail_cart' => 'Detalle Carrito',
+  'filtered_results' => 'Total de Carritos Filtrados',
+  'count_total' => 'Total de Carritos',
+  'cart_iswaiting' => 'Tu Carrito esta esperando a que lo ordenes!',
+  'cart_had' => 'Tu carrito tiene:',
+  'hello' => 'Hola %s',
+  'link_expired' => 'El link del Cliente ha caducado. Desea continuar?',
+  'cart' => 'Carrito',
+  'question_delete' => 'Eliminar el Carrito',
+  'yes' => 'Si',
+  'cancel' => 'Cancelar',
+  'cart_deleted' => 'Carrito Eliminado con Exito',
+  'not_deleted' => 'No se puede eliminar Carrito Confirmed',
+];

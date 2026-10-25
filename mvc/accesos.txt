@@ -1,0 +1,107 @@
+HOSTING
+user: u8p03v2jl0vl
+contra: z4b_;jxS5
+f9M5AjJn
+    
+CORREO DEVELOP
+develop@fullvendor.com
+
+CONSTRASEÑA: FullVTeams*2022
+// 
+
+PARA ACCEDER A LA CUENTA DE GITHUB SON LOS MISMOS
+ACCESOS
+
+
+IP: 148.72.11.66
+
+ACCESO A LA BASE DE DATOS LOCAL DE KORACHICK
+'password' => 'vcarRoot2022$_', 
+'database' => 'fullvend_prodytec',
+
+
+---------------------------------------------
+ACCESO FTP
+---------------------------------------------
+
+USUARIO => desarrollo@fullvendor.net
+PASSWORD => Fullvendor*2024
+
+---------------------------------------------
+ACCESO DATABASE
+---------------------------------------------
+USUARIO => desarrollo
+PASSWORD => Fullvendor*2024
+
+---------------------------------------------
+ACCESO A ANYDESK
+---------------------------------------------
+Fullvendor*2024
+
+
+---------------------------------------------
+NUEVO SERVIDOR (MATIAS ME PASO LAS CREDENCIALES)
+
+Buenas tardes, paso el usuario base para que antony pueda subir fullvendor
+Dominio de Test para php
+
+test1.fullvendor.com
+acceso: https://test1.fullvendor.com:10000
+usuario: test1-fv
+contraseña: jGfUKUHvRow3sBp
+
+Para phpMyAdmin , usar mismo usuario y contraseña gAeBMDmfZyPxfym
+sobre
+https://sysweb.fullvendor.com/phpmyadmin 
+
+
+id ANYDESK
+1083941395
+
+PASOS PARA PRODUCCION
+
+# Agregar estos dos valores en el archivo .htaccess de la aplicion al final de todo con
+la url de produccion: 
+
+RewriteCond %{HTTP_HOST} ^test1.fullvendor\.com$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.test1.fullvendor\.com$
+
+
+# En el archivo aplication/config.php que se encuentra en un archivo llamado 
+config.php
+
+# se deben cambiar los valores a estas variables
+
+http://localhost/fullvendor_test  por el dominio real de produccion
+
+$config['base_url'] = 'http://localhost/fullvendor_test/';
+$config['admin_url'] = 'http://localhost/fullvendor_test/admin/';
+$config['company_url'] = 'http://localhost/fullvendor_test/company/';
+$config['seller_url'] = 'http://localhost/fullvendor_test/salesman/';
+$config['marketplace_url'] = 'http://localhost/fullvendor_test/marketplace/';
+
+---------------------------------------------
+
+SERVIDOR app.fullvendor.com
+
+phpmyadmin
+  
+  user: desarrollo@app.f
+  contraseña: Full2024
+  
+FTP
+    user: desarrollo@app.fullvendor.com
+    contraseña: Full2024
+
+
+
+
+
+
+
+
+
+
+
+
+https://fullvendor.atlassian.net/wiki/spaces/DDF/pages/60489729/Prioridades+pendientes

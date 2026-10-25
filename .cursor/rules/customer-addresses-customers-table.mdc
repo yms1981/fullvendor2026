@@ -1,0 +1,27 @@
+---
+description: Direcciones de cliente se guardan y leen en columnas de la tabla customers
+alwaysApply: true
+---
+
+# Direcciones de cliente: tabla `customers`
+
+## Fuente de verdad
+
+Las direcciones de cliente (comercial y despacho) se **leen y escriben en las columnas de la tabla `customers`**, no en `addresses` / `address_customer` como origen principal.
+
+Columnas relevantes:
+
+- `commercial_address`, `commercial_delivery_address`, `commercial_country`, `commercial_state`, `commercial_city`, `commercial_zone`, `commercial_zip_code`
+- `dispatch_address`, `dispatch_delivery_address`, `dispatch_country`, `dispatch_state`, `dispatch_city`, `dispatch_zone`, `dispatch_zip_code`, `dispatch_shipping_notes`
+
+## Comportamiento obligatorio
+
+1. Al **crear/actualizar** un cliente, persistir esas columnas desde el request en `customers`.
+2. En formularios MVC (alta/edición), **mostrar** esos valores desde `customers` (no depender solo del pivot).
+3. La tabla `addresses` / pivot `address_customer` es **auxiliar** (legacy/órdenes). Nunca debe sobrescribir las columnas de `customers` con datos vacíos o distintos del request.
+4. `commercial_country` / `dispatch_country` en `customers` guardan el **nombre** del país (string); el formulario puede enviar el id numérico y la API debe resolverlo a nombre.
+
+## Prohibido
+
+- Excluir los campos `commercial_*` / `dispatch_*` del `update`/`create` del modelo `Customer`.
+- Tras guardar, volver a pisar `customers.*` solo desde el pivot `addresses` (salvo relleno opcional de huecos sin tocar lo ya enviado en el request).

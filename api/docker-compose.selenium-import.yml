@@ -1,0 +1,7 @@
+services:
+  selenium:
+    volumes:
+      - '/dev/shm:/dev/shm'
+      - '/home/desarrollo/Descargas/77:/files/import77:ro'
+      - '/home/desarrollo/fullvendor2025/.tmp_import_run:/files/run'
+    shm_size: '2gb'

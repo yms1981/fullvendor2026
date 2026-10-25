@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <!-- FullVendor professional F mark -->
+  <circle cx="80" cy="80" r="68" stroke="#E10600" stroke-width="7"/>
+  <!-- F body -->
+  <path fill="#E10600" fill-rule="evenodd" d="
+    M52 122
+    V42
+    H108
+    V52.5
+    H64.5
+    V74
+    H100
+    V84.5
+    H64.5
+    V122
+    H52
+    Z"/>
+  <!-- Arrow tip cutting the ring -->
+  <path fill="#E10600" d="
+    M100 42
+    H114
+    L128 30
+    L112 30
+    L100 42
+    Z"/>
+  <path fill="#E10600" d="M114 42 L128 30 L122 54 Z"/>
+</svg>

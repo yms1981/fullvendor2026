@@ -1,0 +1,117 @@
+{
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "ext-fileinfo": "*",
+        "ext-pdo": "*",
+        "darkaonline/l5-swagger": "^8.6",
+        "intervention/image": "^3.11",
+        "laravel/fortify": "^1.21",
+        "laravel/framework": "^11.9",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.9",
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "maatwebsite/excel": "^3.1",
+        "mpdf/mpdf": "^8.2",
+        "orangehill/iseed": "^3.1",
+        "stripe/stripe-php": "^16.0",
+        "tucker-eric/eloquentfilter": "^3.4"
+    },
+    "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.1",
+        "fakerphp/faker": "^1.23",
+        "kitloong/laravel-migrations-generator": "^7.0",
+        "laravel/dusk": "^8.6",
+        "laravel/pint": "^1.13",
+        "laravel/sail": "^1.26",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.0",
+        "phpunit/phpunit": "^11.0.1",
+        "reliese/laravel": "v1.x-dev",
+        "smknstd/fakerphp-picsum-images": "^1.0",
+        "thedoctor0/laravel-factory-generator": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php vendor/bin/phpunit --testsuite Unit,Feature"
+        ],
+        "test:unit": [
+            "@php vendor/bin/phpunit --testsuite Unit"
+        ],
+        "test:feature": [
+            "@php vendor/bin/phpunit --testsuite Feature"
+        ],
+        "test:dusk": [
+            "@php artisan dusk --configuration=phpunit.dusk.xml"
+        ],
+
+        "schema:audit": [
+            "@php artisan schema:audit"
+        ],
+        "schema:sync": [
+            "@php artisan schema:sync --force --ansi"
+        ],
+        "schema:legacy-audit": [
+            "@php artisan schema:legacy-audit"
+        ],
+        "schema:export": [
+            "@php artisan schema:export"
+        ],
+        "schema:verify": [
+            "@php artisan schema:audit"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/fullvendor/reliese-laravel/"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

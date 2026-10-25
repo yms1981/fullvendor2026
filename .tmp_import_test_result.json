@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "sample_from": "/home/desarrollo/Descargas/77",
+  "sample_files": 26,
+  "error": "Error: timeout waiting: !!document.getElementById(\"fv-prod-images-file-input\")",
+  "stack": "Error: timeout waiting: !!document.getElementById(\"fv-prod-images-file-input\")\n    at waitExpr (/home/desarrollo/fullvendor2025/mvc/tmp_browser_import_cdp.js:77:9)\n    at async main (/home/desarrollo/fullvendor2025/mvc/tmp_browser_import_cdp.js:171:5)"
+}

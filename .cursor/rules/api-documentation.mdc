@@ -1,0 +1,58 @@
+---
+description: Toda API nueva o cambiada debe documentarse (Markdown + OpenAPI/Swagger) y publicarse en Swagger UI automáticamente
+alwaysApply: true
+---
+
+# Regla: documentar cada API (y publicarla en Swagger sin que lo pidan)
+
+Al **crear o modificar** endpoints de la API Laravel (`api/`), la documentación es parte obligatoria del cambio. No dar por cerrada la tarea solo con rutas/controllers.
+
+## Obligatorio al final de CADA tarea de API (sin que el usuario lo pida)
+
+Ejecutar siempre, en Docker/Sail:
+
+```bash
+php artisan openapi:sync --scan=NombreCarpetaController
+```
+
+Ejemplos:
+
+- Sección AppSalesman → `php artisan openapi:sync --scan=AppSalesman`
+- Sección Erp → `php artisan openapi:sync --scan=Erp`
+- Varias → `php artisan openapi:sync --scan=AppSalesman --scan=Erp`
+
+Sin `--scan` sincroniza los módulos por defecto (Erp + AppSalesman).
+
+Verificar que el path nuevo exista en `/api/v2/docs?api-docs.json` (o que el tag aparezca en `/api/v2/documentation`).
+
+**Nunca** dejar un endpoint nuevo solo con anotaciones OA en el PHP: debe quedar visible en Swagger UI en el mismo cambio.
+
+## Qué documentar (checklist)
+
+1. **Markdown** en `api/docs/`:
+   - Sección nueva → archivo dedicado (p. ej. `APP_SALESMAN_API.md`, `ERP_API.md`).
+   - Endpoint añadido a sección existente → actualizar ese `.md`.
+   - Incluir: auth (headers/tokens), tabla de endpoints, curl de ejemplo, respuestas 200 y errores relevantes (401/422/…).
+
+2. **OpenAPI / Swagger** en el controller:
+   - `#[OA\Tag(...)]` de la sección.
+   - `#[OA\Get|Post|...]` en cada método (`path`, `operationId`, `summary`, `security`, `responses`).
+   - Si hay auth nueva por API key: `OA\SecurityScheme` en `app/Http/Controllers/Controller.php`.
+   - Luego **`openapi:sync`** (arriba). `l5-swagger:generate` solo puede fallar por otros controllers; `openapi:sync` hace merge parcial.
+
+3. **Config / env** documentados en el `.md` y en `.env.example` (nombres de variables, no secretos reales de producción).
+
+## Al crear una sección nueva con X-Api-Key
+
+1. Añadir la carpeta del controller a los defaults de `OpenApiSyncCommand` (`$defaultScans`) si debe sincronizarse siempre.
+2. Incluir el `--scan=EsaCarpeta` en el `openapi:sync` de cierre de la tarea.
+
+## Patrón de referencia
+
+- Sección **pública** (sin token): clonar `api/docs/APP_SALESMAN_API.md` + atributos OA de `AppSalesman/AppSalesmanController.php` (`security: []`).
+- Sección con `X-Api-Key` (sin Sanctum): clonar `api/docs/ERP_API.md` + atributos OA de `Erp/ErpController.php`.
+
+## Prohibido
+
+- Añadir rutas bajo `/api/v2/...` o `/api/v3/...` sin Markdown + anotaciones OA + **`openapi:sync`**.
+- Entregar el API y esperar a que el usuario diga “no sale en la documentación”.

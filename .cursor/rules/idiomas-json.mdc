@@ -1,0 +1,21 @@
+---
+description: Idiomas con JSON y usar siempre traducciones en mensajes e interfaz
+alwaysApply: true
+---
+
+# Idiomas y traducciones
+
+## Regla: usar siempre traducciones
+
+**Todos los mensajes y todo lo que se muestre al usuario** (modales, alertas, botones, etiquetas, errores, confirmaciones, etc.) debe usar **traducciones**. No se deben hardcodear textos en español ni en inglés en la interfaz.
+
+## Fuente de las traducciones
+
+En este proyecto **los idiomas se gestionan con las cadenas JSON**, no con los archivos `cmp-*.php`.
+
+- **Usar:** archivos JSON de idioma en `api/lang/` (p. ej. `es-ES.json`, `en-EN.json`, etc.). Los textos por módulo suelen ir en un objeto de primer nivel con el mismo nombre que el módulo (p. ej. `"cmp-user": { ... }`).
+- **No usar** `api/lang/**/cmp-*.php` ni incluirlos con `include` en PHP: **ni como fuente de verdad ni como respaldo en código nuevo**. No añadir ni editar cadenas en esos PHP; mantener y ampliar solo los JSON.
+
+En el MVC, para leer un bloque del JSON desde PHP existe `Company_Controller::getLangJsonSection('cmp-user')` (y análogos según la clave del JSON). La API / `langmdl` puede seguir sirviendo el diccionario al front, pero **no volver a basar código en archivos `cmp*.php`**.
+
+Al añadir o cambiar textos, hacerlo en los JSON del idioma correspondiente (todos los locales que aplique). En el código, obtener siempre el texto desde la clave de traducción (según el idioma del usuario), nunca escribir el mensaje literal.

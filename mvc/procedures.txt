@@ -1,0 +1,157 @@
+
+-- Volcando estructura para procedimiento fullvend_prodytec.updatecab
+DELIMITER //
+CREATE PROCEDURE `updatecab`()
+BEGIN
+UPDATE orders o
+INNER JOIN rs_orders rs  ON rs.order_id = o.order_id
+SET
+  o.amount = rs.amount,
+  o.discount_a = rs.discount,
+  o.total_amount = rs.total_amount,
+  o.amount_delivered = rs.amount_delivered,
+  o.discount_delivered = rs.discount_delivered,
+  o.total_delivered = rs.total_delivered;
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.updatecabid
+DELIMITER //
+CREATE PROCEDURE `updatecabid`(
+	IN `orderId` BIGINT
+)
+BEGIN
+UPDATE orders o
+INNER JOIN rs_orders rs  ON rs.order_id = o.order_id
+SET
+  o.amount = rs.amount,
+  o.discount_a = rs.discount,
+  o.total_amount = rs.total_amount,
+  o.amount_delivered = rs.amount_delivered,
+  o.discount_delivered = rs.discount_delivered,
+  o.total_delivered = rs.total_delivered
+  WHERE o.order_id = orderId;
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_cero_orders
+DELIMITER //
+CREATE PROCEDURE `update_cero_orders`()
+BEGIN
+update order_details 
+ set 
+  amount_sales = 0,
+  discount_amount = 0,
+  total_amount = 0,
+  amount_delivered = 0,
+  discount_delivered = 0,
+  total_delivered = 0,
+  amount = 0,
+  discountt = 0,
+  total = 0;
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_od
+DELIMITER //
+CREATE PROCEDURE `update_od`(
+	IN `orderId` BIGINT
+)
+BEGIN
+update order_details od 
+ INNER JOIN orders om ON om.order_id = od.order_id
+ set 
+  od.amount_sales = od.qty * od.sale_price,
+  od.discount_amount = (od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0)),
+  od.total_amount = (od.qty * od.sale_price)-((od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.amount_delivered = od.delivered_quantity * od.sale_price,
+  od.discount_delivered = (od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0)),
+  od.total_delivered = (od.delivered_quantity * od.sale_price)-((od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.amount = IF(od.delivered_quantity <> 0, od.delivered_quantity * od.sale_price, od.qty * od.sale_price),
+  od.discountt = IF(od.delivered_quantity <> 0, (od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0)), (od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.total = IF(od.delivered_quantity <> 0, (od.delivered_quantity * od.sale_price)-((od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))), (od.qty * od.sale_price)-((od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0))))
+  WHERE od.order_id = orderId;
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_od_All
+DELIMITER //
+CREATE PROCEDURE `update_od_All`()
+BEGIN
+update order_details od 
+ INNER JOIN orders om ON om.order_id = od.order_id
+ set 
+  od.amount_sales = od.qty * od.sale_price,
+  od.discount_amount = (od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0)),
+  od.total_amount = (od.qty * od.sale_price)-((od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.amount_delivered = od.delivered_quantity * od.sale_price,
+  od.discount_delivered = (od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0)),
+  od.total_delivered = (od.delivered_quantity * od.sale_price)-((od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.amount = IF(od.delivered_quantity <> 0, od.delivered_quantity * od.sale_price, od.qty * od.sale_price),
+  od.discountt = IF(od.delivered_quantity <> 0, (od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0)), (od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))),
+  od.total = IF(od.delivered_quantity <> 0, (od.delivered_quantity * od.sale_price)-((od.delivered_quantity * od.sale_price)*(IF(om.discount>0,om.discount/100,0))), (od.qty * od.sale_price)-((od.qty * od.sale_price)*(IF(om.discount>0,om.discount/100,0))));
+
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_orden
+DELIMITER //
+CREATE PROCEDURE `update_orden`(
+	IN `orderId` BIGINT
+)
+BEGIN
+  CALL update_orders_details(orderId);
+  CALL update_od(orderId);
+  CALL updatecabid(orderId);
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_ordersAll
+DELIMITER //
+CREATE PROCEDURE `update_ordersAll`()
+BEGIN
+CALL update_cero_orders();  
+CALL update_od_All();
+CALL updatecab();
+END//
+DELIMITER ;
+
+-- Volcando estructura para procedimiento fullvend_prodytec.update_orders_details
+DELIMITER //
+CREATE PROCEDURE `update_orders_details`(
+	IN `orderId` BIGINT
+)
+BEGIN
+update order_details 
+ set 
+  amount_sales = 0,
+  discount_amount = 0,
+  total_amount = 0,
+  amount_delivered = 0,
+  discount_delivered = 0,
+  total_delivered = 0,
+  amount = 0,
+  discountt = 0,
+  total = 0
+  WHERE order_details.order_id  = orderId;
+END//
+DELIMITER ;
+
+
+
+
+-- Dumping structure for procedure fullvend_prodytec.update_catalogs
+DELIMITER //
+CREATE PROCEDURE `update_catalogs`(
+	IN `id_company` INT
+)
+DELETE FROM order_categories
+    WHERE company_id = id_company
+    AND (catalog_id IS NULL
+    OR category_id IS NULL
+    OR NOT FIND_IN_SET(catalog_id, (
+        SELECT GROUP_CONCAT(catalog_id)
+        FROM catalog
+        WHERE company_id = id_company
+    )))//
+DELIMITER ;

@@ -1,0 +1,113 @@
+.fv-email-label-row {
+    gap: 0.35rem;
+}
+
+.fv-email-others-preview {
+    max-width: 100%;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #c62828;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: bottom;
+}
+
+.fv-email-others-preview:hover {
+    color: #8e0000;
+}
+
+.fv-ce-list .list-group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.fv-ce-list__email {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-all;
+    font-weight: 500;
+}
+
+.fv-ce-list__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.fv-ce-list-add .input-group .btn {
+    white-space: nowrap;
+}
+
+.fv-ce-list .list-group-item.is-primary {
+    background: #f7faf7;
+}
+
+.fv-customer-emails-card {
+    overflow: visible;
+}
+
+.fv-customer-emails-card__header {
+    gap: 0.75rem;
+}
+
+.fv-customer-emails-card__title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.fv-customer-emails-card__add-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.fv-customer-emails-card__add-btn i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.fv-customer-emails-table-wrap {
+    overflow-x: auto;
+}
+
+.fv-customer-emails-table__actions-col {
+    width: 7.5rem;
+    min-width: 7.5rem;
+    white-space: nowrap;
+}
+
+.fv-customer-emails-table__actions {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.fv-customer-emails-table__actions .fv-crud-btn--row {
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fv-customer-emails-table__actions .fv-crud-btn--row i {
+    font-size: 0.95rem;
+    line-height: 1;
+}

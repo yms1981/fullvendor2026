@@ -1,0 +1,7 @@
+.fieldsep_op{
+    cursor: pointer; width: fit-content;
+    display: flex;
+    /* background-position: center;
+    background-size: contain; */
+}
+

@@ -1,0 +1,45 @@
+### Laravel template
+/api/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel 4 specific
+bootstrap/compiled.php
+app/storage/
+
+# Laravel 5 & Lumen specific
+public/storage
+public/hot
+
+# Laravel 5 & Lumen specific with changed public path
+public_html/storage
+public_html/hot
+
+storage/*.key
+.env
+Homestead.yaml
+Homestead.json
+/api/.vagrant
+.phpunit.result.cache
+.env.*
+_ide_helper.php
+
+
+### Fullvendor MVC specific
+mvc/.editorconfig
+mvc/.ftpquota
+mvc/.gitattributes
+mvc/.git/
+mvc/.project
+mvc/accesos.txt
+mvc/clean-git-history.sh
+mvc/compose.yaml
+mvc/consulta-korachick.sql
+mvc/contributing.md
+mvc/corregir_idiomas.txt
+mvc/localstorage.html
+mvc/procedures.txt
+mvc/README.md
+!mvc/uploads/.htaccess
+mvc/uploads/

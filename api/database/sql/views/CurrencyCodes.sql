@@ -1,0 +1,1 @@
+CREATE OR REPLACE VIEW `CurrencyCodes` AS select `currency_formats`.`CurrencyCode` AS `CurrencyCode` from `currency_formats` group by `currency_formats`.`CurrencyCode` order by `currency_formats`.`CurrencyCode`;

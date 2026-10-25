@@ -1,0 +1,57 @@
+# Archivos comprimidos
+*.tar.gz
+*.zip
+*.rar
+
+# Logs
+*.log
+mvc/application/logs/*
+api/storage/logs/*
+
+# Archivos de configuración sensibles
+mvc/application/config/database.php
+mvc/application/config/config.php
+api/.env
+api/.env.backup
+api/.env.production
+mvc/.env
+
+# Cache
+mvc/application/cache/*
+mvc/application/data/send_templates/*.json
+api/bootstrap/cache/*
+api/storage/framework/cache/*
+api/storage/framework/sessions/*
+api/storage/framework/views/*
+
+# Vendor (dependencias)
+mvc/vendor/
+api/vendor/
+node_modules/
+
+# Uploads locales (imágenes/archivos de productos; no versionar)
+mvc/uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Scripts de limpieza
+clean-git-history.sh
+
+
+# Dusk local env
+api/.env.dusk
+api/.env.dusk.local
+api/.env.dusk.*.local

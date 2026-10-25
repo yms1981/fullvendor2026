@@ -1,0 +1,124 @@
+/**
+ * Botones flotantes (widgets) para formularios CRUD de página completa.
+ * Stack global (de abajo hacia arriba): Asistente → FAB formulario → Chat → GPS
+ */
+:root {
+    --fv-fab-size: 60px;
+    --fv-fab-gap: 10px;
+    --fv-fab-right: 22px;
+    --fv-fab-step: 70px; /* size + gap */
+    --fv-fab-base: 22px; /* asistente */
+}
+
+body:has(.fv-crud-form-fab) .page-body-wrapper {
+    padding-bottom: 360px;
+}
+
+.fv-crud-form-fab {
+    position: fixed;
+    right: var(--fv-fab-right);
+    /* Encima del asistente (22px), debajo de chat/gps cuando se desplazan */
+    bottom: calc(var(--fv-fab-base) + var(--fv-fab-step));
+    z-index: 20005;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--fv-fab-gap);
+}
+
+/* Con FAB de formulario: subir chat y GPS para no tapar Guardar/Cancelar (hasta 2 botones) */
+body:has(.fv-crud-form-fab) #fvChatBtn {
+    bottom: calc(var(--fv-fab-base) + 3 * var(--fv-fab-step)) !important; /* 232px */
+}
+body:has(.fv-crud-form-fab) #fvGpsBtn {
+    bottom: calc(var(--fv-fab-base) + 4 * var(--fv-fab-step)) !important; /* 302px */
+}
+body:has(.fv-crud-form-fab) #fvAssistantPanel {
+    bottom: calc(var(--fv-fab-base) + 3 * var(--fv-fab-step)) !important;
+}
+
+.fv-crud-form-fab__btn {
+    width: var(--fv-fab-size);
+    height: var(--fv-fab-size);
+    border: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    position: relative;
+    text-decoration: none;
+}
+
+.fv-crud-form-fab__btn i {
+    font-size: 26px;
+    line-height: 1;
+}
+
+.fv-crud-form-fab__btn:hover,
+.fv-crud-form-fab__btn:focus {
+    transform: scale(1.06);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+    outline: none;
+    color: #fff;
+    text-decoration: none;
+}
+
+.fv-crud-form-fab__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fv-crud-form-fab__btn--save {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.fv-crud-form-fab__btn--edit,
+.fv-crud-form-fab__btn--save.fv-crud-form-fab__btn--edit {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.fv-crud-form-fab__btn--cancel {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.fv-crud-form-fab__btn::after {
+    content: attr(title);
+    position: absolute;
+    right: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0.35rem 0.6rem;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.fv-crud-form-fab__btn:hover::after,
+.fv-crud-form-fab__btn:focus::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+@media (max-width: 575px) {
+    :root {
+        --fv-fab-size: 56px;
+        --fv-fab-right: 16px;
+        --fv-fab-step: 66px;
+    }
+
+    .fv-crud-form-fab__btn i {
+        font-size: 24px;
+    }
+}

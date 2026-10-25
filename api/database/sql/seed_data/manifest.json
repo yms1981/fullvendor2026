@@ -1,0 +1,52 @@
+{
+    "version": 1,
+    "apply_order": [
+        "countries",
+        "languages",
+        "currency_formats",
+        "currencybycountries",
+        "states",
+        "cities",
+        "format_date",
+        "format_numeric",
+        "status_cart"
+    ],
+    "tables": {
+        "countries": {
+            "file": "countries.sql",
+            "expected_rows": 246
+        },
+        "languages": {
+            "file": "languages.sql",
+            "expected_rows": 7
+        },
+        "currency_formats": {
+            "file": "currency_formats.sql",
+            "expected_rows": 6
+        },
+        "currencybycountries": {
+            "file": "currencybycountries.sql",
+            "expected_rows": 86
+        },
+        "states": {
+            "file": "states.sql",
+            "expected_rows": 4090
+        },
+        "cities": {
+            "file": "cities.sql",
+            "expected_rows": 47950
+        },
+        "format_date": {
+            "file": "format_date.sql",
+            "expected_rows": 13
+        },
+        "format_numeric": {
+            "file": "format_numeric.sql",
+            "expected_rows": 6
+        },
+        "status_cart": {
+            "file": "status_cart.sql",
+            "expected_rows": 4
+        }
+    }
+}

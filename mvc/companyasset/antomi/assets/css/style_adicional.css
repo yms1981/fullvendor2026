@@ -1,0 +1,14 @@
+
+[tabindex]:focus{
+    border: 2px solid black !important;
+}
+
+/* a:focus{
+    border: 2px solid #c40316 !important;
+    border-radius: 10px !important;
+} */
+
+.border-dark-tab{
+
+    border: black solid 2px !important;
+}

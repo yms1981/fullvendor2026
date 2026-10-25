@@ -1,0 +1,1 @@
+{"version":2,"defects":{"Tests\\Browser\\CompanyLoginSmokeTest::test_company_login_form_renders":8,"Tests\\Browser\\ExampleTest::test_login_page_is_reachable":8},"times":{"Tests\\Browser\\CompanyLoginSmokeTest::test_company_login_form_renders":17.303,"Tests\\Browser\\ExampleTest::test_login_page_is_reachable":4.021}}

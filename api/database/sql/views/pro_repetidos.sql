@@ -1,0 +1,1 @@
+CREATE OR REPLACE VIEW `pro_repetidos` AS select `products`.`company_id` AS `company_id`,`products`.`sku` AS `sku`,count(`products`.`pro_id`) AS `cuenta` from `products` group by `products`.`sku`,`products`.`company_id`;

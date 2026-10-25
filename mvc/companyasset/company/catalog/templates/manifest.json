@@ -1,0 +1,500 @@
+{
+  "version": 3,
+  "count": 24,
+  "templates": [
+    {
+      "key": "classic-grid",
+      "name": "Classic Grid",
+      "description": "3 columns, clean product cards",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "classic-grid",
+      "file": "classic-grid.html",
+      "defaults": {
+        "banner_bg": "#111827",
+        "banner_text": "#ffffff",
+        "footer_bg": "#111827",
+        "footer_text": "#ffffff",
+        "accent": "#b91c1c"
+      }
+    },
+    {
+      "key": "photo-gallery",
+      "name": "Photo Gallery",
+      "description": "4 columns, image-first layout",
+      "layout": "grid",
+      "cols": 4,
+      "theme": "photo-gallery",
+      "file": "photo-gallery.html",
+      "defaults": {
+        "banner_bg": "#0f766e",
+        "banner_text": "#ecfdf5",
+        "footer_bg": "#0f766e",
+        "footer_text": "#ecfdf5",
+        "accent": "#0f766e"
+      }
+    },
+    {
+      "key": "boutique",
+      "name": "Boutique",
+      "description": "2 columns, elegant spacing",
+      "layout": "grid",
+      "cols": 2,
+      "theme": "boutique",
+      "file": "boutique.html",
+      "defaults": {
+        "banner_bg": "#1c1917",
+        "banner_text": "#fafaf9",
+        "footer_bg": "#1c1917",
+        "footer_text": "#fafaf9",
+        "accent": "#9a3412"
+      }
+    },
+    {
+      "key": "editorial",
+      "name": "Editorial",
+      "description": "Magazine lead + product rows",
+      "layout": "magazine",
+      "cols": 1,
+      "theme": "editorial",
+      "file": "editorial.html",
+      "defaults": {
+        "banner_bg": "#1e3a8a",
+        "banner_text": "#dbeafe",
+        "footer_bg": "#1e3a8a",
+        "footer_text": "#dbeafe",
+        "accent": "#1d4ed8"
+      }
+    },
+    {
+      "key": "compact-list",
+      "name": "Compact List",
+      "description": "Dense rows for many SKUs",
+      "layout": "list",
+      "cols": 1,
+      "theme": "compact-list",
+      "file": "compact-list.html",
+      "defaults": {
+        "banner_bg": "#dc2626",
+        "banner_text": "#ffffff",
+        "footer_bg": "#dc2626",
+        "footer_text": "#ffffff",
+        "accent": "#dc2626"
+      }
+    },
+    {
+      "key": "price-sheet",
+      "name": "Price Sheet",
+      "description": "Table layout for quotes",
+      "layout": "table",
+      "cols": 1,
+      "theme": "price-sheet",
+      "file": "price-sheet.html",
+      "defaults": {
+        "banner_bg": "#0f172a",
+        "banner_text": "#f8fafc",
+        "footer_bg": "#0f172a",
+        "footer_text": "#f8fafc",
+        "accent": "#b91c1c"
+      }
+    },
+    {
+      "key": "marketplace",
+      "name": "Marketplace",
+      "description": "3 columns with bold price tags",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "marketplace",
+      "file": "marketplace.html",
+      "defaults": {
+        "banner_bg": "#ea580c",
+        "banner_text": "#fff7ed",
+        "footer_bg": "#ea580c",
+        "footer_text": "#fff7ed",
+        "accent": "#ea580c"
+      }
+    },
+    {
+      "key": "luxury-gold",
+      "name": "Luxury Gold",
+      "description": "2 columns, premium dark gold",
+      "layout": "grid",
+      "cols": 2,
+      "theme": "luxury-gold",
+      "file": "luxury-gold.html",
+      "defaults": {
+        "banner_bg": "#1c1917",
+        "banner_text": "#fde68a",
+        "footer_bg": "#1c1917",
+        "footer_text": "#fde68a",
+        "accent": "#d4a017"
+      }
+    },
+    {
+      "key": "ocean-breeze",
+      "name": "Ocean Breeze",
+      "description": "4 columns, coastal blues",
+      "layout": "grid",
+      "cols": 4,
+      "theme": "ocean-breeze",
+      "file": "ocean-breeze.html",
+      "defaults": {
+        "banner_bg": "#0369a1",
+        "banner_text": "#e0f2fe",
+        "footer_bg": "#0369a1",
+        "footer_text": "#e0f2fe",
+        "accent": "#0284c7"
+      }
+    },
+    {
+      "key": "forest-wholesale",
+      "name": "Forest Wholesale",
+      "description": "3 columns, earthy greens",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "forest-wholesale",
+      "file": "forest-wholesale.html",
+      "defaults": {
+        "banner_bg": "#166534",
+        "banner_text": "#dcfce7",
+        "footer_bg": "#166534",
+        "footer_text": "#dcfce7",
+        "accent": "#15803d"
+      }
+    },
+    {
+      "key": "midnight-noir",
+      "name": "Midnight Noir",
+      "description": "Dark grid with neon accent",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "midnight-noir",
+      "file": "midnight-noir.html",
+      "defaults": {
+        "banner_bg": "#18181b",
+        "banner_text": "#fda4af",
+        "footer_bg": "#18181b",
+        "footer_text": "#fda4af",
+        "accent": "#f43f5e"
+      }
+    },
+    {
+      "key": "coral-retail",
+      "name": "Coral Retail",
+      "description": "Bright retail cards",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "coral-retail",
+      "file": "coral-retail.html",
+      "defaults": {
+        "banner_bg": "#e11d48",
+        "banner_text": "#fff1f2",
+        "footer_bg": "#e11d48",
+        "footer_text": "#fff1f2",
+        "accent": "#e11d48"
+      }
+    },
+    {
+      "key": "slate-b2b",
+      "name": "Slate B2B",
+      "description": "Professional corporate list",
+      "layout": "list",
+      "cols": 1,
+      "theme": "slate-b2b",
+      "file": "slate-b2b.html",
+      "defaults": {
+        "banner_bg": "#334155",
+        "banner_text": "#f1f5f9",
+        "footer_bg": "#334155",
+        "footer_text": "#f1f5f9",
+        "accent": "#334155"
+      }
+    },
+    {
+      "key": "amber-trade",
+      "name": "Amber Trade",
+      "description": "Warm wholesale catalog",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "amber-trade",
+      "file": "amber-trade.html",
+      "defaults": {
+        "banner_bg": "#b45309",
+        "banner_text": "#fffbeb",
+        "footer_bg": "#b45309",
+        "footer_text": "#fffbeb",
+        "accent": "#d97706"
+      }
+    },
+    {
+      "key": "violet-studio",
+      "name": "Violet Studio",
+      "description": "Creative 2-column showcase",
+      "layout": "grid",
+      "cols": 2,
+      "theme": "violet-studio",
+      "file": "violet-studio.html",
+      "defaults": {
+        "banner_bg": "#6d28d9",
+        "banner_text": "#f3e8ff",
+        "footer_bg": "#6d28d9",
+        "footer_text": "#f3e8ff",
+        "accent": "#7c3aed"
+      }
+    },
+    {
+      "key": "emerald-shop",
+      "name": "Emerald Shop",
+      "description": "Fresh shop grid",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "emerald-shop",
+      "file": "emerald-shop.html",
+      "defaults": {
+        "banner_bg": "#047857",
+        "banner_text": "#d1fae5",
+        "footer_bg": "#047857",
+        "footer_text": "#d1fae5",
+        "accent": "#059669"
+      }
+    },
+    {
+      "key": "rose-collection",
+      "name": "Rose Collection",
+      "description": "Soft boutique magazine",
+      "layout": "magazine",
+      "cols": 1,
+      "theme": "rose-collection",
+      "file": "rose-collection.html",
+      "defaults": {
+        "banner_bg": "#be185d",
+        "banner_text": "#fce7f3",
+        "footer_bg": "#be185d",
+        "footer_text": "#fce7f3",
+        "accent": "#db2777"
+      }
+    },
+    {
+      "key": "indigo-tech",
+      "name": "Indigo Tech",
+      "description": "Modern tech price sheet",
+      "layout": "table",
+      "cols": 1,
+      "theme": "indigo-tech",
+      "file": "indigo-tech.html",
+      "defaults": {
+        "banner_bg": "#4338ca",
+        "banner_text": "#e0e7ff",
+        "footer_bg": "#4338ca",
+        "footer_text": "#e0e7ff",
+        "accent": "#4f46e5"
+      }
+    },
+    {
+      "key": "sand-minimal",
+      "name": "Sand Minimal",
+      "description": "Minimal beige catalog",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "sand-minimal",
+      "file": "sand-minimal.html",
+      "defaults": {
+        "banner_bg": "#57534e",
+        "banner_text": "#fafaf9",
+        "footer_bg": "#57534e",
+        "footer_text": "#fafaf9",
+        "accent": "#a8a29e"
+      }
+    },
+    {
+      "key": "poster-hero",
+      "name": "Poster Hero",
+      "description": "Full-width banner + 3-col grid",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "poster-hero",
+      "file": "poster-hero.html",
+      "defaults": {
+        "banner_bg": "#dc2626",
+        "banner_text": "#ffffff",
+        "footer_bg": "#dc2626",
+        "footer_text": "#ffffff",
+        "accent": "#dc2626"
+      }
+    },
+    {
+      "key": "stripe-rows",
+      "name": "Stripe Rows",
+      "description": "Alternating list rows",
+      "layout": "list",
+      "cols": 1,
+      "theme": "stripe-rows",
+      "file": "stripe-rows.html",
+      "defaults": {
+        "banner_bg": "#0ea5e9",
+        "banner_text": "#f0f9ff",
+        "footer_bg": "#0ea5e9",
+        "footer_text": "#f0f9ff",
+        "accent": "#0ea5e9"
+      }
+    },
+    {
+      "key": "cards-shadow",
+      "name": "Cards Shadow",
+      "description": "Elevated product cards",
+      "layout": "grid",
+      "cols": 3,
+      "theme": "cards-shadow",
+      "file": "cards-shadow.html",
+      "defaults": {
+        "banner_bg": "#0f172a",
+        "banner_text": "#f8fafc",
+        "footer_bg": "#0f172a",
+        "footer_text": "#f8fafc",
+        "accent": "#ef4444"
+      }
+    },
+    {
+      "key": "wide-gallery",
+      "name": "Wide Gallery",
+      "description": "Wide 4-col photo catalog",
+      "layout": "grid",
+      "cols": 4,
+      "theme": "wide-gallery",
+      "file": "wide-gallery.html",
+      "defaults": {
+        "banner_bg": "#18181b",
+        "banner_text": "#fafafa",
+        "footer_bg": "#18181b",
+        "footer_text": "#fafafa",
+        "accent": "#18181b"
+      }
+    },
+    {
+      "key": "compact-trade",
+      "name": "Compact Trade",
+      "description": "Ultra-dense SKU sheet",
+      "layout": "table",
+      "cols": 1,
+      "theme": "compact-trade",
+      "file": "compact-trade.html",
+      "defaults": {
+        "banner_bg": "#15803d",
+        "banner_text": "#dcfce7",
+        "footer_bg": "#15803d",
+        "footer_text": "#dcfce7",
+        "accent": "#16a34a"
+      }
+    }
+  ],
+  "color_presets": [
+    {
+      "key": "crimson",
+      "name": "Crimson",
+      "banner_bg": "#b91c1c",
+      "banner_text": "#ffffff",
+      "footer_bg": "#b91c1c",
+      "footer_text": "#ffffff",
+      "accent": "#dc2626"
+    },
+    {
+      "key": "navy",
+      "name": "Navy",
+      "banner_bg": "#1e3a8a",
+      "banner_text": "#dbeafe",
+      "footer_bg": "#1e3a8a",
+      "footer_text": "#dbeafe",
+      "accent": "#2563eb"
+    },
+    {
+      "key": "teal",
+      "name": "Teal",
+      "banner_bg": "#0f766e",
+      "banner_text": "#ccfbf1",
+      "footer_bg": "#0f766e",
+      "footer_text": "#ccfbf1",
+      "accent": "#14b8a6"
+    },
+    {
+      "key": "forest",
+      "name": "Forest",
+      "banner_bg": "#166534",
+      "banner_text": "#dcfce7",
+      "footer_bg": "#166534",
+      "footer_text": "#dcfce7",
+      "accent": "#22c55e"
+    },
+    {
+      "key": "charcoal",
+      "name": "Charcoal",
+      "banner_bg": "#111827",
+      "banner_text": "#f9fafb",
+      "footer_bg": "#111827",
+      "footer_text": "#f9fafb",
+      "accent": "#f59e0b"
+    },
+    {
+      "key": "sunset",
+      "name": "Sunset",
+      "banner_bg": "#ea580c",
+      "banner_text": "#fff7ed",
+      "footer_bg": "#ea580c",
+      "footer_text": "#fff7ed",
+      "accent": "#f97316"
+    },
+    {
+      "key": "violet",
+      "name": "Violet",
+      "banner_bg": "#6d28d9",
+      "banner_text": "#f3e8ff",
+      "footer_bg": "#6d28d9",
+      "footer_text": "#f3e8ff",
+      "accent": "#8b5cf6"
+    },
+    {
+      "key": "rose",
+      "name": "Rose",
+      "banner_bg": "#be185d",
+      "banner_text": "#fce7f3",
+      "footer_bg": "#be185d",
+      "footer_text": "#fce7f3",
+      "accent": "#ec4899"
+    },
+    {
+      "key": "sky",
+      "name": "Sky",
+      "banner_bg": "#0284c7",
+      "banner_text": "#e0f2fe",
+      "footer_bg": "#0284c7",
+      "footer_text": "#e0f2fe",
+      "accent": "#0ea5e9"
+    },
+    {
+      "key": "gold",
+      "name": "Gold",
+      "banner_bg": "#1c1917",
+      "banner_text": "#fde68a",
+      "footer_bg": "#1c1917",
+      "footer_text": "#fde68a",
+      "accent": "#d4a017"
+    },
+    {
+      "key": "indigo",
+      "name": "Indigo",
+      "banner_bg": "#4338ca",
+      "banner_text": "#e0e7ff",
+      "footer_bg": "#4338ca",
+      "footer_text": "#e0e7ff",
+      "accent": "#6366f1"
+    },
+    {
+      "key": "mint",
+      "name": "Mint",
+      "banner_bg": "#047857",
+      "banner_text": "#d1fae5",
+      "footer_bg": "#047857",
+      "footer_text": "#d1fae5",
+      "accent": "#10b981"
+    }
+  ]
+}

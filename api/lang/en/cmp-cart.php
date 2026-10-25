@@ -1,0 +1,22 @@
+<?php
+ return [
+  'notify_customer' => 'Notify to Customer',
+  'copy_link' => 'Copy Link',
+  'submit_order' => 'Submit Order',
+  'delete_thiscart' => 'Delete This Cart',
+  'back' => 'Back',
+  'creado' => 'Created',
+  'detail_cart' => 'Detail Cart',
+  'filtered_results' => 'Total Filtered Cart',
+  'count_total' => 'Total Carts',
+  'cart_iswaiting' => 'Your Cart is waiting for you to order it!',
+  'cart_had' => 'Your Cart had:',
+  'hello' => 'Hello %s,',
+  'link_expired' => 'Client\'s link has expired. Do you want to continue?',
+  'cart' => 'Cart',
+  'question_delete' => 'Delete Cart',
+  'yes' => 'Yes',
+  'cancel' => 'Cancel',
+  'cart_deleted' => 'Cart Deleted Succesfully',
+  'not_deleted' => 'Cannot Delete one Confirmed Cart',
+];

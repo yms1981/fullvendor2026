@@ -1,0 +1,1 @@
+CREATE OR REPLACE VIEW `version` AS select max(`app_updates`.`ID`) AS `id`,`app_updates`.`company_id` AS `company_id` from `app_updates` group by `app_updates`.`company_id` order by `app_updates`.`company_id`;

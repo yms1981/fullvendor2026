@@ -1,0 +1,7 @@
+*
+!public/
+!.gitignore
+!images/
+!images/*
+!images/logos
+!images/logos/*

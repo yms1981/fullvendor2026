@@ -1,0 +1,134 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use {{ rootNamespace }}Http\Controllers\Controller;
+use {{ namespacedRequests }}
+use Illuminate\Http\Response;
+use OpenApi\Attributes as OA;
+
+class {{ class }} extends Controller
+{
+    protected $resourceRoute = '{{model}}';
+
+    #[OA\Get(
+            path: "/api/v2/{{model}}",
+            summary: "Display a listing of the {{model}}.",
+            security: [
+                [
+                    'bearerAuth' => []
+                ]
+            ],
+            tags: ["{{model}}"],
+            responses: [
+                new OA\Response(response: Response::HTTP_OK, description: "{{model}} retrieved success"),
+                new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: "Unauthorized"),
+                new OA\Response(response: Response::HTTP_NOT_FOUND, description: "not found"),
+                new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: "Server Error")
+            ]
+        )]
+    public function index()
+    {
+       return parent::index();
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+     #[OA\Post(
+             path: "/api/v2/{{model}}",
+             summary: "Store a newly created resource in storage.",
+             security: [
+                 [
+                     'bearerAuth' => []
+                 ]
+             ],
+             tags: ["{{model}}"],
+             responses: [
+                 new OA\Response(response: Response::HTTP_OK, description: "{{model}} created successfully"),
+                 new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: "Unauthorized"),
+                 new OA\Response(response: Response::HTTP_NOT_FOUND, description: "not found"),
+                 new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: "Server Error")
+             ]
+         )]
+    public function store({{ storeRequest }} $request)
+    {
+        return $this->createFromAttributes($request->toArray());
+    }
+
+    /**
+     * Display the specified resource.
+     */
+     #[OA\Get(
+             path: "/api/v2/{{model}}/{id}",
+             summary: "Display the specified {{model}}.",
+             security: [
+                 [
+                     'bearerAuth' => []
+                 ]
+             ],
+             tags: ["{{model}}"],
+             parameters: [
+                 new OA\Parameter(parameter: 'id', name: 'id',description: "{{model}} id",in: 'path', required: true, example: '1')
+             ],
+             responses: [
+                 new OA\Response(response: Response::HTTP_OK, description: "{{model}} retrieved success"),
+                 new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: "Unauthorized"),
+                 new OA\Response(response: Response::HTTP_NOT_FOUND, description: "not found"),
+                 new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: "Server Error")
+             ]
+         )]
+    public function show({{ model }} ${{ modelVariable }})
+    {
+        return $this->getMainModelInstance(${{ modelVariable }}->id);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+     #[OA\Put(
+             path: "/api/v2/{{model}}/{id}",
+             summary: "Updates the specified {{model}}.",
+             security: [
+                 [
+                     'bearerAuth' => []
+                 ]
+             ],
+             tags: ["{{model}}"],
+             responses: [
+                 new OA\Response(response: Response::HTTP_OK, description: "{{model}} updated successfully"),
+                 new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: "Unauthorized"),
+                 new OA\Response(response: Response::HTTP_NOT_FOUND, description: "not found"),
+                 new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: "Server Error")
+             ]
+         )]
+    public function update({{ updateRequest }} $request, {{ model }} ${{ modelVariable }})
+    {
+        return $this->updateModel($this->getMainModelInstance(${{modelVariable}}->id),$request->toArray());
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+     #[OA\Delete(
+             path: "/api/v2/{{model}}/{id}",
+             summary: "Remove the specified {{model}}.",
+             security: [
+                 [
+                     'bearerAuth' => []
+                 ]
+             ],
+             tags: ["{{model}}"],
+             responses: [
+                 new OA\Response(response: Response::HTTP_OK, description: "{{model}} deleted successfully"),
+                 new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: "Unauthorized"),
+                 new OA\Response(response: Response::HTTP_NOT_FOUND, description: "not found"),
+                 new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: "Server Error")
+             ]
+         )]
+    public function destroy({{ model }} ${{ modelVariable }})
+    {
+        return $this->destroyResourceEmptyResponse(${{ modelVariable }});
+    }
+}

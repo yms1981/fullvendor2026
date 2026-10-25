@@ -1,0 +1,16 @@
+DirectoryIndex index.php
+RewriteEngine On
+RewriteBase /mvc/
+
+# API Laravel en el mismo puerto 80: /mvc/api/v2 y /mvc/api/v3
+RewriteRule ^api(?:/|$) api-front.php [L,QSA]
+
+# Estáticos de la aplicación (css, js, imágenes) sin cambiar la URL del navegador
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/mvc/mvc/$1 -f
+RewriteRule ^(.*)$ mvc/$1 [L]
+
+# Resto de rutas → controlador de CodeIgniter
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]

@@ -1,0 +1,84 @@
+.timeline {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline .timeline-item {
+  position: relative;
+  padding-left: 1rem;
+}
+
+html:not([dir=rtl]) .timeline-item {
+  border-left: 1px solid #d9dee3;
+}
+
+.timeline .timeline-item .timeline-point-wrapper {
+  position: absolute;
+  top: -0.5rem;
+  left: -0.43rem;
+  z-index: 2;
+  display: block;
+  height: 2.25rem;
+  width: 2.25rem;
+  background-color: #fff;
+}
+
+.timeline .timeline-item .timeline-point {
+  position: absolute;
+  left: 0;
+  top: 0.75rem;
+  z-index: 3;
+  display: block;
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: 50%;
+  background-color: #696cff;
+}
+
+.timeline .timeline-point-primary {
+  background-color: #696cff !important;
+  box-shadow: 0 0 0 0.1875rem rgba(105, 108, 255, 0.16);
+}
+
+.timeline .timeline-item.timeline-item-transparent .timeline-event {
+  top: -1.4rem;
+  background-color: transparent;
+}
+
+
+.timeline .timeline-item .timeline-event {
+  position: relative;
+  top: -1rem;
+  width: 100%;
+  top: -0.85rem;
+  min-height: 4rem;
+  background-color: #fff;
+  border-radius: 0.375rem;
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.timeline .timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+}
+
+.text-muted {
+  --bs-text-opacity: 1;
+  color: #a1acb8 !important;
+}
+
+.timeline .timeline-end-indicator {
+  position: absolute;
+  /* bottom: -1.35rem; */
+  left: 0.3rem;
+}
+
+.timeline .timeline-end-indicator i {
+  font-size: 1.5rem;
+  color: #d9dee3;
+}

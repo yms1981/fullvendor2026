@@ -1,0 +1,739 @@
+/**
+ * FullVendor — Grilla moderna (CRUD server-side)
+ * Sin DataTables: scroll horizontal, cabecera sticky, acciones fijas a la derecha.
+ */
+
+.fv-modern-grid {
+    --fv-grid-border: #e8edf3;
+    --fv-grid-head-bg: #ffffff;
+    --fv-grid-row-bg: #ffffff;
+    --fv-grid-row-hover: #fffbfb;
+    --fv-grid-text: #0f172a;
+    --fv-grid-muted: #64748b;
+    --fv-grid-accent-soft: #fff1f2;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Panel de filtros (órdenes y CRUD) */
+#main-content .fv-modern-filters-wrap {
+    margin-bottom: 1rem;
+}
+
+#main-content .fv-modern-filters {
+    background: #ffffff;
+    border: 1px solid var(--fv-grid-border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem 0.35rem;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+#main-content .fv-modern-filters .form-group > label,
+#main-content .fv-modern-filters label {
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--fv-grid-text) !important;
+    margin-bottom: 0.35rem;
+}
+
+#main-content .fv-modern-filters .form-control,
+#main-content .fv-modern-filters .bootstrap-select > .dropdown-toggle {
+    border-radius: 10px !important;
+    border-color: var(--fv-grid-border) !important;
+    min-height: 2.35rem;
+    font-size: 0.85rem;
+}
+
+#main-content .fv-modern-filters .input-group .btn-light {
+    border-radius: 0 10px 10px 0 !important;
+    border-color: var(--fv-grid-border) !important;
+}
+
+#main-content .card:has(.fv-modern-grid) {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+#main-content .card:has(.fv-modern-grid) > .card-body {
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0.5rem;
+}
+
+.fv-modern-grid__shell {
+    background: #ffffff;
+    border: 1px solid var(--fv-grid-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+}
+
+.fv-modern-grid__toolbar {
+    padding: 0.85rem 1.1rem;
+    background: linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%);
+    border-bottom: 1px solid var(--fv-grid-border);
+}
+
+.fv-modern-grid__toolbar--bottom {
+    border-bottom: none;
+    border-top: 1px solid var(--fv-grid-border);
+}
+
+.fv-modern-grid__paginate .showing {
+    color: var(--fv-grid-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.fv-modern-grid__paginate .pagination {
+    margin: 0;
+    gap: 0.25rem;
+}
+
+.fv-modern-grid__paginate .pagination .page-link,
+.fv-modern-grid__paginate .pagination li a,
+.fv-modern-grid__paginate .pagination li span {
+    border-radius: 8px !important;
+    border: 1px solid var(--fv-grid-border) !important;
+    color: var(--fv-grid-text) !important;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+.fv-modern-grid__paginate .pagination .active span,
+.fv-modern-grid__paginate .pagination .active .page-link {
+    background: var(--fv-accent, #dc2626) !important;
+    border-color: var(--fv-accent, #dc2626) !important;
+    color: #fff !important;
+}
+
+.fv-modern-grid__scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.fv-modern-grid__table {
+    width: 100%;
+    min-width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--fv-grid-row-bg);
+    table-layout: auto;
+}
+
+@media (max-width: 1199.98px) {
+    .fv-modern-grid__table {
+        min-width: 980px;
+    }
+}
+
+.fv-modern-grid__table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--fv-grid-head-bg) !important;
+    color: var(--fv-grid-text) !important;
+    font-size: 0.67rem;
+    font-weight: 700;
+    font-style: normal !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase !important;
+    padding: 1.05rem 1rem !important;
+    border: none !important;
+    border-bottom: 1px solid var(--fv-grid-border) !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.fv-modern-grid__table thead th a,
+.fv-modern-grid__table thead th a.sort,
+.fv-modern-grid__table thead th .fv-crud-sort-link,
+.fv-modern-grid__table thead th u,
+.fv-modern-grid__table thead th span {
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    font-style: inherit !important;
+    letter-spacing: inherit;
+    text-transform: inherit !important;
+    text-decoration: none !important;
+}
+
+.fv-modern-grid__table thead th a:hover,
+.fv-modern-grid__table thead th a:focus,
+.fv-modern-grid__table thead th a:visited {
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
+.fv-modern-grid__table thead th a.sort .fv-crud-sort-link__text {
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.15s ease;
+}
+
+.fv-modern-grid__table thead th a.sort:hover .fv-crud-sort-link__text,
+.fv-modern-grid__table thead th a.sort:focus .fv-crud-sort-link__text {
+    border-bottom-color: rgba(15, 23, 42, 0.25);
+}
+
+.fv-modern-grid__table tbody td {
+    padding: 1.05rem 1rem !important;
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    background: var(--fv-grid-row-bg) !important;
+    color: var(--fv-grid-text);
+    font-size: 0.875rem;
+    vertical-align: middle !important;
+    line-height: 1.45;
+}
+
+.fv-modern-grid__table tbody tr {
+    transition: background-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.fv-modern-grid__table tbody tr:hover td {
+    background: var(--fv-grid-row-hover) !important;
+}
+
+.fv-modern-grid__table tbody tr:hover td.fv-modern-grid__actions {
+    background: var(--fv-grid-row-hover) !important;
+}
+
+.fv-modern-grid__table tbody tr:hover {
+    box-shadow: inset 3px 0 0 var(--fv-accent, #dc2626);
+}
+
+.fv-modern-grid__table tbody tr.disabled td {
+    opacity: 0.55;
+}
+
+/* Checkbox masivo */
+.fv-modern-grid__table th.fv-crud-select-all-column,
+.fv-modern-grid__table td.fv-crud-select-all-cell {
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    text-align: center !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.5rem !important;
+}
+
+.fv-modern-grid__table input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    cursor: pointer;
+    accent-color: var(--fv-accent, #dc2626);
+}
+
+/* Acciones pegadas a la derecha */
+.fv-modern-grid__table th.fv-modern-grid__actions,
+.fv-modern-grid__table td.fv-modern-grid__actions {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    min-width: 108px;
+    width: 108px;
+    text-align: center !important;
+    background: var(--fv-grid-row-bg) !important;
+    box-shadow: -8px 0 16px rgba(15, 23, 42, 0.04);
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table th.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table td.fv-modern-grid__actions,
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table th.fv-crud-actions-column,
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table td.crud-list-actions-column {
+    min-width: 108px !important;
+    width: 108px !important;
+}
+
+.fv-modern-grid__table thead th.fv-modern-grid__actions {
+    z-index: 4;
+    background: var(--fv-grid-head-bg) !important;
+}
+
+.fv-modern-grid__actions-inner,
+.fv-modern-grid .fv-crud-row-actions {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem !important;
+    margin: 0 !important;
+    width: 100%;
+}
+
+/* Botones de acción tipo referencia */
+.fv-grid-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    text-decoration: none !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+}
+
+.fv-grid-action i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.fv-grid-action:hover {
+    transform: translateY(-1px);
+    text-decoration: none !important;
+}
+
+.fv-grid-action--view {
+    background: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+.fv-grid-action--view:hover {
+    background: #bae6fd;
+    color: #0369a1;
+}
+
+.fv-grid-action--edit {
+    background: #ffe4e6;
+    color: #e11d48;
+    border-color: #fecdd3;
+}
+
+.fv-grid-action--edit:hover {
+    background: #fecdd3;
+    color: #be123c;
+}
+
+.fv-grid-action--edit.disabled,
+.fv-grid-action--edit:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.fv-modern-grid .fv-grid-action--info {
+    background: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+.fv-modern-grid .fv-grid-action--warning {
+    background: #ffedd5;
+    color: #c2410c;
+    border-color: #fed7aa;
+}
+
+.fv-modern-grid .fv-grid-action--danger {
+    background: #ffe4e6;
+    color: #e11d48;
+    border-color: #fecdd3;
+}
+
+/* Celda cliente */
+.fv-grid-customer {
+    min-width: 220px;
+    max-width: 340px;
+}
+
+.fv-grid-customer__line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    margin-bottom: 0.2rem;
+}
+
+.fv-grid-customer__line:last-child {
+    margin-bottom: 0;
+}
+
+.fv-grid-customer__line i {
+    color: var(--fv-grid-muted);
+    font-size: 0.95rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.fv-grid-customer__name {
+    font-weight: 600;
+    color: var(--fv-grid-text);
+    text-decoration: none;
+}
+
+.fv-grid-customer__name:hover {
+    color: var(--fv-accent, #dc2626);
+    text-decoration: underline;
+}
+
+.fv-grid-customer__muted {
+    color: var(--fv-grid-muted);
+}
+
+/* Enlace número de orden */
+.fv-grid-order-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.fv-grid-order-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.fv-grid-order-link__icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+/* Fecha */
+#main-content .fv-modern-grid .fv-crud-date-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    text-align: center;
+    min-width: 108px;
+}
+
+#main-content .fv-modern-grid .fv-crud-date-cell__primary {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--fv-grid-text);
+}
+
+#main-content .fv-modern-grid .fv-crud-date-cell__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+}
+
+/* Estado — combo compacto, color de status_orders, nombre completo */
+#main-content .fv-modern-grid .fv-order-status-select-wrap {
+    display: inline-flex;
+    justify-content: flex-start;
+    width: auto;
+    max-width: none;
+    margin: 0;
+}
+
+#main-content .fv-modern-grid .fv-order-status-select,
+#main-content .fv-modern-grid select.order-status-select.fv-order-status-select {
+    appearance: auto;
+    -webkit-appearance: auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    field-sizing: content;
+    padding: 0.28rem 0.45rem;
+    text-align: left;
+    text-align-last: left;
+    border-radius: 4px;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: none;
+    white-space: nowrap;
+}
+
+#main-content .fv-modern-grid .fv-order-status-select:hover:not(:disabled),
+#main-content .fv-modern-grid .fv-order-status-select:focus,
+#main-content .fv-modern-grid .fv-order-status-select:disabled {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#main-content .fv-modern-grid .fv-order-status-select:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+/* Activo: gris oscuro, círculo del estado y nombre. El fondo no usa el color del estado. */
+#main-content .fv-order-status-select-wrap .bootstrap-select {
+    width: auto !important;
+}
+
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle {
+    height: 1.65rem !important;
+    min-height: 0 !important;
+    background: #4b5563 !important;
+    background-color: #4b5563 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 0 1.35rem 0 0.5rem !important;
+    line-height: 1.65rem !important;
+    box-shadow: none !important;
+}
+
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle .filter-option,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle .filter-option-inner-inner {
+    color: #fff !important;
+}
+
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle::after {
+    border-top-color: #fff !important;
+}
+
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle .filter-option,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle .filter-option-inner,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle .filter-option-inner-inner {
+    height: 1.65rem !important;
+    line-height: 1.65rem !important;
+    font-size: 0.75rem !important;
+    padding: 0 !important;
+}
+
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle:focus,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Deshabilitado: solo gris claro. Sin borde ni marco oscuro. */
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select,
+#main-content .fv-order-status-select-wrap .bootstrap-select.disabled,
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle,
+#main-content .fv-order-status-select-wrap .bootstrap-select.disabled > .dropdown-toggle,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle.disabled,
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle:hover,
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle:focus,
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle:active {
+    background: #a7aaaf !important;
+    background-color: #a7aaaf !important;
+    background-image: none !important;
+    border: 0 !important;
+    border-width: 0 !important;
+    border-color: #a7aaaf !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    opacity: 1 !important;
+}
+
+#main-content .fv-order-status-select-wrap > select.order-status-select,
+#main-content .fv-order-status-select-wrap .bootstrap-select > select.order-status-select {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    appearance: none !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle .filter-option,
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle .filter-option-inner-inner,
+#main-content .fv-order-status-select-wrap .bootstrap-select.disabled > .dropdown-toggle .filter-option,
+#main-content .fv-order-status-select-wrap .bootstrap-select.disabled > .dropdown-toggle .filter-option-inner-inner {
+    color: #fff !important;
+}
+
+#main-content .fv-order-status-select-wrap.is-disabled .bootstrap-select > .dropdown-toggle::after,
+#main-content .fv-order-status-select-wrap .bootstrap-select.disabled > .dropdown-toggle::after,
+#main-content .fv-order-status-select-wrap .bootstrap-select > .dropdown-toggle.disabled::after {
+    display: none !important;
+}
+
+.fv-status-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    margin-right: 0.45rem;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.fv-order-status-menu {
+    min-width: 12.5rem !important;
+    padding: 0.2rem 0 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14) !important;
+}
+
+.fv-order-status-menu .dropdown-item,
+.fv-order-status-menu li > a {
+    padding: 0.38rem 0.85rem !important;
+    font-size: 0.84rem !important;
+    color: #4b5563 !important;
+    background: #fff !important;
+}
+
+.fv-order-status-menu .dropdown-item:hover,
+.fv-order-status-menu li > a:hover {
+    background: #f8fafc !important;
+}
+
+.fv-order-status-menu .check-mark {
+    display: none !important;
+}
+
+#main-content .fv-modern-grid__table th[data-field="statusOrder"],
+#main-content .fv-modern-grid__table td[data-field="statusOrder"] {
+    width: 1%;
+    min-width: max-content;
+    max-width: none;
+    text-align: left !important;
+    white-space: nowrap;
+    vertical-align: middle !important;
+    overflow: visible;
+}
+
+/* Anular estilos DataTables/Bootstrap table dentro de la grilla moderna */
+#main-content .fv-modern-grid table.dataTable,
+#main-content .fv-modern-grid .table,
+#main-content .fv-modern-grid table.fv-modern-grid__table {
+    border: none !important;
+    background: var(--fv-grid-row-bg) !important;
+}
+
+#main-content .fv-modern-grid table.dataTable thead th,
+#main-content .fv-modern-grid table.dataTable tbody td,
+#main-content .fv-modern-grid .table thead th,
+#main-content .fv-modern-grid .table tbody td {
+    box-sizing: border-box;
+}
+
+#main-content .fv-modern-grid .table-striped tbody tr:nth-of-type(odd),
+#main-content .fv-modern-grid .table-hover tbody tr:hover {
+    background: transparent !important;
+}
+
+#main-content .fv-modern-grid .table tbody tr:nth-child(even) td,
+#main-content .fv-modern-grid .table tbody tr:nth-child(odd) td,
+#main-content .fv-modern-grid table.dataTable.stripe tbody tr.odd td,
+#main-content .fv-modern-grid table.dataTable.stripe tbody tr.even td {
+    background: var(--fv-grid-row-bg) !important;
+}
+
+#main-content .fv-modern-grid .table tbody tr:hover td,
+#main-content .fv-modern-grid table.dataTable tbody tr:hover td {
+    background: var(--fv-grid-row-hover) !important;
+}
+
+#main-content .fv-modern-grid .table thead th,
+#main-content .fv-modern-grid table.dataTable thead th {
+    background: var(--fv-grid-head-bg) !important;
+    color: var(--fv-grid-text) !important;
+    border-bottom: 1px solid var(--fv-grid-border) !important;
+}
+
+/* Acciones de fila — solo icono (regla global) */
+#main-content .fv-modern-grid .fv-grid-action,
+#main-content .fv-modern-grid .fv-crud-btn--row {
+    box-sizing: border-box !important;
+    width: 2.15rem !important;
+    height: 2.15rem !important;
+    min-width: 2.15rem !important;
+    min-height: 2.15rem !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+    transform: none;
+    overflow: hidden !important;
+}
+
+#main-content .fv-modern-grid .fv-crud-btn--row i,
+#main-content .fv-modern-grid .fv-grid-action i {
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    flex-shrink: 0;
+}
+
+#main-content .fv-modern-grid .fv-grid-action:hover,
+#main-content .fv-modern-grid .fv-crud-btn--row:hover {
+    transform: translateY(-1px);
+}
+
+#main-content .fv-modern-grid .fv-grid-action--view,
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-info,
+#main-content .fv-modern-grid a.btn-info.fv-crud-btn--row {
+    background: #e0f2fe !important;
+    color: #0284c7 !important;
+    border: 1px solid #bae6fd !important;
+}
+
+#main-content .fv-modern-grid .fv-grid-action--view:hover,
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-info:hover {
+    background: #bae6fd !important;
+    color: #0369a1 !important;
+    border-color: #7dd3fc !important;
+}
+
+#main-content .fv-modern-grid .fv-grid-action--edit,
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-primary,
+#main-content .fv-modern-grid a.btn-primary.fv-crud-btn--row {
+    background: #ffe4e6 !important;
+    color: #e11d48 !important;
+    border: 1px solid #fecdd3 !important;
+}
+
+#main-content .fv-modern-grid .fv-grid-action--edit:hover,
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-primary:hover {
+    background: #fecdd3 !important;
+    color: #be123c !important;
+    border-color: #fda4af !important;
+}
+
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-warning {
+    background: #ffedd5 !important;
+    color: #c2410c !important;
+    border: 1px solid #fed7aa !important;
+}
+
+#main-content .fv-modern-grid .fv-crud-btn--row.btn-danger,
+#main-content .fv-modern-grid .fv-crud-btn--row.go-delete {
+    background: #ffe4e6 !important;
+    color: #e11d48 !important;
+    border: 1px solid #fecdd3 !important;
+}
