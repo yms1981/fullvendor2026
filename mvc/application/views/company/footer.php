@@ -227,9 +227,7 @@ if($langId==1){
 $flash_msg = $this->session->flashdata('msg');
 // En CodeIgniter 3 el flashdata se descarta automáticamente al leerlo; no existe unset_flashdata
 if ($flash_msg == 'error') { ?>
-<script>
 alert_func(["Some error occured, Please try again!", "error", "#DD6B55"]);
-</script>
 <?php } else {
 	// Acepta payload JSON (array) o texto plano; evita romper JS con set_flash mal formado.
 	$flashPayload = null;
@@ -245,19 +243,13 @@ alert_func(["Some error occured, Please try again!", "error", "#DD6B55"]);
 	}
 	if (is_array($flashPayload) && isset($flashPayload[0])) {
 ?>
-<script>
 alert_func(<?= json_encode($flashPayload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
-</script>
 <?php
 	}
 } ?>
 <?php endif ?>
 
-
-
-
-<script>
-var langid = <?= $langid ?>;
+var langid = <?= json_encode($langid) ?>;
 
 //input phone number with country code
 const input = document.querySelectorAll(".telInput");
@@ -471,7 +463,18 @@ var version_foto = '<?= $v_imagen ?>'
             // Excluir multiselects que se inicializan en sus vistas (no reinicializar aquí o se pierde "múltiple"):
             // - #form_add #category, #form_edit #category, #form_view #category = categorías producto (varias por producto)
             // - #form_add #seller_asigned, #form_edit #seller_asigned = vendedores asignados al cliente (varios por cliente)
-            $('.js-example-basic-multiple').not('#form_add #category').not('#form_edit #category').not('#form_view #category').not('#form_add #seller_asigned').not('#form_edit #seller_asigned').select2();
+            var select2Tries = 0;
+            var initBasicSelect2 = function () {
+                if (typeof $.fn.select2 !== 'function') {
+                    if (select2Tries < 50) {
+                        select2Tries++;
+                        setTimeout(initBasicSelect2, 100);
+                    }
+                    return;
+                }
+                $('.js-example-basic-multiple').not('#form_add #category').not('#form_edit #category').not('#form_view #category').not('#form_add #seller_asigned').not('#form_edit #seller_asigned').select2();
+            };
+            initBasicSelect2();
         });
 
         $("#ckbCheckAll").click(function() {
@@ -499,6 +502,25 @@ var version_foto = '<?= $v_imagen ?>'
             });
 
         });
+    }
+
+    if (typeof jQuery !== 'undefined') {
+        initJQueryScripts();
+    } else {
+        var checkJQuery = setInterval(function() {
+            if (typeof jQuery !== 'undefined') {
+                clearInterval(checkJQuery);
+                initJQueryScripts();
+            }
+        }, 50);
+        setTimeout(function() {
+            clearInterval(checkJQuery);
+            if (typeof jQuery === 'undefined') {
+                console.error('jQuery not loaded after 5 seconds!');
+            }
+        }, 5000);
+    }
+})();
 
 function deleteProduct(cId) {
     swal({
@@ -818,29 +840,8 @@ function matchStart(params, data) {
 
     // Return `null` if the term should not be displayed
     return null;
-    }
-    
-    // Intentar ejecutar los scripts cuando jQuery esté disponible
-    if (typeof jQuery !== 'undefined') {
-        initJQueryScripts();
-    } else {
-        // Si jQuery no está disponible, esperar a que se cargue
-        var checkJQuery = setInterval(function() {
-            if (typeof jQuery !== 'undefined') {
-                clearInterval(checkJQuery);
-                initJQueryScripts();
-            }
-        }, 50);
-        
-        // Timeout después de 5 segundos
-        setTimeout(function() {
-            clearInterval(checkJQuery);
-            if (typeof jQuery === 'undefined') {
-                console.error('jQuery not loaded after 5 seconds!');
-            }
-        }, 5000);
-    }
-})();
+}
+
 </script>
 
 <script src="<?= base_url('companyasset/company/app.js?v=' . $v_imagen) ?>"></script>

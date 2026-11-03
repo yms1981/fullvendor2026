@@ -259,7 +259,9 @@ switch (ENVIRONMENT)
  *
  * Un-comment the $assign_to_config array below to use this feature
  */
-	// $assign_to_config['name_of_config_item'] = 'value of config item';
+	// La sesión del panel dura hasta el logout (10 años). No rotar el id cada 5 minutos.
+	$assign_to_config['sess_expiration'] = 315360000;
+	$assign_to_config['sess_time_to_update'] = 0;
 
 
 
@@ -387,6 +389,99 @@ switch (ENVIRONMENT)
 	}
 
 	define('VIEWPATH', $view_folder.DIRECTORY_SEPARATOR);
+
+/*
+ * Login de empresa: una cookie fv_session vieja (otro path, Secure distinto
+ * o una sesión a medias) hace que algunos navegadores no puedan entrar
+ * hasta borrar las cookies. En el POST de /login se ignora esa cookie y se
+ * expiran las variantes; CodeIgniter emite después la cookie nueva.
+ */
+if (! function_exists('fv_discard_stale_login_cookie')) {
+	function fv_discard_stale_login_cookie() {
+		$method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? ''));
+		if ($method !== 'POST') {
+			return;
+		}
+		$path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+		if (! is_string($path) || ! preg_match('#/login/?$#', $path)) {
+			return;
+		}
+		if (preg_match('#/(customer|customers|sellers|seller|marketplace|admin)(/|$)#i', $path)) {
+			return;
+		}
+		if (! isset($_POST['username']) && ! isset($_POST['password'])) {
+			return;
+		}
+
+		$name = 'fv_session';
+		unset($_COOKIE[$name]);
+		$raw = (string) ($_SERVER['HTTP_COOKIE'] ?? '');
+		if ($raw !== '') {
+			$kept = array();
+			foreach (explode(';', $raw) as $part) {
+				$part = trim($part);
+				if ($part === '' || stripos($part, $name.'=') === 0) {
+					continue;
+				}
+				$kept[] = $part;
+			}
+			if ($kept === array()) {
+				unset($_SERVER['HTTP_COOKIE']);
+			} else {
+				$_SERVER['HTTP_COOKIE'] = implode('; ', $kept);
+			}
+		}
+
+		$paths = array('/', '/mvc', '/mvc/');
+		$scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+		$scriptDir = rtrim($scriptDir, '/');
+		if ($scriptDir !== '' && $scriptDir !== '/' && $scriptDir !== '.') {
+			$paths[] = $scriptDir;
+			$paths[] = $scriptDir.'/';
+		}
+		$host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+		$host = preg_replace('/:\d+$/', '', $host);
+		$domains = array('');
+		if ($host !== '' && strcasecmp($host, 'localhost') !== 0 && filter_var($host, FILTER_VALIDATE_IP) === false) {
+			$domains[] = $host;
+			$labels = explode('.', $host);
+			if (count($labels) >= 3) {
+				$domains[] = '.'.implode('.', array_slice($labels, -2));
+			}
+		}
+		$variants = array(
+			array('secure' => false, 'samesite' => 'Lax'),
+			array('secure' => true, 'samesite' => 'Lax'),
+			array('secure' => true, 'samesite' => 'None'),
+		);
+		$liveSecure = (($_SERVER['FV_REQUEST_HTTPS'] ?? '0') === '1');
+		$expires = time() - 42000;
+		foreach (array_unique($paths) as $cookiePath) {
+			foreach (array_unique($domains) as $domain) {
+				foreach ($variants as $variant) {
+					// No borrar la cookie que CodeIgniter va a reescribir (path /, Lax).
+					// Si el delete sale primero, algunos navegadores se quedan con él
+					// y tiran la sesión nueva.
+					if ($cookiePath === '/' && $domain === '' && $variant['samesite'] === 'Lax' && $variant['secure'] === $liveSecure) {
+						continue;
+					}
+					$opts = array(
+						'expires' => $expires,
+						'path' => $cookiePath,
+						'secure' => $variant['secure'],
+						'httponly' => true,
+						'samesite' => $variant['samesite'],
+					);
+					if ($domain !== '') {
+						$opts['domain'] = $domain;
+					}
+					setcookie($name, '', $opts);
+				}
+			}
+		}
+	}
+}
+fv_discard_stale_login_cookie();
 
 /*
  * --------------------------------------------------------------------

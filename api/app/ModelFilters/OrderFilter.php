@@ -16,6 +16,25 @@ class OrderFilter extends ModelFilter
     */
     public $relations = [];
 
+    private bool $orderActivityRangeApplied = false;
+
+    /**
+     * El listado general de órdenes no incluye inventario (tipo_d = I).
+     * Esas órdenes viven en su propio listado. Si el filtro pide tipo_d = I, no se excluyen.
+     */
+    public function setup(): void
+    {
+        $tipo = strtoupper(trim((string) $this->input('tipo_d', '')));
+        if ($tipo === 'I') {
+            return;
+        }
+
+        $this->where(function ($query) {
+            $query->whereNull('orders.tipo_d')
+                ->orWhereRaw("UPPER(TRIM(orders.tipo_d)) <> 'I'");
+        });
+    }
+
     public function company($companyId): OrderFilter
     {
         return $this->where('company_id', $companyId);
@@ -26,18 +45,65 @@ class OrderFilter extends ModelFilter
         return $this->company($companyId);
     }
 
-    /** Filtro desde fecha (date_from): órdenes desde este día (inclusivo) */
-    public function dateFrom($from): OrderFilter
+    /**
+     * Filtro explícito por tipo_d (D documento, C nota de crédito, I inventario).
+     */
+    public function tipoD($tipo): OrderFilter
     {
-        $date = Carbon::parse($from)->startOfDay();
-        return $this->whereRaw('IFNULL(orders.updated, orders.created) >= ?', [$date]);
+        $tipo = strtoupper(trim((string) $tipo));
+        if ($tipo === '') {
+            return $this;
+        }
+
+        return $this->whereRaw("UPPER(TRIM(orders.tipo_d)) = ?", [$tipo]);
     }
 
-    /** Filtro hasta fecha (date_to): órdenes hasta este día (inclusivo) */
+    /**
+     * date_from / date_to: la orden entra si created o updated cae entero en el rango.
+     * created es la fecha que muestra la grilla; updated es la última modificación.
+     */
+    public function dateFrom($from): OrderFilter
+    {
+        return $this->applyOrderActivityRange();
+    }
+
     public function dateTo($to): OrderFilter
     {
-        $date = Carbon::parse($to)->endOfDay();
-        return $this->whereRaw('IFNULL(orders.updated, orders.created) <= ?', [$date]);
+        return $this->applyOrderActivityRange();
+    }
+
+    private function applyOrderActivityRange(): OrderFilter
+    {
+        if ($this->orderActivityRangeApplied) {
+            return $this;
+        }
+        $this->orderActivityRangeApplied = true;
+
+        $fromRaw = $this->input('date_from');
+        $toRaw = $this->input('date_to');
+        $from = is_string($fromRaw) && trim($fromRaw) !== '' ? Carbon::parse($fromRaw)->startOfDay() : null;
+        $to = is_string($toRaw) && trim($toRaw) !== '' ? Carbon::parse($toRaw)->endOfDay() : null;
+        if ($from === null && $to === null) {
+            return $this;
+        }
+
+        return $this->where(function ($query) use ($from, $to) {
+            $query->where(function ($created) use ($from, $to) {
+                if ($from) {
+                    $created->where('orders.created', '>=', $from);
+                }
+                if ($to) {
+                    $created->where('orders.created', '<=', $to);
+                }
+            })->orWhere(function ($updated) use ($from, $to) {
+                if ($from) {
+                    $updated->where('orders.updated', '>=', $from);
+                }
+                if ($to) {
+                    $updated->where('orders.updated', '<=', $to);
+                }
+            });
+        });
     }
 
     public function seller($sellers): OrderFilter

@@ -474,6 +474,16 @@ class MY_Controller extends CI_Controller
         return $value;
     }
 
+    public function forgetCachedApiValue(string $key): void
+    {
+        $bag = $this->getUserData('fv_api_cache');
+        if (! is_array($bag) || ! array_key_exists($key, $bag)) {
+            return;
+        }
+        unset($bag[$key]);
+        $this->setUserData('fv_api_cache', $bag);
+    }
+
     /**
      * @param mixed $value
      */
@@ -793,13 +803,11 @@ class MY_Controller extends CI_Controller
         if (! is_readable($path)) {
             return $decoded[$path] = [];
         }
-        $raw = @file_get_contents($path);
-        if ($raw === false || $raw === '') {
-            return $decoded[$path] = [];
-        }
-        $data = json_decode($raw, true);
+        $data = function_exists('fv_lang_json_decode_file')
+            ? fv_lang_json_decode_file($path)
+            : [];
 
-        return $decoded[$path] = is_array($data) ? $data : [];
+        return $decoded[$path] = $data;
     }
 
 }

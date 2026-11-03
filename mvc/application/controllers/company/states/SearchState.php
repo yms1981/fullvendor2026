@@ -7,46 +7,18 @@ if (!defined('BASEPATH')) {
 class SearchState extends Company_Controller
 {
     /**
-     * Lista estados/departamentos del país seleccionado (country_id).
-     * GET country_id (obligatorio) para filtrar por país.
+     * Estados del país seleccionado.
      */
     public function index()
     {
         header('Content-Type: application/json; charset=utf-8');
 
-        $term = $this->input->get('term');
-        $countryId = $this->input->get('country_id');
+        $term = trim((string) ($this->input->get('term') ?: ''));
+        $countryId = (int) ($this->input->get('country_id') ?: 0);
 
-        $countryId = ($countryId !== null && $countryId !== '') ? (int) $countryId : null;
-        if ($countryId === null || $countryId <= 0) {
-            echo json_encode([]);
-            return;
-        }
+        $this->load->library('geo_reference');
+        $rows = $this->geo_reference->searchStates($countryId, $term);
 
-        $locationParams = [
-            'all' => 1,
-            'orderProperty' => 'name',
-            'orderDirection' => 'asc',
-            'props' => ['id', 'name', 'country_id'],
-            'country_id' => $countryId
-        ];
-        if ($term !== null && $term !== '') {
-            $locationParams['name'] = $term;
-        }
-
-        $response = $this->getObjectFromApi('state', $locationParams);
-        $list = [];
-
-        if (!$this->hasError($response)) {
-            if (is_object($response) && isset($response->data)) {
-                $list = is_array($response->data) ? $response->data : [];
-            } elseif (is_array($response) && !isset($response['error']) && isset($response['data'])) {
-                $list = is_array($response['data']) ? $response['data'] : [];
-            } elseif (is_array($response) && !isset($response['error'])) {
-                $list = $response;
-            }
-        }
-
-        echo json_encode($list);
+        echo json_encode($rows);
     }
 }

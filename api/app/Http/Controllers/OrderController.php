@@ -17,8 +17,10 @@ use App\Models\StatusOrder;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Enums\CompanyUserTypes;
+use App\Exceptions\CreditReturnExceedsSalesException;
 use App\Exceptions\FifoCreditException;
 use App\Services\CompanyPlanLimitService;
+use App\Services\CreditReturnOverSalesService;
 use App\Services\CustomerOrderProductFifoService;
 use App\Services\InventoryOrderMvcService;
 use App\Services\OpenCartOrderSyncService;
@@ -91,9 +93,27 @@ class OrderController extends Controller
         return $query;
     }
 
+    /**
+     * El listado MVC manda relations y props. Si una relación o una columna no existe
+     * en el esquema de producción, el index entero responde 500 y la grilla queda en 0.
+     */
+    protected function getMainModel($model = null)
+    {
+        if (request()->boolean('_fv_order_list_min')) {
+            return Order::query()->setEagerLoads([]);
+        }
+
+        $query = parent::getMainModel($model);
+        if (request()->boolean('_fv_skip_order_details')) {
+            $query->without('order_details');
+        }
+
+        return $query;
+    }
+
     #[OA\Get(
         path: "api/v2/order",
-        summary: "Display a listing of the Order.",
+        summary: "Listado de órdenes de la compañía. Excluye inventario (tipo_d = I).",
         security: [
             [
                 'bearerAuth' => []
@@ -213,14 +233,136 @@ class OrderController extends Controller
         if ($companyId === null) {
             return $this->companyIdForbiddenResponse(request());
         }
-        request()->merge(['company_id' => $companyId]);
-        $this->sanitizeDocumentOrdersOnListEntry($companyId);
 
-        $result = parent::index();
+        $relations = $this->filterLoadableOrderRelations((array) request()->input('relations', []));
+        $skipOrderDetails = ! in_array('order_details', $relations, true);
+        request()->merge([
+            'company_id' => $companyId,
+            'props' => $this->filterExistingOrderColumns(request()->input('props', ['*'])),
+            'relations' => $relations,
+            '_fv_skip_order_details' => $skipOrderDetails ? 1 : 0,
+        ]);
 
-        return $this->enrichWarehouseUserDisplayOnList(
-            $this->normalizeDocumentOrderListPayload($result)
-        );
+        try {
+            $this->sanitizeDocumentOrdersOnListEntry($companyId);
+            $result = parent::index();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Order list failed, retrying without relations', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage(),
+            ]);
+            request()->merge([
+                'relations' => [],
+                '_fv_order_list_min' => 1,
+                '_fv_skip_order_details' => 1,
+                'props' => ['*'],
+            ]);
+            try {
+                $result = parent::index();
+            } catch (\Throwable $retryError) {
+                \Illuminate\Support\Facades\Log::error('Order list retry failed', [
+                    'company_id' => $companyId,
+                    'error' => $retryError->getMessage(),
+                ]);
+
+                return response()->json([
+                    'message' => 'Order list failed.',
+                    'error' => 'order_list_failed',
+                ], 500);
+            }
+        }
+
+        if (request()->boolean('_fv_skip_order_details')) {
+            $this->blankOrderDetailsRelation($result);
+        }
+
+        try {
+            return $this->enrichWarehouseUserDisplayOnList(
+                $this->normalizeDocumentOrderListPayload($result)
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Order list enrich failed', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $result;
+        }
+    }
+
+    /**
+     * @param  mixed  $props
+     * @return array<int, string>
+     */
+    private function filterExistingOrderColumns(mixed $props): array
+    {
+        if ($props === null || $props === '*' || $props === ['*'] || $props === []) {
+            return ['*'];
+        }
+        if (is_string($props)) {
+            $props = array_map('trim', explode(',', $props));
+        }
+        if (! is_array($props)) {
+            return ['*'];
+        }
+
+        try {
+            $columns = Schema::getColumnListing('orders');
+        } catch (\Throwable $e) {
+            return ['*'];
+        }
+
+        $keep = array_values(array_intersect(array_map('strval', $props), $columns));
+        if (! in_array('order_id', $keep, true) && in_array('order_id', $columns, true)) {
+            $keep[] = 'order_id';
+        }
+
+        return $keep === [] ? ['*'] : $keep;
+    }
+
+    /**
+     * @param  array<int, mixed>  $relations
+     * @return array<int, string>
+     */
+    private function filterLoadableOrderRelations(array $relations): array
+    {
+        $safe = [];
+        foreach ($relations as $relation) {
+            if (! is_string($relation) || $relation === '') {
+                continue;
+            }
+            try {
+                Order::query()->setEagerLoads([])->with([$relation])->limit(1)->get();
+                $safe[] = $relation;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Order list relation skipped', [
+                    'relation' => $relation,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $safe;
+    }
+
+    private function blankOrderDetailsRelation(mixed $result): void
+    {
+        $blank = static function ($order) {
+            if ($order instanceof Order) {
+                $order->setRelation('order_details', collect());
+            }
+
+            return $order;
+        };
+
+        if ($result instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+            $result->setCollection($result->getCollection()->map($blank));
+
+            return;
+        }
+        if ($result instanceof \Illuminate\Support\Collection) {
+            $result->transform($blank);
+        }
     }
 
     /**
@@ -245,6 +387,98 @@ class OrderController extends Controller
             'success' => true,
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Productos en los que un cliente tiene más cantidad en notas de crédito que en ventas.
+     */
+    #[OA\Get(
+        path: '/api/v2/order/return-over-sales',
+        operationId: 'orderReturnOverSales',
+        summary: 'Devoluciones mayores que las ventas',
+        description: 'Por cliente y producto, lista donde la cantidad acreditada supera la cantidad vendida. Excluye canceladas, rechazadas y carrito.',
+        security: [['bearerAuth' => []]],
+        tags: ['Order'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Lista de excesos'),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Sin acceso a la compañía'),
+        ]
+    )]
+    public function returnOverSales(Request $request): JsonResponse
+    {
+        $companyId = $this->resolveAuthenticatedCompanyId($request);
+        if ($companyId === null) {
+            return $this->companyIdForbiddenResponse($request);
+        }
+
+        $items = app(CreditReturnOverSalesService::class)->violations($companyId);
+
+        return response()->json([
+            'count' => count($items),
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * PDF de excesos de devolución de un cliente.
+     */
+    #[OA\Get(
+        path: '/api/v2/order/return-over-sales/pdf',
+        operationId: 'orderReturnOverSalesPdf',
+        summary: 'PDF de devoluciones mayores que las ventas',
+        description: 'Resumen de productos y detalle por nota de crédito del cliente indicado.',
+        security: [['bearerAuth' => []]],
+        tags: ['Order'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'customer_id', in: 'query', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'PDF', content: new OA\MediaType(mediaType: 'application/pdf')),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Sin acceso a la compañía'),
+            new OA\Response(response: 404, description: 'El cliente no tiene excesos'),
+            new OA\Response(response: 422, description: 'Falta customer_id'),
+        ]
+    )]
+    public function returnOverSalesPdf(Request $request): \Illuminate\Http\Response|JsonResponse
+    {
+        $companyId = $this->resolveAuthenticatedCompanyId($request);
+        if ($companyId === null) {
+            return $this->companyIdForbiddenResponse($request);
+        }
+
+        $customerId = (int) $request->query('customer_id', 0);
+        if ($customerId < 1) {
+            return response()->json(['message' => 'customer_id'], 422);
+        }
+
+        try {
+            $pdf = app(\App\Services\CreditReturnOverSalesPdf::class)->render($companyId, $customerId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('OrderController::returnOverSalesPdf failed', [
+                'company_id' => $companyId,
+                'customer_id' => $customerId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Error generating PDF'], 500);
+        }
+
+        if (! is_string($pdf) || $pdf === '') {
+            return response()->json(['message' => 'not found'], 404);
+        }
+
+        $fileName = 'return-over-sales-'.$customerId.'.pdf';
+
+        return response($pdf, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="'.$fileName.'"')
+            ->header('Content-Length', (string) strlen($pdf));
     }
 
     /**
@@ -298,6 +532,10 @@ class OrderController extends Controller
 
         $orders = Order::query()
             ->where('company_id', $companyId)
+            ->where(function ($q) {
+                $q->whereNull('tipo_d')
+                    ->orWhereRaw("UPPER(TRIM(tipo_d)) <> 'I'");
+            })
             ->when($sellerId > 0, static function ($q) use ($sellerId) {
                 $q->where('seller_id', $sellerId);
             })
@@ -446,7 +684,7 @@ class OrderController extends Controller
 
             $provenance = \App\Support\OrderAuthTokenProvenance::fromRequest(request(), $companyId);
 
-            $order = Order::create([
+            $orderPayload = [
                 'company_id'       => $companyId,
                 'UUID'            => $uuid,
                 'tipo_d'          => $tipoD,
@@ -459,10 +697,19 @@ class OrderController extends Controller
                 'proforma'        => $validated['proforma'] ?? false,
                 'status_id'       => StatusOrder::getIdByCode(OrderStatusCodes::PLACED),
                 'source'          => $validated['source'] ?? 'manual',
-                'token_create'    => $provenance['token_create'],
-                'user_id_token'   => $provenance['user_id_token'],
-                'rol_token'       => $provenance['rol_token'],
-            ]);
+            ];
+            // Solo si la migración de procedencia del token está aplicada
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'token_create')) {
+                $orderPayload['token_create'] = $provenance['token_create'];
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'user_id_token')) {
+                $orderPayload['user_id_token'] = $provenance['user_id_token'];
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'rol_token')) {
+                $orderPayload['rol_token'] = $provenance['rol_token'];
+            }
+
+            $order = Order::create($orderPayload);
 
             if ($internalComments) {
                 $order->notes()->create([
@@ -483,6 +730,8 @@ class OrderController extends Controller
                 }
                 $salePrice = (float) $item['price'];
                 $lineTotal = $qty * $salePrice;
+                // Texto real del comentario de línea (no flag 1).
+                $lineComment = trim((string) ($item['comment'] ?? $item['comments'] ?? ''));
 
                 $details[] = new OrderDetail([
                     'product_id'        => $item['pro_id'],
@@ -490,7 +739,7 @@ class OrderController extends Controller
                     'sale_price'        => $salePrice,
                     'fob_price'         => (float) ($product->fob_price ?? 0),
                     'fixed_pricedate'   => $item['fixed_price'] ? Carbon::now() : null,
-                    'comment'           => $item['comment'] ?? '-',
+                    'comment'           => $lineComment,
                     'amount_sales'      => $lineTotal,
                     'amount'            => $lineTotal,
                     'total'             => $lineTotal,
@@ -500,7 +749,7 @@ class OrderController extends Controller
                     'pack'              => 0,
                     'discount'          => 0,
                     'id_kor'            => 1,
-                    'comments'          => 1,
+                    'comments'          => $lineComment,
                 ]);
             }
 
@@ -524,6 +773,10 @@ class OrderController extends Controller
             $order->total_amount = $totalAmount;
             $order->save();
 
+            if (strtoupper((string) $tipoD) === 'C') {
+                app(CreditReturnOverSalesService::class)->assertOrderWithinSales($order);
+            }
+
             // Control FIFO: ventas abren capas; NC consumen capas (precio NC <= venta).
             app(CustomerOrderProductFifoService::class)->syncOrder($order->fresh(['order_details.product']));
 
@@ -546,6 +799,14 @@ class OrderController extends Controller
 
             return $this->makeResource($order)->response()->setStatusCode(Response::HTTP_CREATED);
 
+        } catch (CreditReturnExceedsSalesException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'return_exceeds_sales',
+                'error' => 'return_exceeds_sales',
+                'items' => $e->items,
+            ], 422);
         } catch (FifoCreditException $e) {
             DB::rollBack();
 
@@ -671,6 +932,8 @@ class OrderController extends Controller
             $with[] = 'order_details';
         }
         $order = $this->getModelInstanceBuilder($order)->with($with)->sole();
+        app(\App\Services\CreditNoteLineDefaultsService::class)->ensure($order);
+
         return $this->makeResource($order)->toArray(request());
     }
 
@@ -709,6 +972,8 @@ class OrderController extends Controller
             'order_status_histories.user',
         ];
         $order = $this->getModelInstanceBuilder($order)->with($with)->sole();
+        app(\App\Services\CreditNoteLineDefaultsService::class)->ensure($order);
+
         return $this->makeResource($order)->toArray(request());
     }
 
@@ -1009,6 +1274,7 @@ class OrderController extends Controller
             'address.state',
             'address.country',
             'notes',
+            'statusOrder',
         ]);
 
         // Usar locale del request, o el de la compañía de la orden (tabla de traducciones por idioma)
@@ -1206,8 +1472,50 @@ class OrderController extends Controller
             $sellerName = trim((string) ($order->seller->user->name ?? $order->seller->name ?? ''));
         }
 
+        $useAssigned = $this->orderPdfIsDispatched($order);
         $subtotal = (float) ($order->subtotal ?? 0);
         $discount = (float) ($order->descuento ?? $order->discount ?? 0);
+        $grandTotal = (float) ($order->total ?? max(0, $subtotal - $discount));
+        if ($useAssigned) {
+            $tipo = strtoupper((string) ($order->tipo_d ?? 'D'));
+            $assignedSubtotal = 0.0;
+            foreach ($order->order_details ?? [] as $detail) {
+                $price = (float) ($detail->sale_price ?? 0);
+                $orderedQty = (float) ($detail->qty ?? 0);
+                $assignedQty = (float) ($detail->delivered_quantity ?? 0);
+                if ($assignedQty < 0) {
+                    $detail->setAttribute('pdf_qty_unavailable', true);
+                    $detail->setAttribute('pdf_qty', 0);
+                    $detail->setAttribute('pdf_line_total', 0);
+                    continue;
+                }
+                $qty = ($tipo === 'C' && $orderedQty < 0) ? -1 * $assignedQty : $assignedQty;
+                $lineTotal = $qty * $price;
+                $detail->setAttribute('pdf_qty_unavailable', false);
+                $detail->setAttribute('pdf_qty', $qty);
+                $detail->setAttribute('pdf_line_total', $lineTotal);
+                $assignedSubtotal += $lineTotal;
+            }
+            if ($tipo === 'C') {
+                $subtotal = $assignedSubtotal;
+                $discount = $this->orderPdfDiscountAmount($order, $subtotal);
+                $grandTotal = $subtotal >= 0
+                    ? max(0, $subtotal - $discount)
+                    : $subtotal - $discount;
+            } else {
+                $subtotal = (float) $order->subtotal_asignado;
+                $discount = (float) $order->descuento_asignado;
+                $grandTotal = (float) $order->total_asignado;
+            }
+        }
+
+        $qtyLabel = $t['pdf_quantity'] ?? 'Quantity';
+        if ($useAssigned) {
+            $assignedLabel = trim((string) ($t['qty_asigned'] ?? ''));
+            if ($assignedLabel !== '') {
+                $qtyLabel = $assignedLabel;
+            }
+        }
 
         return [
             'order' => $order,
@@ -1225,7 +1533,11 @@ class OrderController extends Controller
             'productsLabel' => $t['pdf_products_services'] ?? 'PRODUCTS OR SERVICES',
             'descLabel' => $t['pdf_description'] ?? 'Description',
             'unitPriceLabel' => $t['pdf_unit_price'] ?? 'Unit Price',
-            'qtyLabel' => $t['pdf_quantity'] ?? 'Quantity',
+            'qtyLabel' => $qtyLabel,
+            'qtyUnavailableLabel' => trim((string) ($t['no_disponible'] ?? '')) !== ''
+                ? trim((string) $t['no_disponible'])
+                : '—',
+            'useAssignedQuantities' => $useAssigned,
             'totalLabel' => $t['pdf_total'] ?? 'Total',
             'subtotalLabel' => $t['pdf_subtotal'] ?? 'Subtotal',
             'discountLabel' => $t['pdf_discount'] ?? 'Discount',
@@ -1253,9 +1565,40 @@ class OrderController extends Controller
             'orderDate' => $order->created ? \App\Support\DisplayDateFormat::format($order->created) : '',
             'subtotal' => $subtotal,
             'discount' => $discount,
-            'grandTotal' => (float) ($order->total ?? max(0, $subtotal - $discount)),
+            'grandTotal' => $grandTotal,
             'itemCount' => $order->order_details ? $order->order_details->count() : 0,
         ];
+    }
+
+    /**
+     * Despachada, entregada, parcial, almacén completado o completada.
+     */
+    private function orderPdfIsDispatched(Order $order): bool
+    {
+        $order->loadMissing('statusOrder');
+        $cod = $order->statusOrder !== null ? (int) $order->statusOrder->cod_status : null;
+
+        return in_array($cod, [
+            OrderStatusCodes::DISPATCHED->value,
+            OrderStatusCodes::DELIVERED->value,
+            OrderStatusCodes::PARTIALLY_COMPLETED->value,
+            OrderStatusCodes::WAREHOUSE_COMPLETED->value,
+            OrderStatusCodes::COMPLETED->value,
+        ], true);
+    }
+
+    private function orderPdfDiscountAmount(Order $order, float $subtotal): float
+    {
+        $type = (int) ($order->discount_type ?? 0);
+        $discount = (float) ($order->discount ?? 0);
+        if ($type === 1) {
+            return $subtotal * ($discount / 100);
+        }
+        if ($type === 2) {
+            return $discount;
+        }
+
+        return 0.0;
     }
 
     /**

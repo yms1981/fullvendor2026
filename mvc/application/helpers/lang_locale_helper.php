@@ -18,6 +18,24 @@ if (! function_exists('fv_language_id_to_locale')) {
 	}
 }
 
+if (! function_exists('fv_repair_utf8_mojibake')) {
+	/**
+	 * Corrige nombres guardados como UTF-8 interpretado en Latin-1 (InglÃ©s → Inglés).
+	 */
+	function fv_repair_utf8_mojibake(string $value): string
+	{
+		if ($value === '' || ! preg_match('/Ã[\x{00A0}-\x{00BF}]/u', $value)) {
+			return $value;
+		}
+		$latin = @mb_convert_encoding($value, 'ISO-8859-1', 'UTF-8');
+		if (! is_string($latin) || $latin === '' || ! mb_check_encoding($latin, 'UTF-8')) {
+			return $value;
+		}
+
+		return $latin;
+	}
+}
+
 if (! function_exists('fv_locale_to_language_id')) {
 	function fv_locale_to_language_id(string $code): int
 	{
@@ -202,6 +220,30 @@ if (! function_exists('fv_order_status_label')) {
 	}
 }
 
+if (! function_exists('fv_lang_json_decode_file')) {
+	/**
+	 * Decodifica api/lang/*.json. Ignora el BOM UTF-8 que deja sin traducciones a json_decode.
+	 *
+	 * @return array<string, mixed>
+	 */
+	function fv_lang_json_decode_file(string $path): array
+	{
+		if ($path === '' || ! is_readable($path)) {
+			return [];
+		}
+		$raw = @file_get_contents($path);
+		if ($raw === false || $raw === '') {
+			return [];
+		}
+		if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+			$raw = substr($raw, 3);
+		}
+		$data = json_decode($raw, true);
+
+		return is_array($data) ? $data : [];
+	}
+}
+
 if (! function_exists('fv_lang_json_flat_section')) {
 	/**
 	 * Bloque de api/lang/*.json fusionando en-EN + locale solicitado.
@@ -220,9 +262,7 @@ if (! function_exists('fv_lang_json_flat_section')) {
 				}
 				$decodedFiles[$basename] = [];
 				if ($path !== '' && is_readable($path)) {
-					$raw = @file_get_contents($path);
-					$data = ($raw === false || $raw === '') ? null : json_decode($raw, true);
-					$decodedFiles[$basename] = is_array($data) ? $data : [];
+					$decodedFiles[$basename] = fv_lang_json_decode_file($path);
 				}
 			}
 			$data = $decodedFiles[$basename];

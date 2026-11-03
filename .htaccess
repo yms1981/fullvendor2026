@@ -2,6 +2,18 @@ DirectoryIndex index.php
 RewriteEngine On
 RewriteBase /mvc/
 
+# CORS para imágenes estáticas (Flutter Web en localhost:xxxx → 127.0.0.1)
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#/uploads/|/images/#">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Authorization, Accept, Content-Type"
+  </If>
+</IfModule>
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteCond %{REQUEST_URI} /uploads/|/images/
+RewriteRule ^ - [R=204,L]
+
 # API Laravel en el mismo puerto 80: /mvc/api/v2 y /mvc/api/v3
 RewriteRule ^api(?:/|$) api-front.php [L,QSA]
 

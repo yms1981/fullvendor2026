@@ -1,4 +1,4 @@
-﻿{
+{
     "cmp-asistente": {
         "widget_title": "Asistente",
         "open_label": "Abrir asistente",
@@ -1997,6 +1997,24 @@
         "pack": "Bulto",
         "total_pedido": "Total Pedido",
         "qty_asigned": "Cantidad Asignada",
+        "credit_return_from": "Devuelto de",
+        "return_over_sales_title": "Devoluciones mayores que las ventas",
+        "return_over_sales_message": "Hay {count} producto(s) con más cantidad devuelta que vendida.",
+        "return_over_sales_button": "Ver errores",
+        "return_over_sales_customer": "Cliente",
+        "return_over_sales_product": "Producto",
+        "return_over_sales_sku": "SKU",
+        "return_over_sales_sold": "Vendido",
+        "return_over_sales_credited": "Devuelto",
+        "return_over_sales_excess": "Exceso",
+        "return_over_sales_group_count": "{count} productos",
+        "return_over_sales_print": "Imprimir",
+        "return_over_sales_summary": "Resumen de productos",
+        "return_over_sales_credit_detail": "Detalle por notas de crédito",
+        "return_over_sales_note": "Nota de crédito",
+        "return_over_sales_date": "Fecha",
+        "return_over_sales_qty": "Cantidad",
+        "return_over_sales_price": "Precio",
         "total_asigned": "Total Asignado",
         "sub_total_asigned": "Subtotal Asignado",
         "delivered_pack": "Bultos despachados",
@@ -2187,7 +2205,12 @@
         "fifo_qty_below_credited": "No se puede reducir la cantidad vendida por debajo de lo ya acreditado.",
         "fifo_credit_error": "Error en el control FIFO de la nota de crédito.",
         "warehouse_credit_notes_list_ok": "Listado de notas de crédito",
-        "warehouse_credit_note_user_required": "No se pudo identificar el usuario de almacén del token."
+        "warehouse_credit_note_user_required": "No se pudo identificar el usuario de almacén del token.",
+        "warehouse_orders_history_ok": "Historial de órdenes de almacén",
+        "warehouse_history_user_required": "warehouse_user_id es requerido",
+        "warehouse_history_user_mismatch": "Solo puedes consultar el historial de tu propio warehouse_user_id",
+        "warehouse_history_column_missing": "La columna orders.warehouse_user_id no existe en la base de datos",
+        "warehouse_orders_my_completed_ok": "Mis órdenes warehouse completed"
     },
     "cmp-pdf-catalogo": {
         "company": "Empresa",
@@ -2579,7 +2602,11 @@
         "ai_image_assigned": "Se asignaron imágenes a productos sin foto",
         "ai_image_error": "No se pudo asignar la imagen con IA",
         "ai_image_not_configured": "La asignación de imágenes con IA no está configurada",
-        "ai_image_quota": "Sin crédito de OpenAI para generar o buscar imágenes"
+        "ai_image_quota": "Sin crédito de OpenAI para generar o buscar imágenes",
+        "quality_alert_title": "Avisos de productos",
+        "quality_duplicate_barcodes": "{count} producto(s) tienen un código de barras repetido",
+        "quality_zero_price": "{count} producto(s) tienen precio 0",
+        "quality_stock_fixed": "{count} producto(s) tenían stock negativo y se ajustaron a 0"
     },
     "cmp-profile-vendor": {
         "list_profile_vendor": "Lista de Perfil de Vendedores",
@@ -2936,7 +2963,10 @@
         "user_edit_load_error": "No se pudo cargar el formulario de edición. Recargue la página e intente de nuevo.",
         "edit": "Editar",
         "loading_data": "Cargando datos...",
-        "email": "Email"
+        "email": "Email",
+        "default": "Por defecto",
+        "defecto": "Por defecto",
+        "default_indicator_label": "Por defecto"
     },
     "cmp-rol": {
         "add_new_rol": "Crear Nuevo Rol",
@@ -3334,7 +3364,8 @@
         "promo_4_text": "Tableros e informes para tomar mejores decisiones de negocio.",
         "toggle_password": "Mostrar u ocultar contraseña",
         "email_label": "Correo electrónico",
-        "password_label": "Contraseña"
+        "password_label": "Contraseña",
+        "invalid_credentials": "Estas credenciales no coinciden con nuestros registros."
     },
     "company-navigation": {
         "dashboard": "Tablero",

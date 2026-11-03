@@ -977,6 +977,57 @@ if (! function_exists('fv_resolve_numeric_group_separator')) {
     }
 }
 
+if (! function_exists('fv_whole_order_pack')) {
+    /**
+     * Bulto de una orden: siempre un entero. Si hay fracción, sube al siguiente.
+     *
+     * @param mixed $value
+     */
+    function fv_whole_order_pack($value): int
+    {
+        $v = (float) $value;
+        if ($v <= 0) {
+            return 0;
+        }
+        $nearest = round($v);
+        if (abs($v - $nearest) <= 0.0001) {
+            return (int) $nearest;
+        }
+
+        return (int) ceil($v);
+    }
+}
+
+if (! function_exists('fv_format_order_pack')) {
+    /**
+     * Muestra el bulto de cualquier orden como número entero.
+     *
+     * @param mixed $value
+     * @param object|array|null $formatNumeric
+     */
+    function fv_format_order_pack($value, $formatNumeric = null, string $unavailable = '—'): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+        $v = (float) $value;
+        if ($v < 0) {
+            return $unavailable;
+        }
+        $radix = '.';
+        if (is_object($formatNumeric)) {
+            $radix = (string) ($formatNumeric->radixPoint ?? $formatNumeric->radix_point ?? '.');
+        } elseif (is_array($formatNumeric)) {
+            $radix = (string) ($formatNumeric['radixPoint'] ?? $formatNumeric['radix_point'] ?? '.');
+        }
+        $group = function_exists('fv_resolve_numeric_group_separator')
+            ? fv_resolve_numeric_group_separator($formatNumeric)
+            : ',';
+
+        return number_format(fv_whole_order_pack($v), 0, $radix, $group);
+    }
+}
+
 if (! function_exists('fv_format_money')) {
     /**
      * Formatea un importe con símbolo y formato numérico de la configuración de la empresa.

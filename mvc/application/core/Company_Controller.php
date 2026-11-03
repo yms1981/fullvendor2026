@@ -261,11 +261,9 @@ class Company_Controller extends Application_Controller
         if (! is_readable($path)) {
             return $fallback;
         }
-        $raw = @file_get_contents($path);
-        if ($raw === false || $raw === '') {
-            return $fallback;
-        }
-        $data = json_decode($raw, true);
+        $data = function_exists('fv_lang_json_decode_file')
+            ? fv_lang_json_decode_file($path)
+            : [];
         if (! is_array($data) || ! isset($data[$section][$key])) {
             return $fallback;
         }

@@ -24,6 +24,100 @@
         }
     ],
     "paths": {
+        "api/v2/order/return-over-sales/pdf": {
+            "get": {
+                "tags": [
+                    "Order"
+                ],
+                "summary": "PDF de devoluciones mayores que las ventas",
+                "description": "Resumen de productos y detalle por nota de crédito del cliente indicado.",
+                "operationId": "orderReturnOverSalesPdf",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "customer_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Sin acceso a la compañía"
+                    },
+                    "404": {
+                        "description": "El cliente no tiene excesos"
+                    },
+                    "422": {
+                        "description": "Falta customer_id"
+                    }
+                }
+            }
+        },
+        "api/v2/order/return-over-sales": {
+            "get": {
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Devoluciones mayores que las ventas",
+                "description": "Por cliente y producto, lista donde la cantidad acreditada supera la cantidad vendida.",
+                "operationId": "orderReturnOverSales",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de excesos"
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Sin acceso a la compañía"
+                    }
+                }
+            }
+        },
         "api/v2/admin": {
             "get": {
                 "tags": [
@@ -26334,7 +26428,7 @@
                 "tags": [
                     "Order"
                 ],
-                "summary": "Display a listing of the Order.",
+                "summary": "Listado de órdenes de la compañía. Excluye inventario (tipo_d = I).",
                 "operationId": "2b76b00d28aa6c88f2a0be3bf13e69ea",
                 "responses": {
                     "200": {
@@ -29115,6 +29209,71 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "api/v2/product/list-quality": {
+            "get": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Avisos de calidad del listado de productos",
+                "description": "Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0.",
+                "operationId": "productListQuality",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Conteos de la compañía",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "duplicate_products": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "duplicate_codes": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "zero_price": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "negative_stock_fixed": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Sin acceso a la compañía"
+                    },
+                    "422": {
+                        "description": "Compañía no indicada"
+                    }
+                }
             }
         },
         "api/v2/product": {
@@ -41572,14 +41731,13 @@
                 ],
                 "summary": "Comprobar autenticación ERP",
                 "description": "Responde OK si el header X-Api-Key es válido.",
-                "operationId": "erpPing",
+                "operationId": "bc97f35f6eda915c7b99685bccb2e93b",
                 "responses": {
                     "200": {
                         "description": "API key válida",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
                                     "properties": {
                                         "status": {
                                             "type": "string",
@@ -41592,7 +41750,8 @@
                                         "message": {
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -43025,6 +43184,784 @@
                 "security": [
                     {
                         "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "api/v2/vendor/{seller}/setDefault": {
+            "put": {
+                "tags": [
+                    "Seller"
+                ],
+                "summary": "Set seller as company default",
+                "operationId": "vendorSetDefault",
+                "parameters": [
+                    {
+                        "name": "seller",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Seller marked as default"
+                    },
+                    "404": {
+                        "description": "Seller not found"
+                    },
+                    "422": {
+                        "description": "Seller inactive or cannot be default"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/categories": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar categorías",
+                "operationId": "629f4ce8dc829938836fec9bcc8aca46",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/customer-groups": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar grupos de clientes",
+                "operationId": "9728f5f0683d75d15725a22977f4a3b2",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/terms": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar términos de venta",
+                "operationId": "5298a17a5528d288f8b24d3f4b061b2f",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/sellers": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar vendedores (sellers)",
+                "operationId": "d325145b193e0c2d4af9fc179f567034",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/warehouse-users": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar usuarios de almacén",
+                "operationId": "12d7fc7e7d3356e25960c77a0943431a",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/customers": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar clientes de la empresa",
+                "description": "Devuelve clientes de company_id (query o header X-Company-Id).",
+                "operationId": "67b79ec2855b37e84ac56e84bd156049",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "company_id requerido"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/customers/upsert": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Crear o actualizar cliente",
+                "description": "Busca por customer_id o cust_id_kor/iderp. Puede incluir balance y dirección comercial.",
+                "operationId": "094ddba5e5194561f1033e420d5f7335",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "customer_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "cust_id_kor": {
+                                        "description": "ID ERP",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "iderp": {
+                                        "description": "Alias de cust_id_kor",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "business_name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "cell_phone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "tax_id": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "group_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "term_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "discount": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "customer_status": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "balance": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "commercial_address": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "commercial_country": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "commercial_state": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "commercial_city": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "commercial_zip_code": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "dispatch_delivery_address": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "dispatch_shipping_notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cliente creado o actualizado"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "company_id requerido"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/orders": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar órdenes (shape softorderList)",
+                "operationId": "8d86286a62f57078ad43a4af67eecc31",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "tipo_d",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/orders/{orderNumber}": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Detalle de orden por número",
+                "operationId": "efbde77249f755d961fd94260fdb3ff1",
+                "parameters": [
+                    {
+                        "name": "orderNumber",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/orders/import": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Importar orden desde ERP (autenticado)",
+                "description": "Misma lógica que el import público /order/import, autenticado con X-Api-Key.",
+                "operationId": "55f7a490b87e52dc3b6d5d1f1ff55f27",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar productos de la empresa",
+                "operationId": "250f6c58fefb0d052c091dec2371f15a",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "company_id requerido"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/upsert": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Crear o actualizar producto por SKU",
+                "operationId": "855f6be365bc468ec8a5867ad9caeb97",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "sku"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "sku": {
+                                        "type": "string",
+                                        "example": "ABC-001"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "sale_price": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "fob_price": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "purchase_price": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "stock": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "unit_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "category_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "cat_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "barcode": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "currency_type": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "imgURL": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "simgURL": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "language_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Producto creado o actualizado"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/stock-update": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Actualizar stock/precios por lote de SKUs",
+                "description": "Acepta items[] o un objeto único con sku. Opcional: stock, fob_price, purchase_price, sale_price.",
+                "operationId": "39f400ddfa6747fdd920ba125802f567",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "sku": {
+                                                    "type": "string"
+                                                },
+                                                "stock": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "fob_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "purchase_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "sale_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "company_id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "sku": {
+                                        "description": "Alternativa a items[] para un solo SKU",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "stock": {
+                                        "type": "number",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resumen updated/failed"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
                     }
                 ]
             }

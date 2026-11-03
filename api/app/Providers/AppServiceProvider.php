@@ -3,12 +3,22 @@
 namespace App\Providers;
 
 use App\Console\Commands\SyncSchemaInsteadOfMigrateCommand;
+use App\Models\Address;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Company;
+use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\OrderDetail;
+use App\Models\OrderNote;
 use App\Models\Product;
+use App\Models\State;
+use App\Models\StatusOrder;
 use App\Models\Subscription;
+use App\Models\User;
+use App\Models\Vendor;
+use App\Models\WarehouseUser;
 use App\Observers\CompanyStripeCustomerObserver;
 use App\Observers\CustomerCustIdKorObserver;
 use App\Observers\CustomerOrderProductFifoObserver;
@@ -16,8 +26,13 @@ use App\Observers\MobileChangeLogObserver;
 use App\Observers\SubscriptionCompanyLimitsObserver;
 use App\Observers\SubscriptionInvoiceObserver;
 use Illuminate\Database\Console\Migrations\MigrateCommand;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 
@@ -45,6 +60,22 @@ class AppServiceProvider extends ServiceProvider
         Order::observe($mobileChangeObserver);
         Order::observe(CustomerOrderProductFifoObserver::class);
 
+        // Producción puede no tener deleted_at en tablas que el listado de órdenes eager-load.
+        // Sin esto el SELECT revienta y /company/orders queda en cero.
+        $this->dropSoftDeleteScopeWhenColumnMissing([
+            Address::class,
+            City::class,
+            Country::class,
+            Customer::class,
+            OrderDetail::class,
+            OrderNote::class,
+            State::class,
+            StatusOrder::class,
+            User::class,
+            Vendor::class,
+            WarehouseUser::class,
+        ]);
+
         \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::except([
             'api/v2/login'
         ]);
@@ -64,5 +95,37 @@ class AppServiceProvider extends ServiceProvider
         // Configurar TrustProxies para Docker: confiar en todos los proxies
         // Esto asegura que Laravel use el host correcto de la petición
         Request::setTrustedProxies(['*'], Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
+    }
+
+    /**
+     * @param  array<int, class-string<Model>>  $models
+     */
+    private function dropSoftDeleteScopeWhenColumnMissing(array $models): void
+    {
+        foreach ($models as $class) {
+            try {
+                if (! in_array(SoftDeletes::class, class_uses_recursive($class), true)) {
+                    continue;
+                }
+                $model = new $class();
+                if (Schema::hasColumn($model->getTable(), $model->getDeletedAtColumn())) {
+                    continue;
+                }
+                $boot = new \ReflectionMethod($class, 'bootIfNotBooted');
+                $boot->setAccessible(true);
+                $boot->invoke(null);
+
+                $prop = new \ReflectionProperty(Model::class, 'globalScopes');
+                $prop->setAccessible(true);
+                $scopes = $prop->getValue();
+                unset($scopes[$class][SoftDeletingScope::class]);
+                $prop->setValue(null, $scopes);
+            } catch (\Throwable $e) {
+                Log::warning('dropSoftDeleteScopeWhenColumnMissing skipped', [
+                    'model' => $class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }

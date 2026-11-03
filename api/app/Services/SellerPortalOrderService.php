@@ -238,6 +238,7 @@ final class SellerPortalOrderService
                 $qty = (float) $item['qty'];
                 $salePrice = (float) $item['price'];
                 $lineTotal = $qty * $salePrice;
+                $lineComment = trim((string) ($item['comment'] ?? $item['comments'] ?? ''));
 
                 $details[] = new OrderDetail([
                     'product_id'         => $item['pro_id'],
@@ -245,7 +246,7 @@ final class SellerPortalOrderService
                     'sale_price'         => $salePrice,
                     'fob_price'          => (float) ($product->fob_price ?? 0),
                     'fixed_pricedate'    => ! empty($item['fixed_price']) ? Carbon::now() : null,
-                    'comment'            => $item['comment'] ?? '-',
+                    'comment'            => $lineComment,
                     'amount_sales'       => $lineTotal,
                     'amount'             => $lineTotal,
                     'total'              => $lineTotal,
@@ -255,7 +256,7 @@ final class SellerPortalOrderService
                     'pack'               => 0,
                     'discount'           => 0,
                     'id_kor'             => 1,
-                    'comments'           => 1,
+                    'comments'           => $lineComment,
                 ]);
             }
 

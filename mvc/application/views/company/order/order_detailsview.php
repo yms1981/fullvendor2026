@@ -13,8 +13,8 @@ $order = $order ?? null;
 $pageTexts = is_array($pageTexts ?? null) ? $pageTexts : [];
 $moneda = !empty($format_currency) ? $format_currency : '$';
 $fmt = $format_numeric ?? null;
-if (!$fmt || !isset($fmt->digits)) {
-    $fmt = (object) ['digits' => 2, 'radixPoint' => ',', 'groupSeparator' => '.'];
+if (!is_object($fmt) || !isset($fmt->digits)) {
+    $fmt = (object) ['digits' => 2, 'radixPoint' => '.', 'groupSeparator' => ','];
 }
 
 $address = $order->address ?? null;

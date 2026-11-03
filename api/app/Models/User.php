@@ -372,8 +372,25 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($this->companies()->where('companies.company_id', $companyId)->exists()) {
-            return true;
+        try {
+            if ($this->companies()->where('companies.company_id', $companyId)->exists()) {
+                return true;
+            }
+        } catch (\Throwable $e) {
+            try {
+                if (\Illuminate\Support\Facades\DB::table('company_user')
+                    ->where('user_id', $this->id)
+                    ->where('company_id', $companyId)
+                    ->exists()) {
+                    return true;
+                }
+            } catch (\Throwable $inner) {
+                \Illuminate\Support\Facades\Log::warning('canAccessCompany pivot check failed', [
+                    'user_id' => $this->id,
+                    'company_id' => $companyId,
+                    'error' => $inner->getMessage(),
+                ]);
+            }
         }
 
         $email = strtolower(trim((string) $this->email));
@@ -381,14 +398,30 @@ class User extends Authenticatable
             return false;
         }
 
-        return Company::query()
-            ->whereNull('deleted_at')
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->where(function ($q) use ($companyId) {
-                $q->where('company_id', $companyId)
-                    ->orWhere('createdby_comp_id', $companyId);
-            })
-            ->exists();
+        try {
+            $query = Company::query()->whereRaw('LOWER(email) = ?', [$email]);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('companies', 'deleted_at')) {
+                $query->whereNull('deleted_at');
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('companies', 'createdby_comp_id')) {
+                $query->where(function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId)
+                        ->orWhere('createdby_comp_id', $companyId);
+                });
+            } else {
+                $query->where('company_id', $companyId);
+            }
+
+            return $query->exists();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('canAccessCompany email check failed', [
+                'user_id' => $this->id,
+                'company_id' => $companyId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
 }

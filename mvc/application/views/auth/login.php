@@ -29,8 +29,6 @@ $t = static function (string $key, string $default = '') use ($lp, $translations
     return (string) $val;
 };
 
-$urlCustomerPortal = (string) ($url_customer_portal ?? site_url('customer'));
-$urlSellerPortal = (string) ($url_seller_portal ?? site_url('sellers'));
 $loginQuery = [];
 if ($this->input->get('redirectto')) {
     $loginQuery['redirectto'] = (string) $this->input->get('redirectto');
@@ -42,7 +40,6 @@ $loginBase = parse_url(base_url('login'));
 $loginFormAction = (is_array($loginBase) ? (string) ($loginBase['path'] ?? '/login') : '/login')
     . ($loginQuery !== [] ? '?' . http_build_query($loginQuery) : '');
 $currentLangCode = ['en', 'es', 'pt', 'it', 'ru', 'de', 'zh'][$currentLangId - 1] ?? 'en';
-$langSuffix = '?lang=' . rawurlencode($currentLangCode);
 $assetV = date('YmdHis');
 
 $languageOptions = [
@@ -158,17 +155,6 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
           </span>
           <p class="fv-cl-card__panel-label" id="login-panel-label"><?= $e($t('panel_label', '')) ?></p>
         </div>
-
-        <nav class="fv-cl-tabs" aria-label="<?= $e($t('entry_portal_nav_label', 'Customer and seller portals')) ?>">
-          <a class="is-active" href="<?= $e($urlCustomerPortal . $langSuffix) ?>">
-            <i class="fa-regular fa-user" aria-hidden="true"></i>
-            <span id="login-entry-customer"><?= $e($t('entry_customer_site', 'Cliente')) ?></span>
-          </a>
-          <a href="<?= $e($urlSellerPortal . $langSuffix) ?>">
-            <i class="fa-solid fa-store" aria-hidden="true"></i>
-            <span id="login-entry-seller"><?= $e($t('entry_seller_site', 'Vendedor')) ?></span>
-          </a>
-        </nav>
 
         <form id="login-form" class="fv-cl-form login-form" action="<?= $e($loginFormAction) ?>" method="post" autocomplete="off">
           <input type="hidden" name="lang" id="login-lang" value="<?= $e($currentLangCode) ?>">
@@ -357,8 +343,6 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
       setText('login-forgottext', t.forgottext);
       setText('login-dontaccount', t.dont_have_account);
       setText('login-signup-link', t.sign_up_link);
-      setText('login-entry-customer', t.entry_customer_site);
-      setText('login-entry-seller', t.entry_seller_site);
       setText('login-loader-text', t.loading_text);
       setText('login-email-label', t.email_label || t.emailph);
       setText('login-password-label', t.password_label || t.passph);
@@ -405,13 +389,6 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
       }
       const langInput = document.getElementById('login-lang');
       if (langInput) langInput.value = code;
-      document.querySelectorAll('.fv-cl-tabs a').forEach(function (a) {
-        try {
-          const u = new URL(a.getAttribute('href'), window.location.origin);
-          u.searchParams.set('lang', code);
-          a.setAttribute('href', u.pathname + u.search);
-        } catch (err) { /* ignore */ }
-      });
     }
 
     function setupLanguageSelector() {
@@ -605,10 +582,14 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
           });
 
           let data = null;
+          let raw = '';
           try {
-            data = await response.json();
+            raw = await response.text();
+            data = JSON.parse(raw);
           } catch (parseErr) {
-            window.location.reload();
+            const langId = parseInt(window.loginCurrentLangId, 10) || 1;
+            const texts = translationsCache[langId] || translationsCache[1] || {};
+            showInlineError(texts.invalid_credentials || 'Error');
             return;
           }
 
@@ -622,10 +603,11 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
           }
 
           const langId = parseInt(window.loginCurrentLangId, 10) || 1;
-          const fallbackMsg = (translationsCache[langId] || translationsCache[1] || {}).loading_text || 'Error';
+          const texts = translationsCache[langId] || translationsCache[1] || {};
+          const fallbackMsg = texts.invalid_credentials || 'Error';
           showInlineError((data && data.message) ? data.message : fallbackMsg);
         } catch (err) {
-          showInlineError((translationsCache[parseInt(window.loginCurrentLangId, 10) || 1] || {}).loading_text || 'Error');
+          showInlineError((translationsCache[parseInt(window.loginCurrentLangId, 10) || 1] || {}).invalid_credentials || 'Error');
         }
       });
     }

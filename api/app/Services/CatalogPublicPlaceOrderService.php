@@ -179,6 +179,7 @@ final class CatalogPublicPlaceOrderService
                     $qty = (float) $line['qty'];
                     $salePrice = (float) $line['sale_price'];
                     $lineTotal = $qty * $salePrice;
+                    $lineComment = trim((string) ($line['comment'] ?? ''));
 
                     $details[] = new OrderDetail([
                         'product_id' => (int) $product->pro_id,
@@ -186,7 +187,7 @@ final class CatalogPublicPlaceOrderService
                         'sale_price' => $salePrice,
                         'fob_price' => (float) ($product->fob_price ?? 0),
                         'fixed_pricedate' => null,
-                        'comment' => (string) ($line['comment'] ?? '-'),
+                        'comment' => $lineComment,
                         'amount_sales' => $lineTotal,
                         'amount' => $lineTotal,
                         'total' => $lineTotal,
@@ -196,7 +197,7 @@ final class CatalogPublicPlaceOrderService
                         'pack' => 0,
                         'discount' => 0,
                         'id_kor' => 1,
-                        'comments' => 1,
+                        'comments' => $lineComment,
                     ]);
                 }
 

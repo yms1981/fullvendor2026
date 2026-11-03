@@ -170,7 +170,7 @@
                                                     echo $value = $lang_order["no_counted"];
 
                                                 }else{
-                                                    echo $value = floatval($pro->delivered_pack);
+                                                    echo $value = fv_format_order_pack($pro->delivered_pack, null, (string) ($lang_order['no_counted'] ?? '—'));
                                                 }
                                                 
                                             ?>  

@@ -122,7 +122,7 @@ $sub_total_asignada = number_format($data->total_asignado,$format_numeric->digit
                         <br><br>
                         <strong>
                             <span>
-                                <?= $detail->pack < 0? $lang_order['no_disponible']  : number_format($detail->pack,$format_numeric->digits, $format_numeric->radixPoint,$format_numeric->groupSeparator) ?>
+                                <?= $detail->pack < 0? $lang_order['no_disponible']  : fv_format_order_pack($detail->pack, $format_numeric, (string) ($lang_order['no_disponible'] ?? '—')) ?>
                             </span>
                         </strong>
                     </td>

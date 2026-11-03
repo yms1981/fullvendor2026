@@ -1,4 +1,4 @@
-﻿{
+{
     "cmp-asistente": {
         "widget_title": "Assistant",
         "open_label": "Open assistant",
@@ -1993,6 +1993,24 @@
         "pack": "Pack",
         "total_pedido": "Total Order",
         "qty_asigned": "Quantity Asigned",
+        "credit_return_from": "Returned from",
+        "return_over_sales_title": "Returns greater than sales",
+        "return_over_sales_message": "There are {count} product(s) with more quantity returned than sold.",
+        "return_over_sales_button": "View errors",
+        "return_over_sales_customer": "Customer",
+        "return_over_sales_product": "Product",
+        "return_over_sales_sku": "SKU",
+        "return_over_sales_sold": "Sold",
+        "return_over_sales_credited": "Returned",
+        "return_over_sales_excess": "Excess",
+        "return_over_sales_group_count": "{count} products",
+        "return_over_sales_print": "Print",
+        "return_over_sales_summary": "Product summary",
+        "return_over_sales_credit_detail": "Credit note detail",
+        "return_over_sales_note": "Credit note",
+        "return_over_sales_date": "Date",
+        "return_over_sales_qty": "Quantity",
+        "return_over_sales_price": "Price",
         "total_asigned": "Total Asigned",
         "sub_total_asigned": "Assigned Subtotal",
         "delivered_pack": "Delivered packs",
@@ -2183,7 +2201,12 @@
         "fifo_qty_below_credited": "Cannot reduce sold quantity below already credited quantity.",
         "fifo_credit_error": "FIFO credit note control error.",
         "warehouse_credit_notes_list_ok": "Credit notes list",
-        "warehouse_credit_note_user_required": "Could not identify the warehouse user from the token."
+        "warehouse_credit_note_user_required": "Could not identify the warehouse user from the token.",
+        "warehouse_orders_history_ok": "Warehouse order history",
+        "warehouse_history_user_required": "warehouse_user_id is required",
+        "warehouse_history_user_mismatch": "You can only view history for your own warehouse_user_id",
+        "warehouse_history_column_missing": "Column orders.warehouse_user_id is missing from the database",
+        "warehouse_orders_my_completed_ok": "My warehouse completed orders"
     },
     "cmp-pdf-catalogo": {
         "company": "Company",
@@ -2575,7 +2598,11 @@
         "ai_image_assigned": "Images were assigned to products without a photo",
         "ai_image_error": "Could not assign the AI image",
         "ai_image_not_configured": "AI image assignment is not configured",
-        "ai_image_quota": "OpenAI has no credit left to generate or find images"
+        "ai_image_quota": "OpenAI has no credit left to generate or find images",
+        "quality_alert_title": "Product notices",
+        "quality_duplicate_barcodes": "{count} product(s) share a repeated barcode",
+        "quality_zero_price": "{count} product(s) have a price of 0",
+        "quality_stock_fixed": "{count} product(s) had negative stock and were set to 0"
     },
     "cmp-profile-vendor": {
         "list_profile_vendor": "Seller Profile List",
@@ -2932,7 +2959,10 @@
         "user_edit_load_error": "Could not load the edit form. Please reload the page and try again.",
         "edit": "Edit",
         "loading_data": "Loading data...",
-        "email": "Email"
+        "email": "Email",
+        "default": "Default",
+        "defecto": "By Default",
+        "default_indicator_label": "Default"
     },
     "cmp-rol": {
         "add_new_rol": "Add New Role",
@@ -3330,7 +3360,8 @@
         "promo_4_text": "Dashboards and reports to make better business decisions.",
         "toggle_password": "Show or hide password",
         "email_label": "Email",
-        "password_label": "Password"
+        "password_label": "Password",
+        "invalid_credentials": "These credentials do not match our records."
     },
     "company-navigation": {
         "dashboard": "Dashboard",

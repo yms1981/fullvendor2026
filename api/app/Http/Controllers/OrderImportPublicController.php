@@ -637,7 +637,7 @@ class OrderImportPublicController extends Controller
                     'sale_price' => $salePrice,
                     'fob_price' => (float) ($product->fob_price ?? 0),
                     'fixed_pricedate' => null,
-                    'comment' => '-',
+                    'comment' => '',
                     'amount_sales' => $lineTotal,
                     'amount' => $lineTotal,
                     'total' => $lineTotal,
@@ -647,7 +647,7 @@ class OrderImportPublicController extends Controller
                     'pack' => 0,
                     'discount' => 0,
                     'id_kor' => 1,
-                    'comments' => 1,
+                    'comments' => '',
                 ]);
             }
 

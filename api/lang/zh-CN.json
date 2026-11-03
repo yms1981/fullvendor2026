@@ -1514,6 +1514,24 @@
         "pack": "Bulto",
         "total_pedido": "总计 Pedido",
         "qty_asigned": "Cantidad Asignada",
+        "credit_return_from": "退自",
+        "return_over_sales_title": "退货数量大于销售",
+        "return_over_sales_message": "有 {count} 个产品的退货数量大于销售数量。",
+        "return_over_sales_button": "查看错误",
+        "return_over_sales_customer": "客户",
+        "return_over_sales_product": "产品",
+        "return_over_sales_sku": "SKU",
+        "return_over_sales_sold": "已售",
+        "return_over_sales_credited": "已退",
+        "return_over_sales_excess": "超出",
+        "return_over_sales_group_count": "{count} 个产品",
+        "return_over_sales_print": "打印",
+        "return_over_sales_summary": "产品汇总",
+        "return_over_sales_credit_detail": "贷项通知单明细",
+        "return_over_sales_note": "贷项通知单",
+        "return_over_sales_date": "日期",
+        "return_over_sales_qty": "数量",
+        "return_over_sales_price": "价格",
         "total_asigned": "总计 Asignado",
         "sub_total_asigned": "Assigned Subtotal",
         "delivered_pack": "Delivered packs",
@@ -2056,7 +2074,11 @@
         "ai_image_assigned": "已为无图片的产品分配图片",
         "ai_image_error": "无法用 AI 分配图片",
         "ai_image_not_configured": "未配置 AI 图片分配",
-        "ai_image_quota": "OpenAI 额度不足，无法生成或查找图片"
+        "ai_image_quota": "OpenAI 额度不足，无法生成或查找图片",
+        "quality_alert_title": "产品提示",
+        "quality_duplicate_barcodes": "{count} 个产品的条码重复",
+        "quality_zero_price": "{count} 个产品的价格为 0",
+        "quality_stock_fixed": "{count} 个产品的负库存已自动改为 0"
     },
     "cmp-profile-vendor": {
         "list_profile_vendor": "Lista de Perfil de 销售员es",
@@ -2356,7 +2378,10 @@
         "user_edit_load_error": "无法加载编辑表单。请刷新页面后重试。",
         "edit": "编辑",
         "loading_data": "正在加载数据...",
-        "email": "Email"
+        "email": "Email",
+        "default": "默认",
+        "defecto": "默认",
+        "default_indicator_label": "默认"
     },
     "cmp-rol": {
         "add_new_rol": "添加新角色",
@@ -2744,7 +2769,8 @@
         "promo_4_text": "仪表盘与报表助力更好的业务决策。",
         "toggle_password": "显示或隐藏密码",
         "email_label": "邮箱",
-        "password_label": "密码"
+        "password_label": "密码",
+        "invalid_credentials": "这些凭据与我们的记录不符。"
     },
     "company-navigation": {
         "dashboard": "面板",

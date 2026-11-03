@@ -494,7 +494,111 @@ class ImageController extends Controller
         }
     }
 
+    
     /**
+     * Imagen pública para apps (Chrome/PWA / <img>): sin token ni Sanctum.
+     * GET /api/v2/public/images/{uuid}
+     * GET /api/v2/public/images/{uuid}_{width}
+     * CORS abierto para Image.network desde cualquier origen.
+     */
+    
+    /**
+     * Imagen pública de un producto por pro_id (sin token).
+     * Usa default_image_id o la primera de product_images.
+     * GET /api/v2/public/products/{proId}/image
+     */
+    public function publicProductImage(int $proId)
+    {
+        $uuid = $this->resolveProductImageUuid($proId);
+        if ($uuid === null) {
+            return $this->withPublicImageCors($this->noImageResponse());
+        }
+        $image = Image::query()->where('uuid', $uuid)->first();
+        if (!$image) {
+            return $this->withPublicImageCors($this->noImageResponse());
+        }
+
+        return $this->withPublicImageCors($this->imageByUuid($image));
+    }
+
+    /**
+     * Devuelve JSON { uuid } para el cliente (sin token).
+     * GET /api/v2/public/products/{proId}/image-uuid
+     */
+    public function publicProductImageUuid(int $proId)
+    {
+        $uuid = $this->resolveProductImageUuid($proId);
+        return response()
+            ->json(['uuid' => $uuid, 'pro_id' => $proId])
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Cache-Control', 'public, max-age=300');
+    }
+
+    private function resolveProductImageUuid(int $proId): ?string
+    {
+        if ($proId <= 0) {
+            return null;
+        }
+        try {
+            $row = \DB::table('products')
+                ->select(['default_image_id', 'Img', 'imgURL'])
+                ->where('pro_id', $proId)
+                ->first();
+            if ($row) {
+                foreach (['default_image_id', 'Img', 'imgURL'] as $col) {
+                    $v = isset($row->$col) ? trim((string) $row->$col) : '';
+                    if ($v !== '' && preg_match('/^[0-9a-fA-F-]{36}$/', $v)) {
+                        return $v;
+                    }
+                }
+            }
+            $pi = \DB::table('product_images')
+                ->where('product_id', $proId)
+                ->whereNull('deleted_at')
+                ->orderBy('img_order')
+                ->orderBy('img_id')
+                ->value('image_id');
+            $pi = is_string($pi) ? trim($pi) : '';
+            if ($pi !== '' && preg_match('/^[0-9a-fA-F-]{36}$/', $pi)) {
+                return $pi;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('resolveProductImageUuid: '.$e->getMessage(), ['pro_id' => $proId]);
+        }
+
+        return null;
+    }
+
+    public function publicImage(Image $image)
+    {
+        return $this->withPublicImageCors($this->imageByUuid($image));
+    }
+
+    /**
+     * Miniatura pública escalada (sin token).
+     */
+    public function publicImageScaled(Image $image, int $width)
+    {
+        return $this->withPublicImageCors($this->imageScaledByWidth($image, $width));
+    }
+
+    /**
+     * Cabeceras CORS / CORP para que el navegador pueda pintar la foto sin Bearer.
+     */
+    private function withPublicImageCors(\Symfony\Component\HttpFoundation\Response $response): \Symfony\Component\HttpFoundation\Response
+    {
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Accept, Content-Type');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+        $response->headers->set('Cross-Origin-Embedder-Policy', 'unsafe-none');
+        if (!$response->headers->has('Cache-Control')) {
+            $response->headers->set('Cache-Control', 'public, max-age=86400');
+        }
+
+        return $response;
+    }
+/**
      * Respuesta con imagen por defecto (siempre 200 para que el <img> no falle).
      */
     private function noImageResponse(): \Illuminate\Http\Response

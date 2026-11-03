@@ -736,24 +736,9 @@ trait ApiClient
                     return $this->apiRequest($resource, $method, $retryOpts, $associative);
                 }
 
-                $this->clearAuthSessionAfterApi401();
-
-                $loginUrl = function_exists('platform_login_url')
-                    ? platform_login_url()
-                    : (function_exists('base_url') ? base_url('login') : (rtrim($CI->config->base_url(), '/') . '/login'));
-                $isAjax = isset($CI->input) && is_object($CI->input) && method_exists($CI->input, 'is_ajax_request') && $CI->input->is_ajax_request();
-                if ($isAjax) {
-                    header('Content-Type: application/json');
-                    http_response_code(401);
-                    echo json_encode(['message' => 'Unauthenticated.', 'redirect' => $loginUrl]);
-                    exit;
-                }
-                if (function_exists('redirect')) {
-                    redirect($loginUrl, 'refresh');
-                } else {
-                    header('Location: ' . $loginUrl);
-                    exit;
-                }
+                // El panel sigue con la sesión MVC. Solo logout la cierra.
+                $messagePayload = is_array($decodedResponse) ? $decodedResponse : ['message' => $responseBody, 'errors' => []];
+                return ['error' => 'Client error', 'message' => $messagePayload];
             }
 
             // Devolver siempre array en 'message' para que el código que lo use no falle con stdClass

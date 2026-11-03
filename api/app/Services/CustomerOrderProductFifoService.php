@@ -63,6 +63,7 @@ class CustomerOrderProductFifoService
 
         if ($tipo === 'C') {
             $this->syncCreditOrder($order, $strict);
+            app(CreditNoteLineDefaultsService::class)->ensure($order, false);
         }
     }
 
@@ -493,22 +494,18 @@ class CustomerOrderProductFifoService
                     break;
                 }
 
-                if ($creditPrice > ((float) $layer->sale_price) + self::PRICE_EPS) {
-                    if ($strict) {
-                        throw new FifoCreditException(
-                            'Credit note price cannot exceed sale price of source order layer.',
-                            'fifo_price_exceeds_sale',
-                            [
-                                'product_id' => $productId,
-                                'credit_price' => $creditPrice,
-                                'sale_price' => (float) $layer->sale_price,
-                                'source_order_id' => (int) $layer->source_order_id,
-                                'source_order_number' => (string) $layer->source_order_number,
-                            ]
-                        );
-                    }
-                    // Modo permisivo (warehouse): saltar esta capa y seguir.
-                    continue;
+                if ($strict && $creditPrice > ((float) $layer->sale_price) + self::PRICE_EPS) {
+                    throw new FifoCreditException(
+                        'Credit note price cannot exceed sale price of source order layer.',
+                        'fifo_price_exceeds_sale',
+                        [
+                            'product_id' => $productId,
+                            'credit_price' => $creditPrice,
+                            'sale_price' => (float) $layer->sale_price,
+                            'source_order_id' => (int) $layer->source_order_id,
+                            'source_order_number' => (string) $layer->source_order_number,
+                        ]
+                    );
                 }
 
                 $take = min($remainingToAllocate, (float) $layer->qty_remaining);

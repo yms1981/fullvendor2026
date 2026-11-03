@@ -6,13 +6,13 @@
         <td width="55%"></td>
         <td width="45%" valign="top">
             <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0;">
-                @if($subtotal > 0)
+                @if(abs($subtotal) > 0.00001)
                 <tr>
                     <td style="padding: 8px 12px; background: #f8fafc; color: #64748b; font-size: 8.5pt; font-weight: 700; text-transform: uppercase;">{{ $subtotalLabel }}</td>
                     <td align="right" style="padding: 8px 12px; background: #f8fafc; font-weight: 600;">{{ $moneda }} {{ $fmtMoney($subtotal) }}</td>
                 </tr>
                 @endif
-                @if($discount > 0)
+                @if(abs($discount) > 0.00001)
                 <tr>
                     <td style="padding: 8px 12px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 8.5pt; font-weight: 700; text-transform: uppercase;">{{ $discountLabel }}</td>
                     <td align="right" style="padding: 8px 12px; border-top: 1px solid #e2e8f0; color: #dc2626; font-weight: 600;">- {{ $moneda }} {{ $fmtMoney($discount) }}</td>

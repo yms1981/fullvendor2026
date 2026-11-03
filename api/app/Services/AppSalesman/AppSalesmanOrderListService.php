@@ -21,16 +21,22 @@ class AppSalesmanOrderListService
     /**
      * Órdenes de un cliente (legado orderList_post).
      *
+     * @param  int|null  $months  Si > 0, solo órdenes de los últimos N meses (por `created`).
      * @return array{status: string, language_id?: int|string, user_id?: int|string, order_list?: array<int, array<string, mixed>>, error?: string}
      */
-    public function listForCustomer(int $customerId): array
+    public function listForCustomer(int $customerId, ?int $months = null): array
     {
-        /** @var Collection<int, Warehouseorder> $orders */
-        $orders = Warehouseorder::query()
+        $query = Warehouseorder::query()
             ->where('customer_id', $customerId)
-            ->where('tipo_d', 'D')
-            ->orderByDesc('created')
-            ->get();
+            ->where('tipo_d', 'D');
+
+        if ($months !== null && $months > 0) {
+            $from = Carbon::now()->subMonths($months)->startOfDay();
+            $query->where('created', '>=', $from);
+        }
+
+        /** @var Collection<int, Warehouseorder> $orders */
+        $orders = $query->orderByDesc('created')->get();
 
         return $this->buildOrderList($orders);
     }

@@ -127,9 +127,15 @@ trait CreatesOrders
             request(),
             (int) ($customer->company_id ?? 0) ?: null
         );
-        $order->token_create = $data['token_create'] ?? $provenance['token_create'];
-        $order->user_id_token = $data['user_id_token'] ?? $provenance['user_id_token'];
-        $order->rol_token = $data['rol_token'] ?? $provenance['rol_token'];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'token_create')) {
+            $order->token_create = $data['token_create'] ?? $provenance['token_create'];
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'user_id_token')) {
+            $order->user_id_token = $data['user_id_token'] ?? $provenance['user_id_token'];
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'rol_token')) {
+            $order->rol_token = $data['rol_token'] ?? $provenance['rol_token'];
+        }
 
         if ($isShopingCart) {
             // Token corto para caber en columna token_pass (varchar 255) y coincidir con catalog_cart.token_kor

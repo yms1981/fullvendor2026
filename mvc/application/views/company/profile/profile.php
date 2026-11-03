@@ -150,40 +150,77 @@
                                         </div>
                                     </div>
 
+                                    <?php
+                                    $profileStateVal = trim((string) ($data->state ?? ''));
+                                    $profileCityVal = trim((string) ($data->city ?? ''));
+                                    $profileZipVal = trim((string) ($data->zip_code ?? ''));
+                                    $profileUpper = static function (string $value): string {
+                                        return function_exists('mb_strtoupper') ? mb_strtoupper($value, 'UTF-8') : strtoupper($value);
+                                    };
+                                    ?>
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label><?= $lang_perfil['state'] ?>: <span class="color-red">*</span></label>
-                                            <input type="text" class="form-control" name="state" id="state"
-                                                   value="<?= htmlspecialchars((string) ($data->state ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label><?= $lang_perfil['city'] ?>: <span class="color-red">*</span></label>
-                                            <input type="text" class="form-control" name="city" id="city"
-                                                   value="<?= htmlspecialchars((string) ($data->city ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                                            <select class="form-control fv-geo-select" id="profile_state_id" autocomplete="off" required>
+                                                <option value=""></option>
+                                                <?php if ($profileStateVal !== ''): ?>
+                                                    <option value="<?= htmlspecialchars($profileUpper($profileStateVal), ENT_QUOTES, 'UTF-8') ?>" selected><?= htmlspecialchars($profileUpper($profileStateVal), ENT_QUOTES, 'UTF-8') ?></option>
+                                                <?php endif; ?>
+                                            </select>
+                                            <input type="hidden" id="profile_state" name="state" value="<?= htmlspecialchars($profileUpper($profileStateVal), ENT_QUOTES, 'UTF-8') ?>">
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label><?= $lang_perfil['zipcode'] ?>: <span class="color-red">*</span></label>
-                                            <input type="text" class="form-control" name="zip_code" id="zip_code"
-                                                   value="<?= htmlspecialchars((string) ($data->zip_code ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                                            <select class="form-control fv-geo-select" id="profile_zip_code" name="zip_code" autocomplete="off" required>
+                                                <option value=""></option>
+                                                <?php if ($profileZipVal !== ''): ?>
+                                                    <option value="<?= htmlspecialchars($profileUpper($profileZipVal), ENT_QUOTES, 'UTF-8') ?>" selected><?= htmlspecialchars($profileUpper($profileZipVal), ENT_QUOTES, 'UTF-8') ?></option>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label><?= $lang_perfil['city'] ?>: <span class="color-red">*</span></label>
+                                            <select class="form-control fv-geo-select" id="profile_city_id" autocomplete="off" required>
+                                                <option value=""></option>
+                                                <?php if ($profileCityVal !== ''): ?>
+                                                    <option value="<?= htmlspecialchars($profileUpper($profileCityVal), ENT_QUOTES, 'UTF-8') ?>" selected><?= htmlspecialchars($profileUpper($profileCityVal), ENT_QUOTES, 'UTF-8') ?></option>
+                                                <?php endif; ?>
+                                            </select>
+                                            <input type="hidden" id="profile_city" name="city" value="<?= htmlspecialchars($profileUpper($profileCityVal), ENT_QUOTES, 'UTF-8') ?>">
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label><?= $lang_perfil['language'] ?>: <span class="color-red">*</span></label>
                                             <select class="form-control notranslate" name="language_id" id="language_id">
-                                                <?php foreach ($language as $langRow) :
+                                                <?php
+                                                $langFlagByIso = [
+                                                    'en' => 'us',
+                                                    'es' => 'es',
+                                                    'pt' => 'pt',
+                                                    'it' => 'it',
+                                                    'ru' => 'ru',
+                                                    'de' => 'de',
+                                                    'zh' => 'cn',
+                                                ];
+                                                foreach ($language as $langRow) :
                                                     $lid = (int) ($langRow->language_id ?? 0);
                                                     if ($lid <= 0) {
                                                         continue;
                                                     }
                                                     $lname = (string) ($langRow->name ?? '');
+                                                    if (function_exists('fv_repair_utf8_mojibake')) {
+                                                        $lname = fv_repair_utf8_mojibake($lname);
+                                                    }
+                                                    $iso = strtolower((string) ($langRow->iso_639_1 ?? ''));
+                                                    $flagCode = $langFlagByIso[$iso] ?? '';
                                                     $lsel = ((int) ($data->language_id ?? 0) === $lid) ? 'selected' : '';
                                                     ?>
-                                                    <option value="<?= $lid ?>" <?= $lsel ?>><?= htmlspecialchars($lname, ENT_QUOTES, 'UTF-8') ?></option>
+                                                    <option value="<?= $lid ?>" data-flag="<?= htmlspecialchars($flagCode, ENT_QUOTES, 'UTF-8') ?>" <?= $lsel ?>><?= htmlspecialchars($lname, ENT_QUOTES, 'UTF-8') ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
@@ -650,6 +687,9 @@
 </div>
 
 <script>
+window.pageTexts = window.pageTexts || {};
+window.pageTexts.label_select = window.pageTexts.label_select || <?= json_encode((string) ($lang_customer['label_select'] ?? $lang_perfil['select_country'] ?? '')) ?>;
+window.pageTexts.placeholder_select_country = window.pageTexts.placeholder_select_country || <?= json_encode((string) ($lang_perfil['select_country'] ?? $lang_customer['placeholder_select_country'] ?? $lang_customer['label_select'] ?? '')) ?>;
 $(document).ready(function() {
     var selPlaceholder = <?= json_encode((string) ($lang_customer['label_select'] ?? $lang_perfil['select_country'] ?? '')) ?>;
     var phCountry = <?= json_encode((string) ($lang_perfil['select_country'] ?? $lang_customer['placeholder_select_country'] ?? $lang_customer['label_select'] ?? '')) ?>;
@@ -842,7 +882,31 @@ $(document).ready(function() {
         try { $languageSelect.select2('destroy'); } catch (e) {}
         $languageSelect.select2({
             width: '100%',
-            minimumResultsForSearch: Infinity
+            minimumResultsForSearch: Infinity,
+            dropdownParent: $(document.body),
+            templateResult: function (lang) {
+                if (!lang.id) {
+                    return lang.text;
+                }
+                var flag = countryFlagHtml($(lang.element).data('flag'));
+                var label = $('<span/>').text($.trim($(lang.element).text() || lang.text || '')).html();
+                if (!flag) {
+                    return $('<span/>').html(label);
+                }
+                return $('<span class="d-inline-flex align-items-center"/>').html(flag + label);
+            },
+            templateSelection: function (lang) {
+                if (!lang.id) {
+                    return lang.text;
+                }
+                var flag = countryFlagHtml($(lang.element).data('flag'));
+                var label = $('<span/>').text($.trim($(lang.element).text() || lang.text || '')).html();
+                if (!flag) {
+                    return $('<span/>').html(label);
+                }
+                return $('<span class="d-inline-flex align-items-center"/>').html(flag + label);
+            },
+            escapeMarkup: function (m) { return m; }
         });
     }
 });

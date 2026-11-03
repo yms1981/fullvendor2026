@@ -39,6 +39,38 @@ class Home extends Company_Controller
             'showRowIndexColumn' => false,
             'planLimitBlock' => $this->buildPlanLimitBlock($planLimits, 'orders_month', 'cmp-orders'),
             'company_id' => (int) $this->getCompanyId(),
+            'returnOverSales' => $this->loadReturnOverSales(),
+        ];
+    }
+
+    /**
+     * @return array{count: int, items: list<array<string, mixed>>}
+     */
+    private function loadReturnOverSales(): array
+    {
+        $empty = ['count' => 0, 'items' => []];
+        $companyId = (int) $this->getCompanyId();
+        if ($companyId < 1) {
+            return $empty;
+        }
+        try {
+            $response = $this->getDataFromApi('order/return-over-sales', [
+                'company_id' => $companyId,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'return over sales: ' . $e->getMessage());
+
+            return $empty;
+        }
+        if (! is_array($response) || (method_exists($this, 'hasError') && $this->hasError($response))) {
+            return $empty;
+        }
+
+        $items = isset($response['items']) && is_array($response['items']) ? $response['items'] : [];
+
+        return [
+            'count' => (int) ($response['count'] ?? count($items)),
+            'items' => $items,
         ];
     }
 
@@ -52,6 +84,10 @@ class Home extends Company_Controller
             if (is_array($orderLang)) {
                 $this->langArr = $orderLang;
             }
+        }
+        $orderJson = $this->getLangJsonSection('cmp-orders');
+        if (is_array($orderJson) && $orderJson !== []) {
+            $this->langArr = $orderJson + (is_array($this->langArr) ? $this->langArr : []);
         }
 
         // Forzar saneo de qty/totales negativos en órdenes D antes de pintar el listado.
@@ -454,7 +490,6 @@ class Home extends Company_Controller
             }
         }
 
-        // Valores por defecto: from = últimos 30 días, to = fecha actual
         if (empty($formFilter['date_from'])) {
             $formFilter['date_from'] = date('Y-m-d', strtotime('-30 days'));
         }
@@ -493,6 +528,11 @@ class Home extends Company_Controller
 
         $params = array_merge($filter, ['page' => $page, 'per_page' => $perPage]);
         $result = $this->getObjectFromApi("$resource/", $params);
+
+        if (is_object($result) && method_exists($this, 'hasError') && $this->hasError($result)) {
+            log_message('error', 'getPaginatedList API error for ' . $resource . ': ' . json_encode($result));
+            $result = null;
+        }
 
         if (! is_object($result)) {
             if (is_array($result) && method_exists($this, 'hasError') && $this->hasError($result)) {

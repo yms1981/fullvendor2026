@@ -190,6 +190,18 @@ window.hideOrderActionLoader = function() {
                     if (isset($planLimitBlock) && is_array($planLimitBlock)) {
                         $this->load->view('company/plan_limit_notice', ['planLimitBlock' => $planLimitBlock]);
                     }
+                    if (isset($productListQuality) && is_array($productListQuality)) {
+                        $this->load->view('company/product/list_quality_alert', [
+                            'productListQuality' => $productListQuality,
+                            'pageTexts' => $pageTexts ?? [],
+                        ]);
+                    }
+                    if (isset($returnOverSales) && is_array($returnOverSales)) {
+                        $this->load->view('company/order/return_over_sales_alert', [
+                            'returnOverSales' => $returnOverSales,
+                            'pageTexts' => $pageTexts ?? [],
+                        ]);
+                    }
                     ?>
                 </div>
             </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Warehouse;
 
 use App\Enums\OrderStatusCodes;
+use App\Exceptions\CreditReturnExceedsSalesException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreWarehouseCreditNoteRequest;
 use App\Http\Resources\OrderListResource;
@@ -132,6 +133,122 @@ class WarehouseOrdersController extends Controller
     }
 
     /**
+     * GET|POST /api/v2/warehouse/credit-notes/my-month
+     * App Warehouse: notas de crédito (tipo_d=C) del usuario logueado en el mes actual.
+     * No modifica /credit-notes/list.
+     */
+    #[OA\Get(
+        path: 'api/v2/warehouse/credit-notes/my-month',
+        summary: 'Notas de crédito del warehouse user en el mes (app)',
+        description: 'Solo tipo_d=C del warehouse_user_id del token (o filtro), mes calendario actual por defecto.',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'year', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'month', in: 'query', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 12)),
+            new OA\Parameter(name: 'warehouse_user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Listado del mes'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'No autenticado'),
+            new OA\Response(response: Response::HTTP_FORBIDDEN, description: 'Sin acceso'),
+        ]
+    )]
+    #[OA\Post(
+        path: 'api/v2/warehouse/credit-notes/my-month',
+        summary: 'Notas de crédito del mes (JSON body)',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer'),
+                    new OA\Property(property: 'year', type: 'integer'),
+                    new OA\Property(property: 'month', type: 'integer'),
+                    new OA\Property(property: 'warehouse_user_id', type: 'integer'),
+                    new OA\Property(property: 'page', type: 'integer'),
+                    new OA\Property(property: 'per_page', type: 'integer'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Listado del mes'),
+        ]
+    )]
+    public function listMyMonthCreditNotes(Request $request): JsonResponse
+    {
+        $auth = $this->authorizeWarehouseCompany($request);
+        if ($auth instanceof JsonResponse) {
+            return $auth;
+        }
+        /** @var User $user */
+        [$user, $companyId] = $auth;
+
+        $payload = $this->requestPayload($request);
+        $perPage = min(200, max(1, (int) ($payload['per_page'] ?? $payload['perPage'] ?? 50)));
+        $page = max(1, (int) ($payload['page'] ?? 1));
+        $includeDetails = ! array_key_exists('include_order_details', $payload)
+            || filter_var($payload['include_order_details'], FILTER_VALIDATE_BOOLEAN);
+
+        $year = (int) ($payload['year'] ?? Carbon::now()->year);
+        $month = (int) ($payload['month'] ?? Carbon::now()->month);
+        if ($month < 1 || $month > 12) {
+            $month = (int) Carbon::now()->month;
+        }
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) Carbon::now()->year;
+        }
+
+        $from = Carbon::create($year, $month, 1)->startOfDay();
+        $to = (clone $from)->endOfMonth()->endOfDay();
+
+        // Por defecto: notas creadas por el usuario warehouse logueado.
+        $warehouseUserId = (int) ($payload['warehouse_user_id']
+            ?? $payload['warehouse_user']
+            ?? $payload['user_id']
+            ?? $user->id);
+        if ($warehouseUserId <= 0) {
+            $warehouseUserId = (int) $user->id;
+        }
+
+        $q = $this->findCompanyOrderQuery($companyId)
+            ->where('tipo_d', 'C')
+            ->where('created', '>=', $from->format('Y-m-d H:i:s'))
+            ->where('created', '<=', $to->format('Y-m-d H:i:s'))
+            ->with($this->orderListRelations($includeDetails));
+
+        $this->applyWarehouseUserFilter($q, [
+            'warehouse_user_id' => $warehouseUserId,
+        ]);
+
+        $q->orderByDesc('created')->orderByDesc('order_id');
+
+        $paginator = $q->paginate($perPage, ['*'], 'page', $page);
+        $rows = OrderListResource::collection($paginator->getCollection())->resolve();
+
+        return response()->json([
+            'success' => true,
+            'message' => $this->msg('warehouse_credit_notes_list_ok'),
+            'data' => $rows,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'year' => $year,
+                'month' => $month,
+                'from' => $from->toIso8601String(),
+                'to' => $to->toIso8601String(),
+                'warehouse_user_id' => $warehouseUserId,
+            ],
+        ]);
+    }
+
+    /**
      * POST /api/v2/warehouse/credit-notes
      * Crea nota de crédito (tipo_d=C). Requiere warehouse_user_id → orders.warehouse_user_id.
      * Sin restricción de roles (solo autenticación + acceso a la compañía).
@@ -198,6 +315,14 @@ class WarehouseOrdersController extends Controller
             $order = $service->handle($request->validated(), $companyId, (int) $user->id);
         } catch (InvalidArgumentException) {
             return $this->fail($this->msg('warehouse_credit_note_missing_products'), 422);
+        } catch (CreditReturnExceedsSalesException $e) {
+            return response()->json([
+                'status' => '0',
+                'success' => false,
+                'message' => 'return_exceeds_sales',
+                'error' => 'return_exceeds_sales',
+                'items' => $e->items,
+            ], 422);
         } catch (RuntimeException $e) {
             $key = match ($e->getMessage()) {
                 'language_required' => 'warehouse_credit_note_language_required',
@@ -390,21 +515,38 @@ class WarehouseOrdersController extends Controller
             return $this->fail($this->msg('update_delivered_item_forbidden'), 403);
         }
 
+        $payload = $this->requestPayload($request);
         try {
             $result = $service->handle([
-                'order_id' => $request->input('order_id'),
-                'product_id' => $request->input('product_id'),
-                'delivered_qty' => $request->input('delivered_qty', $request->input('delivered_quantity')),
-                'delivered_pack' => $request->input('delivered_pack'),
+                'order_id' => $payload['order_id'] ?? $request->input('order_id'),
+                'product_id' => $payload['product_id'] ?? $request->input('product_id'),
+                'delivered_qty' => $payload['delivered_qty']
+                    ?? $payload['delivered_quantity']
+                    ?? $payload['qty']
+                    ?? $request->input('delivered_qty', $request->input('delivered_quantity')),
+                'delivered_pack' => $payload['delivered_pack']
+                    ?? $payload['pack']
+                    ?? $request->input('delivered_pack'),
             ], $companyId);
         } catch (InvalidArgumentException) {
             return $this->fail($this->msg('update_delivered_item_missing_fields'), 422);
         } catch (RuntimeException $e) {
-            $key = $e->getMessage() === 'order_detail_not_found'
+            $msg = $e->getMessage();
+            if ($msg === 'product_not_found_or_inactive') {
+                return $this->fail('Product not found or inactive', 404);
+            }
+            if ($msg === 'order_company_mismatch') {
+                return $this->fail('Order company mismatch', 403);
+            }
+            $key = $msg === 'order_detail_not_found'
                 ? 'update_delivered_item_detail_not_found'
                 : 'update_delivered_item_order_not_found';
 
             return $this->fail($this->msg($key), 404);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->fail('Could not update delivered item: '.$e->getMessage(), 500);
         }
 
         return response()->json([
@@ -415,11 +557,83 @@ class WarehouseOrdersController extends Controller
             'product_id' => $result['product_id'],
             'detail_id' => $result['detail_id'],
             'delivered_id' => $result['delivered_id'],
+            'created' => (bool) ($result['created'] ?? false),
             'list' => [
                 'delivered_quantity' => $result['delivered_quantity'],
                 'delivered_pack' => $result['delivered_pack'],
             ],
             'update' => true,
+        ]);
+    }
+
+    /**
+     * POST /api/v2/warehouse/add-order-product
+     * Añade un producto activo a una orden warehouse existente (crea order_details si falta).
+     */
+    public function addOrderProduct(Request $request, UpdateDeliveredItemService $service): JsonResponse
+    {
+        $auth = $this->authorizeWarehouseCompany($request);
+        if ($auth instanceof JsonResponse) {
+            return $auth;
+        }
+        [$user, $companyId] = $auth;
+
+        $payload = $this->requestPayload($request);
+        $orderId = (int) ($payload['order_id'] ?? $request->input('order_id') ?? 0);
+        $productId = (int) ($payload['product_id'] ?? $request->input('product_id') ?? 0);
+        $qty = $payload['qty']
+            ?? $payload['delivered_qty']
+            ?? $request->input('qty', $request->input('delivered_qty', 1));
+        $pack = $payload['pack']
+            ?? $payload['delivered_pack']
+            ?? $request->input('pack', $request->input('delivered_pack', 1));
+
+        $order = Order::query()->where('order_id', $orderId)->first();
+        if ($order && ! $this->userMayManageWarehouseOrders($user, $companyId, $order)) {
+            return $this->fail($this->msg('update_delivered_item_forbidden'), 403);
+        }
+
+        try {
+            $result = $service->handle([
+                'order_id' => $orderId,
+                'product_id' => $productId,
+                'delivered_qty' => $qty,
+                'delivered_pack' => $pack,
+            ], $companyId);
+        } catch (InvalidArgumentException) {
+            return $this->fail($this->msg('update_delivered_item_missing_fields'), 422);
+        } catch (RuntimeException $e) {
+            $msg = $e->getMessage();
+            if ($msg === 'product_not_found_or_inactive') {
+                return $this->fail('Product not found or inactive', 404);
+            }
+            if ($msg === 'order_detail_not_found') {
+                return $this->fail($this->msg('update_delivered_item_detail_not_found'), 404);
+            }
+            if ($msg === 'order_company_mismatch') {
+                return $this->fail('Order company mismatch', 403);
+            }
+
+            return $this->fail($this->msg('update_delivered_item_order_not_found')." (order_id={$orderId}, company_id={$companyId})", 404);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->fail('Could not add product to order: '.$e->getMessage(), 500);
+        }
+
+        return response()->json([
+            'status' => '1',
+            'success' => true,
+            'message' => 'Product added to order',
+            'order_id' => $result['order_id'],
+            'product_id' => $result['product_id'],
+            'detail_id' => $result['detail_id'],
+            'delivered_id' => $result['delivered_id'],
+            'created' => (bool) ($result['created'] ?? false),
+            'list' => [
+                'delivered_quantity' => $result['delivered_quantity'],
+                'delivered_pack' => $result['delivered_pack'],
+            ],
         ]);
     }
 
@@ -714,6 +928,194 @@ class WarehouseOrdersController extends Controller
             OrderStatusCodes::WAREHOUSE_COMPLETED->value,
             OrderStatusCodes::COMPLETED->value,
         ], excludeInventory: true);
+    }
+
+    /**
+     * Historial de órdenes del almacenero logueado (orders.warehouse_user_id).
+     * GET|POST /api/v2/warehouse/orders/history
+     * Estados: 11 Warehouse Completed + 12 Completed. Excluye inventario (tipo_d=I).
+     */
+    #[OA\Get(
+        path: 'api/v2/warehouse/orders/history',
+        summary: 'Historial de órdenes del warehouse_user_id logueado',
+        description: 'Órdenes completadas (cod_status 11/12) donde orders.warehouse_user_id es el usuario autenticado (o el warehouse_user_id enviado). Excluye inventario.',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'warehouse_user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'users.id del almacenero; por defecto el usuario del token'),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', example: 1)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', example: 50)),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Historial paginado'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'No autenticado'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'warehouse_user_id inválido'),
+        ]
+    )]
+    #[OA\Post(
+        path: 'api/v2/warehouse/orders/history',
+        summary: 'Historial de órdenes del warehouse_user_id (JSON body)',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(ref: '#/components/schemas/WarehouseOrdersListRequest')
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Historial paginado'),
+        ]
+    )]
+    public function historyOrders(Request $request): JsonResponse
+    {
+        $auth = $this->authorizeWarehouseCompany($request);
+        if ($auth instanceof JsonResponse) {
+            return $auth;
+        }
+        /** @var User $user */
+        [$user, $companyId] = $auth;
+
+        $payload = $this->requestPayload($request);
+        $warehouseUserId = (int) ($payload['warehouse_user_id']
+            ?? $payload['warehouse_user']
+            ?? $payload['user_id']
+            ?? $user->id
+            ?? 0);
+        if ($warehouseUserId <= 0) {
+            return $this->fail($this->msg('warehouse_history_user_required'), 422);
+        }
+
+        // Forzar filtro al almacenero (el genérico completed puede omitirlo).
+        $request->merge([
+            'company_id' => $companyId,
+            'warehouse_user_id' => $warehouseUserId,
+            'user_id' => $warehouseUserId,
+        ]);
+
+        $response = $this->listWarehouseOrders($request, [
+            OrderStatusCodes::WAREHOUSE_COMPLETED->value,
+            OrderStatusCodes::COMPLETED->value,
+        ], excludeInventory: true);
+
+        $body = $response->getData(true);
+        if (is_array($body)) {
+            $body['message'] = $this->msg('warehouse_orders_history_ok');
+            $body['warehouse_user_id'] = $warehouseUserId;
+            $body['company_id'] = $companyId;
+
+            return response()->json($body, $response->getStatusCode());
+        }
+
+        return $response;
+    }
+
+    /**
+     * API nueva (FullVendor Warehouse app): historial estricto del usuario logueado.
+     * GET|POST /api/v2/warehouse/orders/my-completed
+     *
+     * - Solo cod_status = 11 (Warehouse Completed)
+     * - Solo orders.warehouse_user_id = user del Bearer
+     * - Excluye inventario (tipo_d = I)
+     * No modifica /warehouse/orders/history ni /orders/completed.
+     */
+    #[OA\Get(
+        path: 'api/v2/warehouse/orders/my-completed',
+        summary: 'Mis órdenes Warehouse Completed (usuario logueado)',
+        description: 'Solo órdenes con cod_status=11 y orders.warehouse_user_id = usuario autenticado. Excluye inventario.',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', example: 1)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', example: 50)),
+            new OA\Parameter(name: 'include_order_details', in: 'query', required: false, schema: new OA\Schema(type: 'boolean', example: true)),
+            new OA\Parameter(name: 'customer_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Historial paginado del usuario'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'No autenticado'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Usuario inválido'),
+        ]
+    )]
+    #[OA\Post(
+        path: 'api/v2/warehouse/orders/my-completed',
+        summary: 'Mis órdenes Warehouse Completed (JSON body)',
+        security: [['bearerAuth' => []]],
+        tags: ['WarehouseOrders'],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer'),
+                    new OA\Property(property: 'page', type: 'integer', example: 1),
+                    new OA\Property(property: 'per_page', type: 'integer', example: 50),
+                    new OA\Property(property: 'include_order_details', type: 'boolean', example: true),
+                    new OA\Property(property: 'customer_id', type: 'integer'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Historial paginado del usuario'),
+        ]
+    )]
+    public function myCompletedOrders(Request $request): JsonResponse
+    {
+        $auth = $this->authorizeWarehouseCompany($request);
+        if ($auth instanceof JsonResponse) {
+            return $auth;
+        }
+        /** @var User $user */
+        [$user, $companyId] = $auth;
+
+        $warehouseUserId = (int) ($user->id ?? 0);
+        if ($warehouseUserId <= 0) {
+            return $this->fail($this->msg('warehouse_history_user_required'), 422);
+        }
+
+        if (! Schema::hasColumn('orders', 'warehouse_user_id')) {
+            return $this->fail($this->msg('warehouse_history_column_missing'), 500);
+        }
+
+        $payload = $this->requestPayload($request);
+        $perPage = min(200, max(1, (int) ($payload['per_page'] ?? $payload['perPage'] ?? 50)));
+        $page = max(1, (int) ($payload['page'] ?? 1));
+        $includeDetails = ! array_key_exists('include_order_details', $payload)
+            || filter_var($payload['include_order_details'], FILTER_VALIDATE_BOOLEAN);
+
+        $q = $this->findCompanyOrderQuery($companyId)
+            ->with($this->orderListRelations($includeDetails))
+            ->where('warehouse_user_id', $warehouseUserId)
+            ->where(function ($w) {
+                $w->whereNull('tipo_d')->orWhere('tipo_d', '<>', 'I');
+            });
+
+        // Solo Warehouse Completed (cod_status = 11).
+        $this->applyStatusCodesFilter($q, [OrderStatusCodes::WAREHOUSE_COMPLETED->value]);
+
+        $customerId = $payload['customer_id'] ?? $payload['customer'] ?? null;
+        if ($customerId !== null && $customerId !== '') {
+            $q->where('customer_id', (int) $customerId);
+        }
+
+        $q->orderByDesc('updated')->orderByDesc('order_id');
+
+        $paginator = $q->paginate($perPage, ['*'], 'page', $page);
+        $rows = OrderListResource::collection($paginator->getCollection())->resolve();
+
+        return response()->json([
+            'success' => true,
+            'message' => $this->msg('warehouse_orders_my_completed_ok'),
+            'warehouse_user_id' => $warehouseUserId,
+            'company_id' => $companyId,
+            'data' => $rows,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'status_codes' => [OrderStatusCodes::WAREHOUSE_COMPLETED->value],
+            ],
+        ]);
     }
 
     /**

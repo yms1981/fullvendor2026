@@ -43,12 +43,48 @@ class Home extends Form
             'companyasset/company/users/user_list_modal.js',
             'companyasset/company/users/user_edit_modal.js',
         ];
+        if ($this->input->get('type') === 'seller') {
+            $indexJsFiles[] = 'companyasset/company/config-crud-default-switch.js';
+        }
 
         foreach ($indexJsFiles as $indexJsFile) {
             $this->addJsFile(base_url($indexJsFile));
         }
 
         $this->list();
+    }
+
+    protected function isSellerUsersTab(): bool
+    {
+        return $this->input->get('type') === 'seller';
+    }
+
+    /**
+     * @return array{messages: array<string, string>}
+     */
+    protected function getSellerDefaultSwitchConfig(): array
+    {
+        $lang = is_array($this->langArr ?? null) ? $this->langArr : [];
+        $json = $this->getLangJsonSection('cmp-user');
+        if (is_array($json)) {
+            $lang = $json + $lang;
+        }
+        $tools = $this->getLangJsonSection('config-crud-tools');
+        if (is_array($tools)) {
+            $lang = $lang + $tools;
+        }
+
+        return [
+            'messages' => [
+                'success' => (string) ($lang['default_switch_set_success'] ?? ''),
+                'error' => (string) ($lang['default_switch_error'] ?? ''),
+                'cannotUnset' => (string) ($lang['default_switch_cannot_unset'] ?? ''),
+                'confirmTitle' => (string) ($lang['default_switch_confirm_title'] ?? ($lang['user_default_seller_title'] ?? '')),
+                'confirmText' => (string) ($lang['default_switch_confirm_text'] ?? ($lang['user_default_seller_text'] ?? '')),
+                'confirmButton' => (string) ($lang['default_switch_confirm_button'] ?? ($lang['user_default_seller_confirm'] ?? '')),
+                'cancelButton' => (string) ($lang['default_switch_cancel_button'] ?? ($lang['user_default_seller_cancel'] ?? '')),
+            ],
+        ];
     }
 
     /**
@@ -187,6 +223,43 @@ class Home extends Form
         }
 
         $listData['userTypes'] = ['manager', 'seller', 'warehouse', 'customer'];
+        if ($this->isSellerUsersTab()) {
+            $listData['configCrudDefaultSwitch'] = $this->getSellerDefaultSwitchConfig();
+            $defaultKeys = [
+                'default',
+                'defecto',
+                'default_indicator_label',
+                'default_switch_set_success',
+                'default_switch_error',
+                'default_switch_cannot_unset',
+                'default_switch_confirm_title',
+                'default_switch_confirm_text',
+                'default_switch_confirm_button',
+                'default_switch_cancel_button',
+            ];
+            $cmpUserJson = $this->getLangJsonSection('cmp-user');
+            $toolsJson = $this->getLangJsonSection('config-crud-tools');
+            foreach ($defaultKeys as $dk) {
+                $cur = isset($listData['pageTexts'][$dk]) ? trim((string) $listData['pageTexts'][$dk]) : '';
+                if ($cur !== '') {
+                    continue;
+                }
+                if (isset($cmpUserJson[$dk]) && trim((string) $cmpUserJson[$dk]) !== '') {
+                    $listData['pageTexts'][$dk] = (string) $cmpUserJson[$dk];
+                    continue;
+                }
+                if (is_array($toolsJson) && isset($toolsJson[$dk]) && trim((string) $toolsJson[$dk]) !== '') {
+                    $listData['pageTexts'][$dk] = (string) $toolsJson[$dk];
+                }
+            }
+            if (empty($listData['pageTexts']['fields']['isDefault'])) {
+                if (! isset($listData['pageTexts']['fields']) || ! is_array($listData['pageTexts']['fields'])) {
+                    $listData['pageTexts']['fields'] = [];
+                }
+                $listData['pageTexts']['fields']['isDefault'] = $listData['pageTexts']['defecto']
+                    ?? ($listData['pageTexts']['default'] ?? '');
+            }
+        }
 
         $reloadQ = ['type' => $tabType];
         $st = $this->input->get('status');
@@ -240,13 +313,17 @@ class Home extends Form
                     'avatar' => $this->langArr['image'] ?? 'Avatar',
                     'name' => $this->langArr['name'] ?? 'Name',
                     'email' => 'Email',
-//                    'phone' => 'By Default',
                     'role' => $this->langArr['role'] ?? 'Role',
-                    'profile' => 'Profile',
+                    'profile' => $this->langArr['profile'] ?? ($this->langArr['colmn_profile'] ?? 'Profile'),
+                    'isDefault' => $this->langArr['defecto'] ?? ($this->langArr['default'] ?? 'Default'),
                     'created_at' => $this->langArr['alta'] ?? 'Join Date',
                 ],
                 'colmn_status' => $this->langArr['status'] ?? 'Status',
                 'colmn_action' => $this->langArr['colmn_action'] ?? 'Actions',
+                'default' => $this->langArr['default'] ?? 'Default',
+                'defecto' => $this->langArr['defecto'] ?? ($this->langArr['default'] ?? 'Default'),
+                'default_indicator_label' => $this->langArr['default_indicator_label']
+                    ?? ($this->langArr['defecto'] ?? ($this->langArr['default'] ?? 'Default')),
                 'option_enable' => $langToggleStatusButton['option_enable'],
                 'option_disable' => $langToggleStatusButton['option_disable'],
                 'loader-enable' => $langToggleStatusButton['loader-enabling'],
@@ -257,15 +334,19 @@ class Home extends Form
 
     protected function getListItemFields($list)
     {
-        return [
+        $fields = [
             'avatar',
             'name',
             'email',
-//            'phone',
             'role',
             'profile',
-            'created_at'
+            'created_at',
         ];
+        if ($this->isSellerUsersTab()) {
+            array_splice($fields, 5, 0, ['isDefault']);
+        }
+
+        return $fields;
     }
 
     protected function getSortableFields($list): array
@@ -279,13 +360,97 @@ class Home extends Form
 
     protected function getFieldTemplates(): array
     {
-        return [
+        $templates = [
             'avatar' => 'company/users/list/avatar_field',
             'name' => 'company/users/list/name_field',
             'role' => 'company/users/list/role_field',
             'profile' => 'company/users/list/profile_field',
             'created_at' => 'components/crud/created_field',
         ];
+        if ($this->isSellerUsersTab()) {
+            $templates['isDefault'] = 'components/crud/default_field';
+        }
+
+        return $templates;
+    }
+
+    /**
+     * Sellers: isDefault se calcula con companies.default_seller_id vs sellers.id (no user.id).
+     */
+    protected function enrichCrudListDefaultFlags($paginatedList)
+    {
+        if (! $this->isSellerUsersTab()) {
+            return $paginatedList;
+        }
+        if (! is_object($paginatedList) || ! isset($paginatedList->data) || ! is_array($paginatedList->data)) {
+            return $paginatedList;
+        }
+
+        $companyId = (int) $this->getCompanyId();
+        if ($companyId < 1 || $paginatedList->data === []) {
+            return $paginatedList;
+        }
+
+        $company = $this->getObjectFromApi('company/' . $companyId, [
+            'props' => ['company_id', 'default_seller_id'],
+        ]);
+        $defaultSellerId = 0;
+        if (! $this->hasError($company) && is_object($company)) {
+            $defaultSellerId = (int) ($company->default_seller_id ?? 0);
+        }
+
+        $userIds = [];
+        foreach ($paginatedList->data as $item) {
+            $row = is_array($item) ? (object) $item : $item;
+            if (! is_object($row)) {
+                continue;
+            }
+            $uid = (int) ($row->id ?? 0);
+            if ($uid > 0) {
+                $userIds[$uid] = $uid;
+            }
+        }
+
+        $sellerByUser = [];
+        if ($userIds !== []) {
+            $vendors = $this->getDataFromApi('vendor', [
+                'company_id' => $companyId,
+                'all' => true,
+                'props' => ['id', 'user_id', 'status', 'company_id'],
+            ], true);
+            foreach ($this->extractApiListRows($vendors) as $vendorRow) {
+                $vendor = is_array($vendorRow) ? (object) $vendorRow : $vendorRow;
+                if (! is_object($vendor)) {
+                    continue;
+                }
+                $userId = (int) ($vendor->user_id ?? 0);
+                $sellerId = (int) ($vendor->id ?? 0);
+                if ($userId > 0 && $sellerId > 0 && isset($userIds[$userId])) {
+                    $sellerByUser[$userId] = $sellerId;
+                }
+            }
+        }
+
+        foreach ($paginatedList->data as $index => $item) {
+            if (is_array($item)) {
+                $item = (object) $item;
+            }
+            if (! is_object($item)) {
+                continue;
+            }
+            $userId = (int) ($item->id ?? 0);
+            $sellerId = (int) ($sellerByUser[$userId] ?? 0);
+            $isDefault = $sellerId > 0 && $defaultSellerId > 0 && $sellerId === $defaultSellerId;
+            $item->seller_id = $sellerId;
+            $item->isDefault = $isDefault;
+            $item->is_default = $isDefault;
+            if ($userId > 0 && $sellerId > 0) {
+                $item->setDefaultUrl = company_url('users/setDefault/' . $userId);
+            }
+            $paginatedList->data[$index] = $item;
+        }
+
+        return $paginatedList;
     }
 
     protected function getItemIdField(): string

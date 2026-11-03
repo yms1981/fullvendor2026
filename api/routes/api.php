@@ -57,6 +57,37 @@ Route::group(
             ->group(function () {
                 Route::get('ping', [\App\Http\Controllers\Erp\ErpController::class, 'ping'])
                     ->name('erp.ping');
+
+                Route::get('orders', [\App\Http\Controllers\Erp\ErpOrdersController::class, 'list'])
+                    ->name('erp.orders.index');
+                Route::post('orders/import', [\App\Http\Controllers\Erp\ErpOrdersController::class, 'import'])
+                    ->name('erp.orders.import');
+                Route::get('orders/{orderNumber}', [\App\Http\Controllers\Erp\ErpOrdersController::class, 'showOrder'])
+                    ->where('orderNumber', '.*')
+                    ->name('erp.orders.show');
+
+                Route::get('products', [\App\Http\Controllers\Erp\ErpProductsController::class, 'list'])
+                    ->name('erp.products.index');
+                Route::post('products/upsert', [\App\Http\Controllers\Erp\ErpProductsController::class, 'upsert'])
+                    ->name('erp.products.upsert');
+                Route::post('products/stock-update', [\App\Http\Controllers\Erp\ErpProductsController::class, 'stockUpdate'])
+                    ->name('erp.products.stockUpdate');
+
+                Route::get('customers', [\App\Http\Controllers\Erp\ErpCustomersController::class, 'list'])
+                    ->name('erp.customers.index');
+                Route::post('customers/upsert', [\App\Http\Controllers\Erp\ErpCustomersController::class, 'upsert'])
+                    ->name('erp.customers.upsert');
+
+                Route::get('categories', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'categories'])
+                    ->name('erp.categories');
+                Route::get('customer-groups', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'customerGroups'])
+                    ->name('erp.customerGroups');
+                Route::get('terms', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'terms'])
+                    ->name('erp.terms');
+                Route::get('sellers', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'sellers'])
+                    ->name('erp.sellers');
+                Route::get('warehouse-users', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'warehouseUsers'])
+                    ->name('erp.warehouseUsers');
             });
 
         // Sección AppSalesman: pública (sin token / sin Sanctum), solo throttle
@@ -73,12 +104,16 @@ Route::group(
                     ->name('app-salesman.orderListSeller');
                 Route::post('requested', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'requested'])
                     ->name('app-salesman.requested');
+                Route::post('requestedSummary', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'requestedSummary'])
+                    ->name('app-salesman.requestedSummary');
                 Route::post('productFifo', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'productFifo'])
                     ->name('app-salesman.productFifo');
                 Route::post('productFifoSummary', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'productFifoSummary'])
                     ->name('app-salesman.productFifoSummary');
                 Route::post('catalogLink', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'catalogLink'])
                     ->name('app-salesman.catalogLink');
+                Route::post('companyFormats', [\App\Http\Controllers\AppSalesman\AppSalesmanController::class, 'companyFormats'])
+                    ->name('app-salesman.companyFormats');
             });
 
         Route::post('customer/login', [\App\Http\Controllers\CustomerPortalLoginController::class, 'login'])
@@ -249,6 +284,32 @@ Route::group(
                 'imageType' => $imageTypeRoutePattern,
             ])
             ->name('images.showByUuidPublic');
+
+        // App Salesman / PWA: imágenes sin token (CORS abierto). Mismo binario que images/{uuid}.
+        Route::options('public/images/{image}', fn () => response('', 204)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Accept, Content-Type'));
+        Route::get('public/images/{image}_{width}', [\App\Http\Controllers\ImageController::class, 'publicImageScaled'])
+            ->where([
+                'image' => $imageUuidRoutePattern,
+                'width' => '[0-9]+',
+            ])
+            ->name('images.publicScaled');
+        Route::get('public/images/{image}', [\App\Http\Controllers\ImageController::class, 'publicImage'])
+            ->where([
+                'image' => $imageUuidRoutePattern,
+            ])
+            ->name('images.publicByUuid');
+
+        Route::get('public/products/{proId}/image', [\App\Http\Controllers\ImageController::class, 'publicProductImage'])
+            ->whereNumber('proId')
+            ->name('images.publicProductImage');
+        Route::get('public/products/{proId}/image-uuid', [\App\Http\Controllers\ImageController::class, 'publicProductImageUuid'])
+            ->whereNumber('proId')
+            ->name('images.publicProductImageUuid');
+
+
 
         Route::middleware('auth:sanctum')->group(
             function () {
@@ -1029,6 +1090,16 @@ Route::group(
                         [\App\Http\Controllers\OrderController::class, 'sanitizeDocumentOrders']
                     )->name('order.sanitizeDocument');
 
+                    Route::get(
+                        '/return-over-sales/pdf',
+                        [\App\Http\Controllers\OrderController::class, 'returnOverSalesPdf']
+                    )->name('order.returnOverSalesPdf');
+
+                    Route::get(
+                        '/return-over-sales',
+                        [\App\Http\Controllers\OrderController::class, 'returnOverSales']
+                    )->name('order.returnOverSales');
+
                     Route::post(
                         '/status-by-order-number',
                         [\App\Http\Controllers\OrderController::class, 'updateStatusByOrderNumber']
@@ -1188,6 +1259,10 @@ Route::group(
                 });
 
                 Route::group(['prefix' => 'product'], function () {
+                    Route::get(
+                        '/list-quality',
+                        [\App\Http\Controllers\ProductController::class, 'listQuality']
+                    )->name('product.listQuality');
                     Route::get(
                         '/all',
                         [\App\Http\Controllers\ProductController::class, 'all']
@@ -1389,6 +1464,10 @@ Route::group(
                         '/{seller}/disable',
                         [\App\Http\Controllers\VendorController::class, 'disable']
                     )->name('seller.disable');
+                    Route::put(
+                        '/{seller}/setDefault',
+                        [\App\Http\Controllers\VendorController::class, 'setDefault']
+                    )->name('seller.setDefault');
                     Route::get(
                         '/company/{companyId}/email/{email}/exists',
                         [\App\Http\Controllers\VendorController::class, 'emailExists']
@@ -1431,6 +1510,12 @@ Route::group(
                         '/credit-notes/list',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'listCreditNotes']
                     )->name('warehouse.creditNotes.list');
+                    // App warehouse: NC del usuario logueado en el mes (no toca /list).
+                    Route::match(
+                        ['get', 'post'],
+                        '/credit-notes/my-month',
+                        [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'listMyMonthCreditNotes']
+                    )->name('warehouse.creditNotes.myMonth');
                     Route::post(
                         '/credit-notes',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'createCreditNote']
@@ -1439,6 +1524,10 @@ Route::group(
                         '/update-delivered-item',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'updateDeliveredItem']
                     )->name('warehouse.updateDeliveredItem');
+                    Route::post(
+                        '/add-order-product',
+                        [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'addOrderProduct']
+                    )->name('warehouse.addOrderProduct');
                     Route::post(
                         '/update-inventory-status',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'updateInventoryStatus']
@@ -1457,6 +1546,17 @@ Route::group(
                         '/orders/completed',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'completedOrders']
                     )->name('warehouse.orders.completed');
+                    Route::match(
+                        ['get', 'post'],
+                        '/orders/history',
+                        [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'historyOrders']
+                    )->name('warehouse.orders.history');
+                    // App FullVendor Warehouse: solo WAREHOUSE_COMPLETED del usuario logueado.
+                    Route::match(
+                        ['get', 'post'],
+                        '/orders/my-completed',
+                        [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'myCompletedOrders']
+                    )->name('warehouse.orders.myCompleted');
                     Route::match(
                         ['get', 'post'],
                         '/orders/inventory',
@@ -1503,6 +1603,16 @@ Route::group(
                         '/orders/{orderId}/items',
                         [\App\Http\Controllers\Warehouse\WarehouseOrdersController::class, 'showOrderItems']
                     )->whereNumber('orderId')->name('warehouse.orders.items');
+
+                    // FIFO propio warehouse (no usa /app-salesman/*)
+                    Route::post(
+                        '/product-fifo',
+                        [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'productFifo']
+                    )->name('warehouse.productFifo');
+                    Route::post(
+                        '/product-fifo-summary',
+                        [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'productFifoSummary']
+                    )->name('warehouse.productFifoSummary');
                 });
 
                 Route::get(

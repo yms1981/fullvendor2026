@@ -19,6 +19,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\ProductInventoryMvcService;
+use App\Services\ProductListQualityService;
 use App\Services\ProductRatingService;
 use App\Support\ProductBulkSelection;
 use Illuminate\Database\Eloquent\Builder;
@@ -125,6 +126,64 @@ class ProductController extends Controller
         $this->ensureProductRatingsFromRequest();
 
         return parent::index();
+    }
+
+    /**
+     * Avisos del listado: códigos repetidos, precio 0 y stock negativo llevado a 0.
+     */
+    #[OA\Get(
+        path: '/api/v2/product/list-quality',
+        operationId: 'productListQuality',
+        summary: 'Avisos de calidad del listado de productos',
+        description: 'Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0.',
+        security: [['bearerAuth' => []]],
+        tags: ['Product'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: true, schema: new OA\Schema(type: 'integer', example: 1)),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Conteos de la compañía',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'duplicate_products', type: 'integer', example: 2),
+                        new OA\Property(property: 'duplicate_codes', type: 'integer', example: 1),
+                        new OA\Property(property: 'zero_price', type: 'integer', example: 3),
+                        new OA\Property(property: 'negative_stock_fixed', type: 'integer', example: 1),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Sin acceso a la compañía'),
+            new OA\Response(response: 422, description: 'Compañía no indicada'),
+        ]
+    )]
+    public function listQuality(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $companyId = (int) ($request->input('company_id') ?? $request->input('company') ?? 0);
+        if ($companyId < 1) {
+            $userCompany = $user->companiesForRole('manager')->first() ?: $user->companies()->first();
+            $companyId = (int) ($userCompany->company_id ?? 0);
+        }
+        if ($companyId < 1) {
+            return response()->json([
+                'message' => 'company_id is required',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (! $user->canAccessCompany($companyId)) {
+            return response()->json([
+                'message' => 'Forbidden',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        return response()->json(app(ProductListQualityService::class)->review($companyId));
     }
 
     /**
@@ -276,6 +335,19 @@ class ProductController extends Controller
                 },
                 'productRating',
             ]);
+
+        // Solo activos (status 1) para sync móvil / paginado / lite.
+        // status: 0 = InActive, 1 = Active (ver migración products).
+        $wantsPagination = $request->has('page')
+            || $request->has('per_page')
+            || $request->boolean('paginate');
+        $activeOnly = $request->boolean('active_only')
+            || $request->boolean('lite')
+            || $request->boolean('sync')
+            || $wantsPagination;
+        if ($activeOnly) {
+            $query->where('products.status', 1);
+        }
         
         // Aplicar filtros adicionales del request si existen
         $query = $query->filter($request->all());
@@ -287,9 +359,25 @@ class ProductController extends Controller
             $query->orderBy($sortColumn, $sortDirection);
         }
         
-        // Obtener productos sin paginación
+        // Paginación opcional: ?page=1&per_page=200 (app salesman / sync móvil).
+        // Sin page/per_page/paginate → comportamiento legacy (todo el catálogo).
         set_time_limit(0);
-        $products = $query->get();
+        $perPage = (int) $request->input('per_page', 200);
+        if ($perPage < 1) {
+            $perPage = 200;
+        }
+        if ($perPage > 500) {
+            $perPage = 500;
+        }
+
+        /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator|null $paginator */
+        $paginator = null;
+        if ($wantsPagination) {
+            $paginator = $query->paginate($perPage);
+            $products = collect($paginator->items());
+        } else {
+            $products = $query->get();
+        }
 
         // product_images + images: whereIn sobre pro_id y sobre products.product_id (columna distinta del PK)
         $proIds = $products->pluck('pro_id')->unique()->filter()->map(static fn ($v) => (int) $v)->values()->all();
@@ -396,44 +484,49 @@ class ProductController extends Controller
             $baseUrl = url('/');
             $baseUrl = rtrim($baseUrl, '/');
         }
-        $productsWithImageUrl = $products->map(function ($product) use ($resolveFirstProductImageJoinRow, $productImageRowsForProduct, $imageRowsByUuid) {
+        // lite=1: payload reducido para sync móvil (sin tablas anidadas pesadas)
+        $lite = $request->boolean('lite') || $request->boolean('sync');
+
+        $productsWithImageUrl = $products->map(function ($product) use ($resolveFirstProductImageJoinRow, $productImageRowsForProduct, $imageRowsByUuid, $lite) {
             // Convertir a array
             $productArray = $product->toArray();
 
-            // Campos explícitos de la tabla `products` (la columna `product_id` es distinta del PK `pro_id`)
-            $dbProductId = $product->getAttribute('product_id');
-            $productArray['products_table'] = [
-                'pro_id' => (int) $product->pro_id,
-                'product_id' => $dbProductId !== null ? (int) $dbProductId : null,
-                'company_id' => $product->company_id !== null ? (int) $product->company_id : null,
-                'language_id' => $product->language_id !== null ? (int) $product->language_id : null,
-                'sku' => $product->sku,
-                'name' => $product->name,
-                'sale_price' => (float) $product->sale_price,
-                'stock' => (float) $product->stock,
-                'minimum_stock' => (float) $product->minimum_stock,
-                'notify_minimum_stock' => (int) ($product->notify_minimum_stock ?? 0),
-                'status' => (int) ($product->status ?? 0),
-                'default_image_id' => $product->default_image_id,
-                'unit_id' => $product->unit_id !== null ? (int) $product->unit_id : null,
-                'currency_type' => $product->currency_type,
-                'price_reduced' => (float) ($product->price_reduced ?? 0),
-            ];
+            if (! $lite) {
+                // Campos explícitos de la tabla `products` (la columna `product_id` es distinta del PK `pro_id`)
+                $dbProductId = $product->getAttribute('product_id');
+                $productArray['products_table'] = [
+                    'pro_id' => (int) $product->pro_id,
+                    'product_id' => $dbProductId !== null ? (int) $dbProductId : null,
+                    'company_id' => $product->company_id !== null ? (int) $product->company_id : null,
+                    'language_id' => $product->language_id !== null ? (int) $product->language_id : null,
+                    'sku' => $product->sku,
+                    'name' => $product->name,
+                    'sale_price' => (float) $product->sale_price,
+                    'stock' => (float) $product->stock,
+                    'minimum_stock' => (float) $product->minimum_stock,
+                    'notify_minimum_stock' => (int) ($product->notify_minimum_stock ?? 0),
+                    'status' => (int) ($product->status ?? 0),
+                    'default_image_id' => $product->default_image_id,
+                    'unit_id' => $product->unit_id !== null ? (int) $product->unit_id : null,
+                    'currency_type' => $product->currency_type,
+                    'price_reduced' => (float) ($product->price_reduced ?? 0),
+                ];
 
-            $piRows = $productImageRowsForProduct($product);
-            $productArray['product_images_table'] = [
-                'rows' => $piRows->map(static function ($r) {
-                    $uuid = $r->resolved_image_uuid ?? null;
+                $piRows = $productImageRowsForProduct($product);
+                $productArray['product_images_table'] = [
+                    'rows' => $piRows->map(static function ($r) {
+                        $uuid = $r->resolved_image_uuid ?? null;
 
-                    return [
-                        'img_id' => (int) $r->img_id,
-                        'product_id' => (int) $r->product_id,
-                        'image_id' => $r->product_images_image_id ?? null,
-                        'image_uuid' => $uuid !== null && $uuid !== '' ? (string) $uuid : null,
-                        'resolved_in_images_table' => $uuid !== null && $uuid !== '',
-                    ];
-                })->values()->all(),
-            ];
+                        return [
+                            'img_id' => (int) $r->img_id,
+                            'product_id' => (int) $r->product_id,
+                            'image_id' => $r->product_images_image_id ?? null,
+                            'image_uuid' => $uuid !== null && $uuid !== '' ? (string) $uuid : null,
+                            'resolved_in_images_table' => $uuid !== null && $uuid !== '',
+                        ];
+                    })->values()->all(),
+                ];
+            }
             
             // 1. Raíz: `product_id` = `pro_id` por compatibilidad con clientes que usan product_id como PK interno
             if (isset($productArray['pro_id'])) {
@@ -507,75 +600,78 @@ class ProductController extends Controller
             }
             $productArray['image_placeholder'] = '/images/no-image';
 
-            // Metadatos tabla `images` (p. ej. depuración portal seller / MinIO)
-            $catalogImagesTable = null;
-            if ($product->default_image) {
-                $im = $product->default_image;
-                $catalogImagesTable = [
-                    'source' => 'default_image',
-                    'uuid' => $im->uuid,
-                    'name' => $im->name,
-                    'path' => $im->path,
-                    'disk' => $im->disk,
-                    'extension' => $im->extension,
-                    'mime_type' => $im->mime_type,
-                    'type' => $im->type,
-                    'size' => $im->size,
-                    'company_id' => $im->company_id,
-                    'original_name' => $im->original_name,
-                    'language' => $im->language ?? null,
-                ];
-            } elseif ($joinRow && ($joinRow->resolved_image_uuid ?? null) !== null && ($joinRow->resolved_image_uuid ?? '') !== '') {
-                $fb = $joinRow;
-                $catalogImagesTable = [
-                    'source' => 'product_images_join_images',
-                    'product_image_img_id' => $fb->img_id ?? null,
-                    'product_images_image_id' => $fb->product_images_image_id ?? null,
-                    'uuid' => $fb->resolved_image_uuid,
-                    'name' => $fb->resolved_image_name ?? null,
-                    'path' => $fb->resolved_image_path ?? null,
-                    'disk' => $fb->resolved_image_disk ?? null,
-                    'extension' => $fb->resolved_image_extension ?? null,
-                    'mime_type' => $fb->resolved_image_mime_type ?? null,
-                    'type' => $fb->resolved_image_type ?? null,
-                    'size' => $fb->resolved_image_size ?? null,
-                    'company_id' => $fb->resolved_image_company_id ?? null,
-                    'original_name' => $fb->resolved_image_original_name ?? null,
-                ];
+            if (! $lite) {
+                // Metadatos tabla `images` (p. ej. depuración portal seller / MinIO)
+                $catalogImagesTable = null;
+                if ($product->default_image) {
+                    $im = $product->default_image;
+                    $catalogImagesTable = [
+                        'source' => 'default_image',
+                        'uuid' => $im->uuid,
+                        'name' => $im->name,
+                        'path' => $im->path,
+                        'disk' => $im->disk,
+                        'extension' => $im->extension,
+                        'mime_type' => $im->mime_type,
+                        'type' => $im->type,
+                        'size' => $im->size,
+                        'company_id' => $im->company_id,
+                        'original_name' => $im->original_name,
+                        'language' => $im->language ?? null,
+                    ];
+                } elseif ($joinRow && ($joinRow->resolved_image_uuid ?? null) !== null && ($joinRow->resolved_image_uuid ?? '') !== '') {
+                    $fb = $joinRow;
+                    $catalogImagesTable = [
+                        'source' => 'product_images_join_images',
+                        'product_image_img_id' => $fb->img_id ?? null,
+                        'product_images_image_id' => $fb->product_images_image_id ?? null,
+                        'uuid' => $fb->resolved_image_uuid,
+                        'name' => $fb->resolved_image_name ?? null,
+                        'path' => $fb->resolved_image_path ?? null,
+                        'disk' => $fb->resolved_image_disk ?? null,
+                        'extension' => $fb->resolved_image_extension ?? null,
+                        'mime_type' => $fb->resolved_image_mime_type ?? null,
+                        'type' => $fb->resolved_image_type ?? null,
+                        'size' => $fb->resolved_image_size ?? null,
+                        'company_id' => $fb->resolved_image_company_id ?? null,
+                        'original_name' => $fb->resolved_image_original_name ?? null,
+                    ];
+                }
+                if ($catalogImagesTable === null && $imageUuid !== null && $imageUuid !== '' && $imageRowsByUuid->has($imageUuid)) {
+                    $im = $imageRowsByUuid->get($imageUuid);
+                    $catalogImagesTable = [
+                        'source' => 'products.default_image_id',
+                        'uuid' => $im->uuid,
+                        'name' => $im->name,
+                        'path' => $im->path,
+                        'disk' => $im->disk,
+                        'extension' => $im->extension,
+                        'mime_type' => $im->mime_type,
+                        'type' => $im->type,
+                        'size' => $im->size,
+                        'company_id' => $im->company_id,
+                        'original_name' => $im->original_name,
+                        'language' => $im->language ?? null,
+                    ];
+                }
+                if ($catalogImagesTable === null && $imageUuid !== null && $imageUuid !== '') {
+                    $catalogImagesTable = [
+                        'source' => 'uuid_unresolved_in_images_table',
+                        'uuid' => $imageUuid,
+                    ];
+                }
+                if ($catalogImagesTable === null) {
+                    $catalogImagesTable = [
+                        'source' => 'none',
+                        'uuid' => null,
+                    ];
+                }
+                $productArray['catalog_images_table'] = $catalogImagesTable;
             }
-            if ($catalogImagesTable === null && $imageUuid !== null && $imageUuid !== '' && $imageRowsByUuid->has($imageUuid)) {
-                $im = $imageRowsByUuid->get($imageUuid);
-                $catalogImagesTable = [
-                    'source' => 'products.default_image_id',
-                    'uuid' => $im->uuid,
-                    'name' => $im->name,
-                    'path' => $im->path,
-                    'disk' => $im->disk,
-                    'extension' => $im->extension,
-                    'mime_type' => $im->mime_type,
-                    'type' => $im->type,
-                    'size' => $im->size,
-                    'company_id' => $im->company_id,
-                    'original_name' => $im->original_name,
-                    'language' => $im->language ?? null,
-                ];
-            }
-            if ($catalogImagesTable === null && $imageUuid !== null && $imageUuid !== '') {
-                $catalogImagesTable = [
-                    'source' => 'uuid_unresolved_in_images_table',
-                    'uuid' => $imageUuid,
-                ];
-            }
-            if ($catalogImagesTable === null) {
-                $catalogImagesTable = [
-                    'source' => 'none',
-                    'uuid' => null,
-                ];
-            }
-            $productArray['catalog_images_table'] = $catalogImagesTable;
             
             // Mantener imageurl para compatibilidad (pero usar Img como campo principal)
             $productArray['imageurl'] = $productArray['Img'];
+            $productArray['imgURL'] = $productArray['Img'];
             
             // Usar el valor de unit_value de la subquery en lugar de la relación
             // Eliminar unit_value y asignarlo a unit
@@ -588,10 +684,20 @@ class ProductController extends Controller
             
             return $productArray;
         });
-        
-        return response()->json([
-            'data' => $productsWithImageUrl->values()->all()
-        ]);
+
+        $payload = [
+            'data' => $productsWithImageUrl->values()->all(),
+        ];
+        if ($paginator !== null) {
+            $payload['current_page'] = $paginator->currentPage();
+            $payload['last_page'] = $paginator->lastPage();
+            $payload['per_page'] = $paginator->perPage();
+            $payload['total'] = $paginator->total();
+            $payload['from'] = $paginator->firstItem();
+            $payload['to'] = $paginator->lastItem();
+        }
+
+        return response()->json($payload);
     }
 
     /**

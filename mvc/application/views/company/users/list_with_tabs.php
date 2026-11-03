@@ -1038,6 +1038,7 @@ function exportUsers() {
         'changeStatus' => $changeStatus ?? true,
         'configCrudInlineEdit' => $configCrudInlineEdit ?? [],
         'configCrudBooleanSwitch' => $configCrudBooleanSwitch ?? [],
+        'configCrudDefaultSwitch' => $configCrudDefaultSwitch ?? [],
     ]); ?>
 <?php endif; ?>
 

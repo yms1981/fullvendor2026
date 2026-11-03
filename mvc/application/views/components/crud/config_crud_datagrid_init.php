@@ -4,6 +4,7 @@
  * @var array|null $configCrudInlineEdit
  * @var array|null $configCrudBooleanSwitch
  * @var array|null $configCrudStatusSwitch
+ * @var array|null $configCrudDefaultSwitch
  * @var bool|null $changeStatus
  */
 $dtLang = is_array($langDatatable ?? null) ? $langDatatable : [];
@@ -12,11 +13,17 @@ $booleanSwitch = is_array($configCrudBooleanSwitch ?? null) ? $configCrudBoolean
 $booleanSwitchMessages = is_array($booleanSwitch['messages'] ?? null) ? $booleanSwitch['messages'] : [];
 $statusSwitch = is_array($configCrudStatusSwitch ?? null) ? $configCrudStatusSwitch : [];
 $statusSwitchMessages = is_array($statusSwitch['messages'] ?? null) ? $statusSwitch['messages'] : [];
+$defaultSwitch = is_array($configCrudDefaultSwitch ?? null) ? $configCrudDefaultSwitch : [];
+$defaultSwitchMessages = is_array($defaultSwitch['messages'] ?? null) ? $defaultSwitch['messages'] : [];
 $enableStatusSwitch = !empty($changeStatus) || !empty($statusSwitchMessages);
+$enableDefaultSwitch = $defaultSwitchMessages !== [];
 ?>
 <script>
 <?php if (!empty($booleanSwitchMessages)) : ?>
 window.fvConfigCrudBooleanSwitch = <?= json_encode($booleanSwitchMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+<?php endif; ?>
+<?php if ($enableDefaultSwitch) : ?>
+window.fvConfigCrudDefaultSwitch = <?= json_encode($defaultSwitchMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 <?php endif; ?>
 </script>
 <?php if (!empty($booleanSwitchMessages)) : ?>
@@ -27,6 +34,9 @@ window.fvConfigCrudBooleanSwitch = <?= json_encode($booleanSwitchMessages, JSON_
 <script>
 window.fvConfigCrudStatusSwitch = <?= json_encode($statusSwitchMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
+<?php endif; ?>
+<?php if ($enableDefaultSwitch) : ?>
+<script src="<?= dated_file_url('companyasset/company/config-crud-default-switch.js') ?>"></script>
 <?php endif; ?>
 <script src="<?= dated_file_url('companyasset/company/config-crud-datagrid.js') ?>"></script>
 <script>
@@ -51,6 +61,7 @@ window.fvConfigCrudStatusSwitch = <?= json_encode($statusSwitchMessages, JSON_UN
     var allLabel = <?= json_encode((string) ($dtLang['all'] ?? 'All'), JSON_UNESCAPED_UNICODE) ?>;
     var inlineEdit = <?= json_encode($inlineEdit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     var enableStatusSwitch = <?= $enableStatusSwitch ? 'true' : 'false' ?>;
+    var enableDefaultSwitch = <?= $enableDefaultSwitch ? 'true' : 'false' ?>;
 
     function initSwitchModules($) {
         if (window.FvConfigCrudBooleanSwitch && typeof window.FvConfigCrudBooleanSwitch.init === 'function') {
@@ -58,6 +69,9 @@ window.fvConfigCrudStatusSwitch = <?= json_encode($statusSwitchMessages, JSON_UN
         }
         if (enableStatusSwitch && window.FvConfigCrudStatusSwitch && typeof window.FvConfigCrudStatusSwitch.init === 'function') {
             window.FvConfigCrudStatusSwitch.init($);
+        }
+        if (enableDefaultSwitch && window.FvConfigCrudDefaultSwitch && typeof window.FvConfigCrudDefaultSwitch.init === 'function') {
+            window.FvConfigCrudDefaultSwitch.init($);
         }
     }
 

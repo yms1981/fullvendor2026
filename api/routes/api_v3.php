@@ -80,7 +80,7 @@ Route::group(
                     ->name('mobile.device.update-token');
             });
 
-            // Sync móvil: registro + decisión total/parcial + deltas
+            // Sync móvil (salesman / genérico): registro + decisión total/parcial + deltas
             Route::post('/movilregister', [\App\Http\Controllers\Mobile\MovilSyncController::class, 'movilregister'])
                 ->name('mobile.movilregister');
             Route::post('/movilsync', [\App\Http\Controllers\Mobile\MovilSyncController::class, 'movilsync'])
@@ -95,6 +95,54 @@ Route::group(
                 ->name('mobile.movilsync.categories');
             Route::match(['get', 'post'], '/movilsync/orders', [\App\Http\Controllers\Mobile\MovilSyncController::class, 'orders'])
                 ->name('mobile.movilsync.orders');
+
+            // Sync propio de FullVendor Warehouse (no usa rutas AppSalesman)
+            Route::prefix('warehouse')->group(function () {
+                Route::post('/movilregister', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'movilregister'])
+                    ->name('warehouse.sync.movilregister');
+                Route::post('/movilsync', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'movilsync'])
+                    ->name('warehouse.sync.movilsync');
+                Route::post('/movilsync/complete', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'complete'])
+                    ->name('warehouse.sync.complete');
+                Route::match(['get', 'post'], '/movilsync/products', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'products'])
+                    ->name('warehouse.sync.products');
+                Route::match(['get', 'post'], '/movilsync/customers', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'customers'])
+                    ->name('warehouse.sync.customers');
+                Route::match(['get', 'post'], '/movilsync/categories', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'categories'])
+                    ->name('warehouse.sync.categories');
+                Route::match(['get', 'post'], '/movilsync/orders', [\App\Http\Controllers\Warehouse\WarehouseSyncController::class, 'orders'])
+                    ->name('warehouse.sync.orders');
+
+                // API dedicada sync productos warehouse (estable; no usa catalog/products-all).
+                Route::get('/products/sync', [\App\Http\Controllers\Warehouse\WarehouseProductsSyncController::class, 'sync'])
+                    ->name('warehouse.products.sync');
+
+                // Ventas / devoluciones últimos 6 meses (agrupadas) para notas de crédito offline.
+                // Rutas conservan "last-year" por compatibilidad con la app; filtro = 6 meses.
+                Route::get('/sales/last-year', [\App\Http\Controllers\Warehouse\WarehouseSalesReturnsController::class, 'salesLastYear'])
+                    ->name('warehouse.sales.last-year');
+                Route::get('/returns/last-year', [\App\Http\Controllers\Warehouse\WarehouseSalesReturnsController::class, 'returnsLastYear'])
+                    ->name('warehouse.returns.last-year');
+
+                // Catálogo paginado exclusivo warehouse (sync total). No toca product/all, customer/all, category/all.
+                Route::prefix('catalog')->group(function () {
+                    Route::get('/products', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'products'])
+                        ->name('warehouse.catalog.products');
+                    // Todos los productos (enabled + disabled) — sync warehouse.
+                    Route::get('/products-all', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'productsAll'])
+                        ->name('warehouse.catalog.products-all');
+                    Route::get('/customers', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'customers'])
+                        ->name('warehouse.catalog.customers');
+                    // Clientes con órdenes en el último año (notas de crédito / selección offline).
+                    Route::get('/customers-with-orders', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'customersWithOrders'])
+                        ->name('warehouse.catalog.customers-with-orders');
+                    Route::get('/categories', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'categories'])
+                        ->name('warehouse.catalog.categories');
+                    // Categorías en orden del catálogo default (order_categories).
+                    Route::get('/categories-ordered', [\App\Http\Controllers\Warehouse\WarehouseCatalogController::class, 'categoriesOrdered'])
+                        ->name('warehouse.catalog.categories-ordered');
+                });
+            });
             
             // Compañías y catálogos
             Route::prefix('companies')->group(function () {

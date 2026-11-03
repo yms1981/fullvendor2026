@@ -19,6 +19,9 @@ class Home extends Company_Controller
     use ConfigCrudListTools;
 
     public $mensajes_producto = array();
+
+    /** @var array<string, int>|null */
+    private $productListQuality = null;
     
 	
 
@@ -53,6 +56,7 @@ class Home extends Company_Controller
             'enableProductViewModes' => true,
             'addToCatalogProductId' => $addToCatalogProductId > 0 ? $addToCatalogProductId : null,
             'hideExpandSelectionAlert' => true,
+            'productListQuality' => $this->productListQuality ?? $this->loadProductListQuality(),
         ];
     }
 
@@ -275,7 +279,40 @@ class Home extends Company_Controller
         $this->addModal('company/product/modals/specs');
 
         $this->applyPersistedProductListFilters();
+        $this->productListQuality = $this->loadProductListQuality();
         $this->list($this->getContextualButtonBar());
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function loadProductListQuality(): array
+    {
+        $empty = [
+            'duplicate_products' => 0,
+            'duplicate_codes' => 0,
+            'zero_price' => 0,
+            'negative_stock_fixed' => 0,
+        ];
+        try {
+            $response = $this->getDataFromApi('product/list-quality');
+        } catch (\Throwable $e) {
+            log_message('error', 'product list quality: ' . $e->getMessage());
+
+            return $empty;
+        }
+        if (! is_array($response) || $this->hasError($response)) {
+            log_message('error', 'product list quality API: ' . json_encode($response));
+
+            return $empty;
+        }
+
+        return [
+            'duplicate_products' => (int) ($response['duplicate_products'] ?? 0),
+            'duplicate_codes' => (int) ($response['duplicate_codes'] ?? 0),
+            'zero_price' => (int) ($response['zero_price'] ?? 0),
+            'negative_stock_fixed' => (int) ($response['negative_stock_fixed'] ?? 0),
+        ];
     }
 
     protected function initListButtonBar()

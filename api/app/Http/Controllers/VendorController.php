@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\CompanyUserTypes;
 use App\Http\Requests\StoreVendorRequest;
 use App\Http\Requests\UpdateVendorRequest;
+use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\PlanLimitLang;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use OpenApi\Attributes as OA;
@@ -814,6 +817,50 @@ class VendorController extends Controller
             ->where('company_id','!=', $companyId)
             ->where('email', $email)
             ->exists();
+    }
+
+    /**
+     * Marca este vendedor como el por defecto de la compañía (único).
+     */
+    #[OA\Put(
+        path: 'api/v2/vendor/{seller}/setDefault',
+        operationId: 'vendorSetDefault',
+        summary: 'Set seller as company default',
+        security: [['bearerAuth' => []]],
+        tags: ['Seller'],
+        parameters: [
+            new OA\Parameter(name: 'seller', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Seller marked as default'),
+            new OA\Response(response: 404, description: 'Seller not found'),
+            new OA\Response(response: 422, description: 'Seller inactive or cannot be default'),
+        ]
+    )]
+    public function setDefault(Vendor $seller): Vendor|JsonResponse
+    {
+        $seller->loadMissing('company');
+        $langId = (int) (auth()->user()->language_id ?? 1);
+
+        if (! (int) ($seller->status ?? 0)) {
+            return response()->json([
+                'message' => PlanLimitLang::get($langId, 'cmp-vendedor', 'cannot_set_default_when_inactive'),
+            ], 422);
+        }
+
+        $companyId = (int) (request()->input('company_id') ?: $seller->company_id);
+        if ($companyId < 1 || (int) $seller->company_id !== $companyId) {
+            return response()->json([
+                'message' => PlanLimitLang::get($langId, 'cmp-vendedor', 'cannot_set_default_when_inactive'),
+            ], 422);
+        }
+
+        Company::where('company_id', $companyId)->update(['default_seller_id' => $seller->id]);
+        $seller->unsetRelation('company');
+        $seller->load('company');
+
+        return $seller->fresh(['company', 'user']);
     }
 
     public function enable(Vendor $seller): Vendor

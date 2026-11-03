@@ -101,7 +101,10 @@ class CreateWarehouseCreditNoteService
                     'discount_type' => $validated['discount_type'],
                     'discount' => $validated['discount'] ?? 0,
                     'proforma' => $validated['proforma'] ?? false,
-                    'status_id' => (int) (StatusOrder::getIdByCode(OrderStatusCodes::PLACED) ?: StatusOrder::getIdByCode(OrderStatusCodes::SHOPPING)),
+                    // Warehouse app: la NC nace ya como Warehouse Completed (cod 11), no como New.
+                    'status_id' => (int) (StatusOrder::getIdByCode(OrderStatusCodes::WAREHOUSE_COMPLETED)
+                        ?: StatusOrder::getIdByCode(OrderStatusCodes::COMPLETED)
+                        ?: StatusOrder::getIdByCode(OrderStatusCodes::PLACED)),
                     'source' => $validated['source'] ?? 'warehouse',
                     'token_create' => $provenance['token_create'],
                     'user_id_token' => $provenance['user_id_token'] ?? (($tokenUserId && $tokenUserId > 0) ? $tokenUserId : null),
@@ -142,7 +145,7 @@ class CreateWarehouseCreditNoteService
                         'sale_price' => $salePrice,
                         'fob_price' => (float) ($product->fob_price ?? 0),
                         'fixed_pricedate' => ! empty($item['fixed_price']) ? Carbon::now() : null,
-                        'comment' => $item['comment'] ?? '-',
+                        'comment' => trim((string) ($item['comment'] ?? $item['comments'] ?? '')),
                         'amount_sales' => $lineTotal,
                         'amount' => $lineTotal,
                         'total' => $lineTotal,
@@ -152,7 +155,7 @@ class CreateWarehouseCreditNoteService
                         'pack' => 0,
                         'discount' => 0,
                         'id_kor' => 1,
-                        'comments' => 1,
+                        'comments' => trim((string) ($item['comment'] ?? $item['comments'] ?? '')),
                     ]);
                 }
 
@@ -173,6 +176,8 @@ class CreateWarehouseCreditNoteService
                 $order->discount_a = $discountAmount;
                 $order->total_amount = max(0.0, $subTotal - $discountAmount);
                 $order->save();
+
+                app(CreditReturnOverSalesService::class)->assertOrderWithinSales($order);
 
                 return $order;
             });

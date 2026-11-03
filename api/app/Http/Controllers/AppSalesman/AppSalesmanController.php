@@ -4,6 +4,7 @@ namespace App\Http\Controllers\AppSalesman;
 
 use App\Http\Controllers\Controller;
 use App\Services\AppSalesman\AppSalesmanCatalogLinkService;
+use App\Services\AppSalesman\AppSalesmanCompanyFormatsService;
 use App\Services\AppSalesman\AppSalesmanOrderListService;
 use App\Services\AppSalesman\AppSalesmanProductFifoService;
 use App\Services\AppSalesman\AppSalesmanRequestedService;
@@ -27,6 +28,7 @@ class AppSalesmanController extends Controller
         private readonly AppSalesmanRequestedService $requestedService,
         private readonly AppSalesmanCatalogLinkService $catalogLinkService,
         private readonly AppSalesmanProductFifoService $productFifoService,
+        private readonly AppSalesmanCompanyFormatsService $companyFormatsService,
     ) {
     }
 
@@ -83,6 +85,7 @@ class AppSalesmanController extends Controller
                     new OA\Property(property: 'language_id', type: 'integer', example: 2),
                     new OA\Property(property: 'user_id', type: 'integer', example: 15, description: 'ID de usuario del vendedor (requerido por compatibilidad)'),
                     new OA\Property(property: 'customer_id', type: 'integer', example: 608),
+                    new OA\Property(property: 'months', type: 'integer', example: 12, description: 'Opcional. Si > 0, solo órdenes de los últimos N meses'),
                 ]
             )
         ),
@@ -113,6 +116,7 @@ class AppSalesmanController extends Controller
             'language_id' => 'required',
             'user_id' => 'required',
             'customer_id' => 'required',
+            'months' => 'nullable|integer|min:1|max:120',
         ]);
 
         if ($validator->fails()) {
@@ -126,7 +130,11 @@ class AppSalesmanController extends Controller
             }
         }
 
-        $result = $this->orderListService->listForCustomer((int) $data['customer_id']);
+        $months = isset($data['months']) ? (int) $data['months'] : null;
+        $result = $this->orderListService->listForCustomer(
+            (int) $data['customer_id'],
+            $months !== null && $months > 0 ? $months : null,
+        );
 
         if (($result['status'] ?? '0') === '0') {
             return response()->json([
@@ -329,6 +337,9 @@ class AppSalesmanController extends Controller
                 required: ['company_id'],
                 properties: [
                     new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'page', type: 'integer', example: 1, description: 'Página (activa paginación)'),
+                    new OA\Property(property: 'per_page', type: 'integer', example: 500, description: 'Filas por página (máx. 1000)'),
+                    new OA\Property(property: 'paginate', type: 'boolean', example: true, description: 'Forzar paginación'),
                 ]
             )
         ),
@@ -340,6 +351,10 @@ class AppSalesmanController extends Controller
                     properties: [
                         new OA\Property(property: 'status', type: 'string', example: '1'),
                         new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                        new OA\Property(property: 'last_page', type: 'integer', example: 12),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 500),
+                        new OA\Property(property: 'total', type: 'integer', example: 5800),
                         new OA\Property(
                             property: 'requested',
                             type: 'array',
@@ -365,6 +380,9 @@ class AppSalesmanController extends Controller
         $data = $request->all();
         $validator = Validator::make($data, [
             'company_id' => 'required|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:1000',
+            'paginate' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -374,9 +392,17 @@ class AppSalesmanController extends Controller
             ], Response::HTTP_OK);
         }
 
-        $result = $this->requestedService->listForCompany((int) $data['company_id']);
+        $wantsPagination = $request->boolean('paginate')
+            || $request->has('page')
+            || $request->has('per_page');
 
-        if (($result['status'] ?? '0') === '0') {
+        $result = $this->requestedService->listForCompany(
+            (int) $data['company_id'],
+            $wantsPagination ? (int) ($data['page'] ?? 1) : null,
+            $wantsPagination ? (int) ($data['per_page'] ?? 500) : null,
+        );
+
+        if (($result['status'] ?? '0') === '0' && empty($result['requested'])) {
             $errKey = ($result['error'] ?? '') === 'invalid_company_id'
                 ? 'validation_company_id'
                 : 'no_requested_found';
@@ -384,6 +410,126 @@ class AppSalesmanController extends Controller
             return response()->json([
                 'status' => '0',
                 'error' => $this->msg($errKey),
+                'company_id' => (int) $data['company_id'],
+                'current_page' => $result['current_page'] ?? 1,
+                'last_page' => $result['last_page'] ?? 1,
+                'per_page' => $result['per_page'] ?? 500,
+                'total' => $result['total'] ?? 0,
+                'requested' => [],
+            ], Response::HTTP_OK);
+        }
+
+        return response()->json($result, Response::HTTP_OK);
+    }
+
+    /**
+     * POST /api/v2/app-salesman/requestedSummary
+     * Resumen liviano: 1 fila por customer_id + sku (SUM qty). Para sync móvil.
+     */
+    #[OA\Post(
+        path: 'api/v2/app-salesman/requestedSummary',
+        operationId: 'appSalesmanRequestedSummary',
+        summary: 'Resumen requested por customer + SKU',
+        description: 'Agrupa SUM(ABS(qty)) por company_id, customer_id y sku. Menos filas que /requested. Público (sin token). Ideal sync background app salesman.',
+        security: [],
+        tags: ['AppSalesman'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'customer_id', type: 'integer', example: 608, description: 'Opcional: solo ese cliente (recomendado en app)'),
+                    new OA\Property(property: 'page', type: 'integer', example: 1),
+                    new OA\Property(property: 'per_page', type: 'integer', example: 500),
+                    new OA\Property(property: 'paginate', type: 'boolean', example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: Response::HTTP_OK,
+                description: 'Éxito (status=1) o vacío/error (status=0).',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'status', type: 'string', example: '1'),
+                        new OA\Property(property: 'mode', type: 'string', example: 'summary'),
+                        new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                        new OA\Property(property: 'last_page', type: 'integer', example: 5),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 500),
+                        new OA\Property(property: 'total', type: 'integer', example: 2100),
+                        new OA\Property(
+                            property: 'requested',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'customer_id', type: 'integer', example: 608),
+                                    new OA\Property(property: 'sku', type: 'string', example: 'SKU-1'),
+                                    new OA\Property(property: 'product_id', type: 'integer', example: 5098),
+                                    new OA\Property(property: 'qty', type: 'number', example: 12.5),
+                                ],
+                                type: 'object'
+                            )
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function requestedSummary(Request $request): JsonResponse
+    {
+        $data = $request->all();
+        $validator = Validator::make($data, [
+            'company_id' => 'required|integer|min:1',
+            'customer_id' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:1000',
+            'paginate' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => '0',
+                'error' => $this->msg('validation_company_id'),
+            ], Response::HTTP_OK);
+        }
+
+        $customerId = isset($data['customer_id']) && (int) $data['customer_id'] > 0
+            ? (int) $data['customer_id']
+            : null;
+
+        // Con customer_id: una sola respuesta (sin paginar). Sin él: paginado.
+        $wantsPagination = $customerId === null && (
+            ! $request->has('paginate')
+            || $request->boolean('paginate')
+            || $request->has('page')
+            || $request->has('per_page')
+        );
+
+        $result = $this->requestedService->listSummaryForCompany(
+            (int) $data['company_id'],
+            $wantsPagination ? (int) ($data['page'] ?? 1) : null,
+            $wantsPagination ? (int) ($data['per_page'] ?? 500) : null,
+            $customerId,
+        );
+
+        if (($result['status'] ?? '0') === '0' && empty($result['requested'])) {
+            return response()->json([
+                'status' => '0',
+                'mode' => 'summary',
+                'error' => $this->msg(
+                    ($result['error'] ?? '') === 'invalid_company_id'
+                        ? 'validation_company_id'
+                        : 'no_requested_found'
+                ),
+                'company_id' => (int) $data['company_id'],
+                'current_page' => $result['current_page'] ?? 1,
+                'last_page' => $result['last_page'] ?? 1,
+                'per_page' => $result['per_page'] ?? 500,
+                'total' => $result['total'] ?? 0,
+                'requested' => [],
             ], Response::HTTP_OK);
         }
 
@@ -644,6 +790,74 @@ class AppSalesmanController extends Controller
 
         if (($result['status'] ?? '0') === '0') {
             $errKey = (string) ($result['error'] ?? 'catalog_link_failed');
+
+            return response()->json([
+                'status' => '0',
+                'error' => $this->msg($errKey),
+            ], Response::HTTP_OK);
+        }
+
+        return response()->json($result, Response::HTTP_OK);
+    }
+
+    /**
+     * POST /api/v2/app-salesman/companyFormats
+     * Moneda + separadores numéricos + formato de fecha de la compañía.
+     */
+    #[OA\Post(
+        path: 'api/v2/app-salesman/companyFormats',
+        operationId: 'appSalesmanCompanyFormats',
+        summary: 'Formatos de moneda y fecha de la compañía',
+        description: 'Devuelve símbolo/código de moneda, separadores de miles/decimales y format_php de fecha según el perfil de la compañía. Público (sin token).',
+        security: [],
+        tags: ['AppSalesman'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'language_id', type: 'integer', example: 2),
+                    new OA\Property(property: 'user_id', type: 'integer', example: 15),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: Response::HTTP_OK,
+                description: 'Éxito (status=1) o error (status=0).',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'status', type: 'string', example: '1'),
+                        new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'currency', type: 'object'),
+                        new OA\Property(property: 'numeric', type: 'object'),
+                        new OA\Property(property: 'date', type: 'object'),
+                        new OA\Property(property: 'error', type: 'string'),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function companyFormats(Request $request): JsonResponse
+    {
+        $data = $request->all();
+        $validator = Validator::make($data, [
+            'company_id' => 'required|integer|min:1',
+            'language_id' => 'nullable',
+            'user_id' => 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => '0',
+                'error' => $this->msg('validation_company_id'),
+            ], Response::HTTP_OK);
+        }
+
+        $result = $this->companyFormatsService->getFormats((int) $data['company_id']);
+        if (($result['status'] ?? '0') === '0') {
+            $errKey = (string) ($result['error'] ?? 'company_not_found');
 
             return response()->json([
                 'status' => '0',

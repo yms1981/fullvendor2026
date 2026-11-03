@@ -23,6 +23,11 @@ class Auth extends MY_Controller
             $credentials['email'] = $this->input->post('username');
             $credentials['password'] = $this->input->post('password');
 
+            // Sin el Bearer de la sesión anterior: si no, Fortify responde
+            // como si la clave no existiera hasta que se borran las cookies.
+            $this->discardStaleAuthSession();
+            $this->userToken = false;
+
             $response = $this->post('login', $credentials);
 
             if (isset($response['user'])) {
@@ -40,6 +45,7 @@ class Auth extends MY_Controller
             } elseif (isset($response['error'])) {
                 $errorText = $this->extractLoginErrorMessage($response);
                 if ($errorText !== '') {
+                    $data['login_error'] = $errorText;
                     $data['msg'] = $this->getAuthAlert($errorText, 'danger');
                 }
             }
@@ -57,6 +63,34 @@ class Auth extends MY_Controller
         return $data;
     }
 
+    /**
+     * La cookie fv_session a veces trae un usuario a medias o un token vencido.
+     * Si se reutiliza, el login responde como clave incorrecta.
+     */
+    private function discardStaleAuthSession(): void
+    {
+        $this->ensureSessionOpened();
+        if (! isset($this->session)) {
+            return;
+        }
+        foreach ([
+            'user',
+            'token',
+            'app_access',
+            'company',
+            'compId',
+            'application',
+            'role',
+            'abilities',
+            'admin',
+            'userId',
+            'fv_api_cache',
+        ] as $key) {
+            $this->session->unset_userdata($key);
+        }
+        $this->userToken = false;
+    }
+
     public function index()
     {
         if (function_exists('fv_sync_session_language_from_request')) {
@@ -67,13 +101,16 @@ class Auth extends MY_Controller
         $this->form_validation->set_rules('username', 'Email', 'trim|required');
         $this->form_validation->set_rules('password', 'Password', 'trim|required');
 
-        $this->applyApplicationFromRedirectTo();
-
         $data = ['page' => 'login'];
         if ($this->input->post('username')) {
+            // Antes de leer redirectto: una application vieja en la cookie
+            // impedía aplicar el destino y el login caía en "credenciales".
+            $this->discardStaleAuthSession();
+            $this->userToken = false;
             $data = $this->processLogin();
-            $this->applyApplicationFromRedirectTo();
         }
+
+        $this->applyApplicationFromRedirectTo();
 
         $application = $this->getApplication();
         $data['application'] = $application;
@@ -151,21 +188,23 @@ class Auth extends MY_Controller
         $data['url_seller_portal'] = site_url('sellers');
 
         if ($this->isLoginAjaxRequest() && $this->input->post('username')) {
-            if ($this->loggedIn()) {
-                if (! empty($data['companies']) || ! empty($data['applications'])) {
-                    $this->respondJsonLogin(['success' => false, 'requiresSelection' => true]);
-                }
-            } elseif (! empty($data['msg'])) {
+            $plainError = trim((string) ($data['login_error'] ?? ''));
+            if ($plainError === '' && ! empty($data['msg'])) {
+                $plainError = $this->extractPlainMessageFromAuthAlert((string) $data['msg']);
+            }
+            if ($plainError !== '') {
                 $this->respondJsonLogin([
                     'success' => false,
-                    'message' => $this->extractPlainMessageFromAuthAlert($data['msg']),
-                ], 422);
-            } else {
-                $this->respondJsonLogin([
-                    'success' => false,
-                    'message' => $this->companyLoginDefaults()['loading_text'],
+                    'message' => $plainError,
                 ], 422);
             }
+            if ($this->loggedIn()) {
+                $this->respondJsonLogin(['success' => false, 'requiresSelection' => true]);
+            }
+            $this->respondJsonLogin([
+                'success' => false,
+                'message' => (string) ($data['login_page_texts']['invalid_credentials'] ?? $this->companyLoginDefaults()['invalid_credentials']),
+            ], 422);
         }
 
         $this->load->view('auth/login', $data);
@@ -191,6 +230,7 @@ class Auth extends MY_Controller
             'sign_up_link' => 'Sign up',
             'language_label' => 'Language',
             'loading_text' => 'Signing in...',
+            'invalid_credentials' => 'These credentials do not match our records.',
             'entry_customer_site' => 'Customer',
             'entry_seller_site' => 'Seller',
             'entry_portal_nav_label' => 'Customer and seller access',
@@ -362,36 +402,15 @@ class Auth extends MY_Controller
     }
 
     /**
-     * Si viene ?redirectto= (p. ej. desde /company), fija la aplicación en sesión
-     * para completar el login sin volver a pedir credenciales en bucle.
+     * El login unificado (/login) es el del panel empresa.
+     * No depende de ?redirectto=: la raíz u otra URL no cambian la aplicación.
      */
     private function applyApplicationFromRedirectTo(): void
     {
-        $redirectto = $this->input->get('redirectto');
-        if ($redirectto === null || $redirectto === '') {
-            $redirectto = $this->input->post('redirectto');
-        }
-        if ($redirectto === null || $redirectto === '') {
+        if (! $this->loggedIn()) {
             return;
         }
-
-        $current = $this->getUserData('application');
-        if ($current !== null && $current !== '') {
-            return;
-        }
-
-        $app = $this->getApplicationFromUrl(urldecode((string) $redirectto));
-        $map = [
-            'admin' => 'admin',
-            'company' => 'company',
-            'salesman' => 'salesman',
-            'sellers' => 'salesman',
-            'marketplace' => 'marketplace',
-            'customer' => 'marketplace',
-        ];
-        if (isset($map[$app])) {
-            $this->setApplication($map[$app]);
-        }
+        $this->setApplication('company');
     }
 
     /**
@@ -484,8 +503,12 @@ class Auth extends MY_Controller
             return true;
         }
         $xhr = strtolower((string) $this->input->server('HTTP_X_REQUESTED_WITH'));
+        if ($xhr === 'xmlhttprequest') {
+            return true;
+        }
+        $accept = strtolower((string) ($this->input->server('HTTP_ACCEPT') ?? ''));
 
-        return $xhr === 'xmlhttprequest';
+        return str_contains($accept, 'application/json');
     }
 
     /**
@@ -508,6 +531,7 @@ class Auth extends MY_Controller
     {
         $text = html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $html)), ENT_QUOTES, 'UTF-8');
         $text = trim(preg_replace('/\s+/u', ' ', str_replace("\n", ' ', $text)) ?? '');
+        $text = preg_replace('/^[×x]+\s*/u', '', $text) ?? $text;
 
         return $text !== '' ? $text : $this->companyLoginDefaults()['loading_text'];
     }

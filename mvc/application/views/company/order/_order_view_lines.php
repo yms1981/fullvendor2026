@@ -13,22 +13,14 @@
 $pageTexts = is_array($pageTexts ?? null) ? $pageTexts : [];
 $order = $order ?? null;
 $moneda = ($moneda ?? '') !== '' ? $moneda : '$';
-$fmt = $fmt ?? (object) ['digits' => 2, 'radixPoint' => ',', 'groupSeparator' => '.'];
+$fmt = $fmt ?? (object) ['digits' => 2, 'radixPoint' => '.', 'groupSeparator' => ','];
+$fmtGroup = function_exists('fv_resolve_numeric_group_separator')
+    ? fv_resolve_numeric_group_separator($fmt)
+    : (string) ($fmt->groupSeparator ?? ',');
 $showDispatched = !empty($show_dispatched_info);
 $warehouseDisplay = isset($dispatched_warehouse_display) ? trim((string) $dispatched_warehouse_display) : '';
-$fmtNum = static function ($n) use ($fmt) {
-    return number_format((float) $n, (int) $fmt->digits, (string) $fmt->radixPoint, (string) $fmt->groupSeparator);
-};
-$fmtDelivered = static function ($n) use ($fmt, $pageTexts) {
-    if ($n === null || $n === '') {
-        return '—';
-    }
-    $v = (float) $n;
-    if ($v < 0) {
-        return (string) ($pageTexts['no_disponible'] ?? '—');
-    }
-
-    return number_format($v, (int) $fmt->digits, (string) $fmt->radixPoint, (string) $fmt->groupSeparator);
+$fmtNum = static function ($n) use ($fmt, $fmtGroup) {
+    return number_format((float) $n, (int) $fmt->digits, (string) $fmt->radixPoint, $fmtGroup);
 };
 
 $discountLabel = '';
@@ -131,7 +123,18 @@ if ($showDispatched && $order) {
                     $salePrice = (float) ($detail->sale_price ?? $detail->salePrice ?? 0);
                     $qty = (float) ($detail->qty ?? 0);
                     $lineTotal = (float) ($detail->total_amount ?? $detail->totalAmount ?? ($salePrice * $qty));
-                    $comment = trim((string) ($detail->comments ?? $detail->comment ?? ''));
+                    $rawComments = trim((string) ($detail->comments ?? ''));
+                    $rawComment = trim((string) ($detail->comment ?? ''));
+                    // Legacy: comments=1 era un flag, no texto.
+                    if ($rawComments === '1') {
+                        $comment = ($rawComment !== '' && $rawComment !== '-' && $rawComment !== '1')
+                            ? $rawComment
+                            : '';
+                    } else {
+                        $comment = $rawComments !== ''
+                            ? $rawComments
+                            : (($rawComment !== '' && $rawComment !== '-') ? $rawComment : '');
+                    }
                     $deliveredQty = $detail->delivered_quantity ?? $detail->delivered_qty ?? null;
                     $deliveredPack = $detail->delivered_pack ?? null;
                     $assignedTotal = isset($detail->total_amount_assigned)
@@ -161,6 +164,41 @@ if ($showDispatched && $order) {
                             <?php if (isset($product->status) && (int) $product->status === 0): ?>
                                 <br><span class="badge badge-danger"><?= htmlspecialchars((string) ($pageTexts['producto_innactivo'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
                             <?php endif; ?>
+                            <?php
+                            $creditReturns = $detail->credit_returns ?? [];
+                            if (is_object($creditReturns)) {
+                                $creditReturns = (array) $creditReturns;
+                            }
+                            $creditReturnLabel = trim((string) ($pageTexts['credit_return_from'] ?? ''));
+                            ?>
+                            <?php if (is_array($creditReturns) && $creditReturns !== []): ?>
+                                <div class="small text-muted mt-1 mb-0">
+                                    <?php foreach ($creditReturns as $creditReturn): ?>
+                                        <?php
+                                        $creditReturn = is_array($creditReturn) ? (object) $creditReturn : $creditReturn;
+                                        if (! is_object($creditReturn)) {
+                                            continue;
+                                        }
+                                        $creditOrderNumber = trim((string) ($creditReturn->order_number ?? ''));
+                                        if ($creditOrderNumber === '') {
+                                            continue;
+                                        }
+                                        $creditQty = (float) ($creditReturn->qty ?? 0);
+                                        $creditPrice = (float) ($creditReturn->price ?? 0);
+                                        $creditQtyPlaces = abs($creditQty - round($creditQty)) < 0.0001 ? 0 : (int) $fmt->digits;
+                                        $creditQtyText = number_format($creditQty, $creditQtyPlaces, (string) $fmt->radixPoint, $fmtGroup);
+                                        ?>
+                                        <div>
+                                            <?php if ($creditReturnLabel !== ''): ?>
+                                                <?= htmlspecialchars($creditReturnLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            <?php endif; ?>
+                                            <strong><?= htmlspecialchars($creditOrderNumber, ENT_QUOTES, 'UTF-8') ?></strong>
+                                            · <?= htmlspecialchars($creditQtyText, ENT_QUOTES, 'UTF-8') ?>
+                                            · <?= htmlspecialchars($moneda, ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars($fmtNum($creditPrice), ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </td>
                         <td class="align-middle">
                             <?php if (!empty($product->pro_id)): ?>
@@ -177,8 +215,8 @@ if ($showDispatched && $order) {
                         $qtyPlaces = function_exists('fv_product_unit_decimal_places')
                             ? fv_product_unit_decimal_places($product)
                             : 0;
-                        $fmtQty = static function ($n) use ($fmt, $qtyPlaces) {
-                            return number_format((float) $n, $qtyPlaces, (string) $fmt->radixPoint, (string) $fmt->groupSeparator);
+                        $fmtQty = static function ($n) use ($fmt, $fmtGroup, $qtyPlaces) {
+                            return number_format((float) $n, $qtyPlaces, (string) $fmt->radixPoint, $fmtGroup);
                         };
                         ?>
                         <td class="align-middle text-center"><strong><?= $fmtQty($qty) ?></strong></td>
@@ -190,7 +228,7 @@ if ($showDispatched && $order) {
                                     echo htmlspecialchars($fmtQty($deliveredQty), ENT_QUOTES, 'UTF-8');
                                 }
                             ?></strong></td>
-                            <td class="align-middle text-center text-success"><strong><?= htmlspecialchars($fmtDelivered($deliveredPack), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                            <td class="align-middle text-center text-success"><strong><?= htmlspecialchars(fv_format_order_pack($deliveredPack, $fmt, (string) ($pageTexts['no_disponible'] ?? '—')), ENT_QUOTES, 'UTF-8') ?></strong></td>
                         <?php endif; ?>
                         <td class="align-middle text-center"><strong><?= htmlspecialchars($fmtQty(is_object($product) ? ($product->stock ?? 0) : 0), ENT_QUOTES, 'UTF-8') ?></strong></td>
                         <td class="align-middle text-center"><strong><?= htmlspecialchars($moneda, ENT_QUOTES, 'UTF-8') ?><?= $fmtNum($salePrice) ?></strong></td>

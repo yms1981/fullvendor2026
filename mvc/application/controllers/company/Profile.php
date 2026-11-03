@@ -97,6 +97,7 @@ class Profile extends Company_Controller {
 			$this->getLangJsonSection('cmp-products')
 		);
 
+		$this->addJsFile(base_url('companyasset/company/customer/locationCascadeSelects.js'));
 		$this->addJsFile(base_url('companyasset/company/profile/profile-update.js'));
 		$this->addJsFile(base_url('companyasset/company/product/semaforo.js'));
 
@@ -389,6 +390,11 @@ class Profile extends Company_Controller {
 				(array) $this->input->post('cphone'),
 				(array) $this->input->post('ccphone')
 			);
+			$newLangId = (int) $this->input->post('language_id');
+			if ($newLangId >= 1 && $newLangId <= 7) {
+				$this->persistCompanyPanelLanguage($compId, $newLangId);
+				$this->forgetCachedApiValue('company:'.$compId);
+			}
 			$msg = '["' . addslashes($langPerfil['profile_updated_success'] ?? '') . '", "success", "#A5DC86"]';
 		}
 

@@ -219,3 +219,62 @@ php artisan openapi:sync --scan=Mobile
 ```
 
 Tag **MobileSync** en `/api/v2/documentation`.
+
+---
+
+## Productos paginados (app salesman / sync total)
+
+`GET /api/v2/product/all` acepta paginación para no devolver ~30k productos de una vez:
+
+| Query | Default | Descripción |
+|-------|---------|-------------|
+| `page` | — | Si viene (o `paginate=1` / `per_page`), activa paginación |
+| `per_page` | `200` | Máx. `500` |
+| `lite` / `sync` | off | Omite `products_table`, `product_images_table`, `catalog_images_table` (payload liviano) |
+| `active_only` | off* | Solo `status=1` (activos). *También se fuerza con `lite`, `sync` o paginación |
+
+Respuesta paginada:
+
+```json
+{
+  "data": [ { "pro_id": 1, "name": "...", "Img": "/images/...", ... } ],
+  "current_page": 1,
+  "last_page": 147,
+  "per_page": 200,
+  "total": 29321,
+  "from": 1,
+  "to": 200
+}
+```
+
+Sin `page`/`per_page`/`paginate` se mantiene el comportamiento legacy (lista completa en `data`).
+
+Ejemplo:
+
+```bash
+curl -s "http://localhost/mvc/api/v2/product/all?page=1&per_page=200&lite=1" \
+  -H "Authorization: Bearer TOKEN" -H "Accept: application/json" | jq '.total,.last_page,.data|length'
+```
+
+---
+
+## Requested (background app salesman)
+
+**Preferido (app):** `POST /api/v2/app-salesman/requestedSummary` — 1 fila por **customer + SKU** (`SUM(qty)`), con `product_id` representativo. Menos filas que el detalle.
+
+**Legacy:** `POST /api/v2/app-salesman/requested` — detalle por customer + product_id + sku.
+
+Ninguno va en el sync de login; la app baja el summary en segundo plano paginado.
+
+| Body | Default | Descripción |
+|------|---------|-------------|
+| `company_id` | required | Compañía |
+| `page` | `1` | Página |
+| `per_page` | `500` | Máx. `1000` |
+| `paginate` | `true` | En summary, paginado por defecto |
+
+```bash
+curl -s -X POST "http://localhost/mvc/api/v2/app-salesman/requestedSummary" \
+  -H "Content-Type: application/json" -H "x-api-key: KEY" \
+  -d '{"company_id":1,"page":1,"per_page":500}' | jq '.mode,.total,.last_page,.requested[0]'
+```

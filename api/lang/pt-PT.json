@@ -1516,6 +1516,24 @@
         "pack": "Bulto",
         "total_pedido": "Total Pedido",
         "qty_asigned": "Quantity Asigned",
+        "credit_return_from": "Devolvido de",
+        "return_over_sales_title": "Devoluções maiores que as vendas",
+        "return_over_sales_message": "Há {count} produto(s) com mais quantidade devolvida do que vendida.",
+        "return_over_sales_button": "Ver erros",
+        "return_over_sales_customer": "Cliente",
+        "return_over_sales_product": "Produto",
+        "return_over_sales_sku": "SKU",
+        "return_over_sales_sold": "Vendido",
+        "return_over_sales_credited": "Devolvido",
+        "return_over_sales_excess": "Excesso",
+        "return_over_sales_group_count": "{count} produtos",
+        "return_over_sales_print": "Imprimir",
+        "return_over_sales_summary": "Resumo dos produtos",
+        "return_over_sales_credit_detail": "Detalhe por notas de crédito",
+        "return_over_sales_note": "Nota de crédito",
+        "return_over_sales_date": "Data",
+        "return_over_sales_qty": "Quantidade",
+        "return_over_sales_price": "Preço",
         "total_asigned": "Total Asigned",
         "sub_total_asigned": "Assigned Subtotal",
         "delivered_pack": "Delivered packs",
@@ -2058,7 +2076,11 @@
         "ai_image_assigned": "Imagens atribuídas a produtos sem foto",
         "ai_image_error": "Não foi possível atribuir a imagem com IA",
         "ai_image_not_configured": "Atribuição de imagens com IA não configurada",
-        "ai_image_quota": "Sem crédito OpenAI para imagens"
+        "ai_image_quota": "Sem crédito OpenAI para imagens",
+        "quality_alert_title": "Avisos de produtos",
+        "quality_duplicate_barcodes": "{count} produto(s) têm um código de barras repetido",
+        "quality_zero_price": "{count} produto(s) têm preço 0",
+        "quality_stock_fixed": "{count} produto(s) tinham stock negativo e foram ajustados a 0"
     },
     "cmp-profile-vendor": {
         "list_profile_vendor": "Lista de Perfil de Vendedores",
@@ -2358,7 +2380,10 @@
         "user_edit_load_error": "Não foi possível carregar o formulário de edição. Recarregue a página e tente novamente.",
         "edit": "Editar",
         "loading_data": "A carregar dados...",
-        "email": "Email"
+        "email": "Email",
+        "default": "Por defeito",
+        "defecto": "Por defeito",
+        "default_indicator_label": "Por defeito"
     },
     "cmp-rol": {
         "add_new_rol": "Criar Novo Role",
@@ -2746,7 +2771,8 @@
         "promo_4_text": "Painéis e relatórios para melhores decisões de negócio.",
         "toggle_password": "Mostrar ou ocultar palavra-passe",
         "email_label": "E-mail",
-        "password_label": "Palavra-passe"
+        "password_label": "Palavra-passe",
+        "invalid_credentials": "Estas credenciais não correspondem aos nossos registos."
     },
     "company-navigation": {
         "dashboard": "Painel",

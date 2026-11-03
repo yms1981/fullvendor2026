@@ -131,20 +131,72 @@ trait HasAuth
     }
 
     protected function doLogOut() {
-        $this->removeUserData('userId');
-        $this->removeUserData('admin');
-        $this->removeUserData('user');
-        $this->removeUserData('token');
-        $this->removeUserData('company');
-        $this->removeUserData('compId');
-        $this->removeUserData('application');
-        $this->removeUserData('company_panel_language_id');
-        $this->removeUserData('company_panel_language_comp_id');
+        if (method_exists($this, 'ensureSessionOpened')) {
+            $this->ensureSessionOpened();
+        }
         if (isset($this->userToken)) {
             $this->userToken = null;
         }
-        if (session_status() === PHP_SESSION_ACTIVE) {
+        // removeUserData() cierra la sesión en cada clave y sess_destroy() ya no corre:
+        // el navegador se queda con fv_session y el siguiente login reutiliza esa sesión.
+        if (isset($this->session) && session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION = [];
             $this->session->sess_destroy();
+        }
+        $this->expireBrowserSessionCookies();
+    }
+
+    /**
+     * Borra fv_session en el navegador (path /, /mvc, Secure y no Secure).
+     * Hace falta porque sess_destroy() no expira la cookie.
+     */
+    protected function expireBrowserSessionCookies(): void
+    {
+        $name = 'fv_session';
+        if (isset($this->config) && is_object($this->config)) {
+            $configured = (string) $this->config->item('sess_cookie_name');
+            if ($configured !== '') {
+                $name = $configured;
+            }
+        }
+        $paths = ['/', '/mvc', '/mvc/'];
+        $scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+        $scriptDir = rtrim($scriptDir, '/');
+        if ($scriptDir !== '' && $scriptDir !== '/' && $scriptDir !== '.') {
+            $paths[] = $scriptDir;
+            $paths[] = $scriptDir.'/';
+        }
+        $host = preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')) ?? '';
+        $domains = [''];
+        if ($host !== '' && strcasecmp($host, 'localhost') !== 0 && filter_var($host, FILTER_VALIDATE_IP) === false) {
+            $domains[] = $host;
+            $labels = explode('.', $host);
+            if (count($labels) >= 3) {
+                $domains[] = '.'.implode('.', array_slice($labels, -2));
+            }
+        }
+        $variants = [
+            ['secure' => false, 'samesite' => 'Lax'],
+            ['secure' => true, 'samesite' => 'Lax'],
+            ['secure' => true, 'samesite' => 'None'],
+        ];
+        $expires = time() - 42000;
+        foreach (array_unique($paths) as $cookiePath) {
+            foreach (array_unique($domains) as $domain) {
+                foreach ($variants as $variant) {
+                    $opts = [
+                        'expires' => $expires,
+                        'path' => $cookiePath,
+                        'secure' => $variant['secure'],
+                        'httponly' => true,
+                        'samesite' => $variant['samesite'],
+                    ];
+                    if ($domain !== '') {
+                        $opts['domain'] = $domain;
+                    }
+                    setcookie($name, '', $opts);
+                }
+            }
         }
     }
 
@@ -409,7 +461,12 @@ trait HasAuth
 
         if (! empty($redirectto)) {
             $decoded = urldecode((string) $redirectto);
-            if ($this->getApplicationFromUrl($decoded) === $application) {
+            $sameApp = $this->getApplicationFromUrl($decoded) === $application;
+            if (! $sameApp && $application === 'company') {
+                $targetPath = parse_url($decoded, PHP_URL_PATH);
+                $sameApp = is_string($targetPath) && preg_match('#/company(/|$)#i', $targetPath) === 1;
+            }
+            if ($sameApp) {
                 $fallback = $redirectUrl ?? company_url('dashboard');
                 if (method_exists($this, 'normalizeInternalRedirectUrl')) {
                     $redirectUrl = $this->normalizeInternalRedirectUrl($decoded, $fallback);

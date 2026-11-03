@@ -13,6 +13,11 @@
 
     var labelSelect = (window.pageTexts && (window.pageTexts.label_select || window.pageTexts.placeholder_select_country)) || '';
 
+    function placeholderText() {
+        var fromPage = (window.pageTexts && (window.pageTexts.label_select || window.pageTexts.placeholder_select_country)) || '';
+        return fromPage || labelSelect || ' ';
+    }
+
     function fetchJson(url, data) {
         return $.ajax({
             url: url,
@@ -50,7 +55,7 @@
         var opts = {
             width: '100%',
             allowClear: true,
-            placeholder: labelSelect || ' '
+            placeholder: placeholderText()
         };
         if (tags) {
             opts.tags = true;
@@ -156,10 +161,27 @@
         });
         this.$city.on('change.fvgeo', function () {
             syncName(self.$city, self.$cityName);
-            // Mantener listado ZIP del estado (no vaciar al elegir ciudad).
-            notify(self.prefix);
+            if (self.syncingFromZip) {
+                notify(self.prefix);
+                return;
+            }
+            self.loadZips(false).then(function () {
+                notify(self.prefix);
+            });
         });
         this.$zip.on('change.fvgeo', function () {
+            notify(self.prefix);
+        });
+        this.$zip.on('select2:select.fvgeo', function (e) {
+            var data = (e && e.params && e.params.data) ? e.params.data : {};
+            var place = data.place_name || '';
+            if (!place && data.text) {
+                var parts = String(data.text).split(' — ');
+                if (parts.length > 1) {
+                    place = parts.slice(1).join(' — ');
+                }
+            }
+            self.selectCityByName(place);
             notify(self.prefix);
         });
     };
@@ -240,27 +262,46 @@
             return $.Deferred().resolve().promise();
         }
 
-        var queryBase = {};
-        if (stateId) {
-            queryBase.state_id = stateId;
-        } else {
-            queryBase.country_id = countryId;
+        var query = { state_id: stateId || '', country_id: countryId || '' };
+        var cityId = this.$city.val();
+        if (cityId) {
+            query.city_id = cityId;
         }
 
-        // Precarga inicial (primeros del estado) + valor actual.
-        return fetchJson(options.url + '/postal/searchzip', queryBase).then(function (items) {
+        return fetchJson(options.url + '/postal/searchzip', query).then(function (items) {
             setOptions(self.$zip, items, keep, keep, true);
-            self.initZipAjax(queryBase, keep);
+            self.initZipAjax(keep);
         });
     };
 
-    GeoCascade.prototype.initZipAjax = function (queryBase, keep) {
+    GeoCascade.prototype.selectCityByName = function (place) {
+        var want = $.trim(place || '').toUpperCase();
+        if (!want || !this.$city.length) {
+            return;
+        }
+        var match = '';
+        this.$city.find('option').each(function () {
+            var text = $.trim($(this).text() || '').toUpperCase();
+            if (text === want && $(this).val()) {
+                match = String($(this).val());
+                return false;
+            }
+        });
+        if (!match || String(this.$city.val() || '') === match) {
+            return;
+        }
+        this.syncingFromZip = true;
+        this.$city.val(match).trigger('change');
+        syncName(this.$city, this.$cityName);
+        this.syncingFromZip = false;
+    };
+
+    GeoCascade.prototype.initZipAjax = function (keep) {
         var self = this;
         if (!this.$zip.length || typeof $.fn.select2 === 'undefined') {
             return;
         }
 
-        // Re-inicializar Select2 con AJAX sobre el mismo select (mantiene options precargadas).
         destroySelect2(this.$zip);
         if (keep && this.$zip.find('option[value=\"' + keep.replace(/"/g, '\\"') + '\"]').length === 0) {
             this.$zip.append(
@@ -271,7 +312,7 @@
         this.$zip.select2({
             width: '100%',
             allowClear: true,
-            placeholder: labelSelect || ' ',
+            placeholder: placeholderText(),
             tags: true,
             createTag: function (params) {
                 var t = $.trim(params.term || '');
@@ -285,24 +326,36 @@
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {
-                    var q = $.extend({}, queryBase);
+                    var q = {};
+                    var stateId = self.$state.val();
+                    var cityId = self.$city.val();
+                    var countryId = self.$country.val();
+                    if (stateId) {
+                        q.state_id = stateId;
+                    }
+                    if (cityId) {
+                        q.city_id = cityId;
+                    }
+                    if (!stateId && countryId) {
+                        q.country_id = countryId;
+                    }
                     if (params.term) {
                         q.term = params.term;
                     }
                     return q;
                 },
                 processResults: function (data) {
-                    var items = Array.isArray(data) ? data : [];
+                    var items = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
                     return {
                         results: items.map(function (it) {
                             var code = (it.id || it.postal_code || it.name || '').toString();
                             var place = (it.place_name || '').toString();
                             var text = place ? (code + ' — ' + place.toUpperCase()) : code;
-                            return { id: code, text: text };
+                            return { id: code, text: text, place_name: place };
                         })
                     };
                 },
-                cache: true
+                cache: false
             },
             minimumInputLength: 0
         });
@@ -315,6 +368,9 @@
     $(function () {
         window.fvGeoCommercial = new GeoCascade('commercial');
         window.fvGeoDispatch = new GeoCascade('dispatch');
+        if ($('#profile_state_id').length && $('#profile_city_id').length && $('#profile_zip_code').length) {
+            window.fvGeoProfile = new GeoCascade('profile');
+        }
 
         $('#asignar_datos').on('change.fvgeo', function () {
             if (!$(this).is(':checked') || !window.fvGeoDispatch) {

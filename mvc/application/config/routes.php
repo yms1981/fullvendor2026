@@ -224,6 +224,8 @@ $route['company/postal/searchzip'] = 'company/postal/SearchZip/index';
 $route['company/postal/searchZip'] = 'company/postal/SearchZip/index';
 
 // Órdenes: duplicación silenciosa (mismo cliente, nuevo número)
+$route['company/users/setDefault/(:num)'] = 'company/users/SetDefault/run/$1';
+$route['company/orders/returnOverSalesPdf/(:num)'] = 'company/orders/ReturnOverSalesPdf/run/$1';
 $route['company/orders/duplicate_silent'] = 'company/orders/DuplicateSilent/index';
 // Órdenes: verificar contraseña del usuario antes de eliminar
 $route['company/orders/verify_delete_password'] = 'company/orders/VerifyDeletePassword/index';

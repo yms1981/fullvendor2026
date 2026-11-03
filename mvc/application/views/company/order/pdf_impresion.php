@@ -265,7 +265,7 @@ $show_productLocation = isset($notas['include_locations'])? true : false;
                 </td>
                 <?php if($show_values_asigned) :?>
                 <td <?= $style_border ?> style="vertical-align: top;" class="text-center">
-                    <br><?= $pro->pack < 0? $lang_order['no_disponible']  : number_format($pro->pack,$format_numeric->digits, $radixPoint,$groupSeparator) ?><br>
+                    <br><?= $pro->pack < 0? $lang_order['no_disponible']  : fv_format_order_pack($pro->pack, $format_numeric, (string) ($lang_order['no_disponible'] ?? '—')) ?><br>
                 </td>
                 <?php endif; ?>
                 <td <?= $style_border ?> style="vertical-align: top;" class="text-right">
