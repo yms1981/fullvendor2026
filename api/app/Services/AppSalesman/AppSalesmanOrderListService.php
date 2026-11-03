@@ -201,6 +201,9 @@ class AppSalesmanOrderListService
 
             $discount = (float) ($cart->discount ?? 0);
 
+            // warehouseorders: orders.seller_id AS user_id
+            $sellerId = (int) ($cart->user_id ?? 0);
+
             $orderList[] = [
                 'tipo_d' => $cart->tipo_d ?? '',
                 'order_id' => $cart->order_id,
@@ -214,6 +217,7 @@ class AppSalesmanOrderListService
                 'discount_type' => $cart->discount_type,
                 'business_name' => $customer?->business_name ?? '',
                 'customer_id' => $customer?->customer_id ?? $cart->customer_id,
+                'seller_id' => $sellerId > 0 ? $sellerId : null,
                 'name' => $customer?->name ?? '',
                 'email' => $customer?->email ?? '',
                 'phone' => $customer?->phone ?? '',
