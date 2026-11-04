@@ -68,10 +68,14 @@ Route::group(
 
                 Route::get('products', [\App\Http\Controllers\Erp\ErpProductsController::class, 'list'])
                     ->name('erp.products.index');
+                Route::get('products/without-images', [\App\Http\Controllers\Erp\ErpProductsController::class, 'withoutImages'])
+                    ->name('erp.products.withoutImages');
                 Route::post('products/upsert', [\App\Http\Controllers\Erp\ErpProductsController::class, 'upsert'])
                     ->name('erp.products.upsert');
                 Route::post('products/stock-update', [\App\Http\Controllers\Erp\ErpProductsController::class, 'stockUpdate'])
                     ->name('erp.products.stockUpdate');
+                Route::post('products/images', [\App\Http\Controllers\Erp\ErpProductsController::class, 'uploadImages'])
+                    ->name('erp.products.images');
 
                 Route::get('customers', [\App\Http\Controllers\Erp\ErpCustomersController::class, 'list'])
                     ->name('erp.customers.index');
@@ -88,6 +92,16 @@ Route::group(
                     ->name('erp.sellers');
                 Route::get('warehouse-users', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'warehouseUsers'])
                     ->name('erp.warehouseUsers');
+            });
+
+        // Sección ecommerce: token fijo de la tienda (header X-Api-Key, sin Sanctum)
+        Route::prefix('ecommerce')
+            ->middleware(['ecommerce.api_key', 'throttle:120,1'])
+            ->group(function () {
+                Route::get('ping', [\App\Http\Controllers\Ecommerce\EcommerceController::class, 'ping'])
+                    ->name('ecommerce.ping');
+                Route::post('orders', [\App\Http\Controllers\Ecommerce\EcommerceController::class, 'storeOrder'])
+                    ->name('ecommerce.orders.store');
             });
 
         // Sección AppSalesman: pública (sin token / sin Sanctum), solo throttle

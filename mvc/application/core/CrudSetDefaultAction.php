@@ -61,6 +61,15 @@ trait CrudSetDefaultAction
     protected function renderDefaultFieldHtml(object $listItem): string
     {
         $itemIdField = method_exists($this, 'getItemIdField') ? $this->getItemIdField() : 'id';
+        $itemId = $listItem->{$itemIdField} ?? ($listItem->id ?? '');
+        $listItem->isDefault = true;
+        $listItem->is_default = true;
+        if (method_exists($this, 'buildCrudSetDefaultUrl')) {
+            $url = $this->buildCrudSetDefaultUrl($itemId);
+            if ($url !== '') {
+                $listItem->setDefaultUrl = $url;
+            }
+        }
 
         return $this->load->view(
             'components/crud/default_field',

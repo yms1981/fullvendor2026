@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Erp;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Erp\Concerns\ResolvesErpCompany;
 use App\Models\Product;
+use App\Services\Erp\ErpProductImageUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use OpenApi\Attributes as OA;
+use Throwable;
 
 #[OA\Tag(name: 'Erp', description: 'Integración ERP. Auth: header X-Api-Key (sin Sanctum).')]
 class ErpProductsController extends Controller
@@ -59,6 +62,51 @@ class ErpProductsController extends Controller
             'imgURL' => $p->imgURL,
             'simgURL' => $p->simgURL,
         ])->all());
+    }
+
+    #[OA\Get(
+        path: 'api/v2/erp/products/without-images',
+        summary: 'Listar productos sin fotos',
+        description: 'Productos de la empresa sin default_image usable ni filas product_images con imagen en storage activo. '
+            .'Sirve al ERP para detectar qué SKUs necesitan recibir imágenes.',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'limit', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 500)),
+            new OA\Parameter(name: 'X-Company-Id', in: 'header', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'OK'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'company_id requerido'),
+        ]
+    )]
+    public function withoutImages(Request $request): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+        $limit = max(1, min(2000, (int) $request->input('limit', 500)));
+
+        $rows = Product::query()
+            ->where('company_id', $companyId)
+            ->where(function ($q): void {
+                $q->whereDoesntHave('default_image', fn ($iq) => $iq->onActiveStorage())
+                    ->whereDoesntHave('product_images.image', fn ($iq) => $iq->onActiveStorage());
+            })
+            ->orderBy('pro_id')
+            ->limit($limit)
+            ->get(['pro_id', 'sku', 'name', 'status', 'imgURL', 'simgURL', 'default_image_id']);
+
+        return $this->erpOk($rows->map(fn (Product $p) => [
+            'pro_id' => (int) $p->pro_id,
+            'sku' => (string) ($p->sku ?? ''),
+            'name' => (string) ($p->name ?? ''),
+            'status' => (int) ($p->status ?? 0),
+            'imgURL' => $p->imgURL,
+            'simgURL' => $p->simgURL,
+            'default_image_id' => $p->default_image_id,
+            'has_image' => false,
+        ])->all(), 'Products without images');
     }
 
     #[OA\Post(
@@ -266,5 +314,149 @@ class ErpProductsController extends Controller
             'summary' => ['total' => count($items), 'updated' => $updated, 'failed' => $failed],
             'results' => $results,
         ]);
+    }
+
+    #[OA\Post(
+        path: 'api/v2/erp/products/images',
+        summary: 'Subir imágenes de producto',
+        description: 'Multipart: guarda archivos en el directorio de productos de la empresa y los asocia al producto. '
+            .'Default: default_index (0-based) sobre las subidas de este request; si no se envía, la primera imagen '
+            .'es default cuando replace=1 o el producto no tenía default. Máximo 5 imágenes por producto.',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'X-Company-Id', in: 'header', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['company_id'],
+                    properties: [
+                        new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'pro_id', type: 'integer', nullable: true, description: 'ID interno FullVendor'),
+                        new OA\Property(property: 'sku', type: 'string', nullable: true, description: 'Alternativa a pro_id'),
+                        new OA\Property(
+                            property: 'images',
+                            type: 'array',
+                            items: new OA\Items(type: 'string', format: 'binary'),
+                            description: 'Una o más imágenes (también acepta image / files / contents)'
+                        ),
+                        new OA\Property(
+                            property: 'default_index',
+                            type: 'integer',
+                            nullable: true,
+                            description: 'Índice 0-based de la imagen default entre las subidas de este request (default implícito: 0)'
+                        ),
+                        new OA\Property(
+                            property: 'replace',
+                            type: 'boolean',
+                            nullable: true,
+                            description: 'Si true, reemplaza la galería actual antes de subir'
+                        ),
+                    ],
+                    type: 'object'
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Imágenes guardadas y asignadas'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_NOT_FOUND, description: 'Producto no encontrado'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Validación'),
+        ]
+    )]
+    public function uploadImages(Request $request, ErpProductImageUploadService $uploader): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+
+        $proId = (int) $request->input('pro_id', 0);
+        $sku = trim((string) $request->input('sku', ''));
+        if ($proId <= 0 && $sku === '') {
+            return $this->erpFail('Product not found (pro_id or sku required).', 404);
+        }
+
+        $files = $this->collectUploadedImages($request);
+        if ($files === []) {
+            return $this->erpFail('At least one image file is required (images[] / image / files / contents).');
+        }
+
+        $product = $this->resolveProduct($request, $companyId);
+        if (! $product) {
+            return $this->erpFail('Product not found (pro_id or sku required).', 404);
+        }
+
+        $defaultIndex = $request->filled('default_index') ? (int) $request->input('default_index') : null;
+        $replace = filter_var($request->input('replace', false), FILTER_VALIDATE_BOOLEAN);
+
+        try {
+            $result = $uploader->upload($product, $files, $defaultIndex, $replace);
+        } catch (Throwable $e) {
+            return $this->erpFail($e->getMessage());
+        }
+
+        return $this->erpOk($result, 'Product images uploaded');
+    }
+
+    private function resolveProduct(Request $request, int $companyId): ?Product
+    {
+        $proId = (int) $request->input('pro_id', 0);
+        if ($proId > 0) {
+            return Product::query()
+                ->where('company_id', $companyId)
+                ->where('pro_id', $proId)
+                ->first();
+        }
+
+        $sku = trim((string) $request->input('sku', ''));
+        if ($sku === '') {
+            return null;
+        }
+
+        return Product::query()
+            ->where('company_id', $companyId)
+            ->whereRaw('UPPER(TRIM(sku)) = ?', [mb_strtoupper($sku, 'UTF-8')])
+            ->first();
+    }
+
+    /**
+     * @return list<UploadedFile>
+     */
+    private function collectUploadedImages(Request $request): array
+    {
+        $files = [];
+        foreach (['images', 'image', 'files', 'contents'] as $key) {
+            if (! $request->hasFile($key)) {
+                continue;
+            }
+            $value = $request->file($key);
+            if (is_array($value)) {
+                foreach ($value as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $files[] = $file;
+                    }
+                }
+            } elseif ($value instanceof UploadedFile) {
+                $files[] = $value;
+            }
+        }
+
+        if ($files === []) {
+            foreach ($request->allFiles() as $value) {
+                if (is_array($value)) {
+                    foreach ($value as $file) {
+                        if ($file instanceof UploadedFile) {
+                            $files[] = $file;
+                        }
+                    }
+                } elseif ($value instanceof UploadedFile) {
+                    $files[] = $value;
+                }
+            }
+        }
+
+        return array_values($files);
     }
 }

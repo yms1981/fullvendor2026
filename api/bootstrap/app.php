@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'catalog.cart.token' => \App\Http\Middleware\ResolveCatalogCartToken::class,
                 'seller.portal.access' => \App\Http\Middleware\EnsureSellerPortalAccess::class,
                 'erp.api_key' => \App\Http\Middleware\ValidateErpApiKey::class,
+                'ecommerce.api_key' => \App\Http\Middleware\ValidateEcommerceApiKey::class,
             ]
         );
 

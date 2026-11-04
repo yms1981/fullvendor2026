@@ -29,6 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
     OA\Server(url: 'https://app.fullvendor.com', description: "production server"),
     OA\SecurityScheme(securityScheme: 'bearerAuth', type: "http", name: "Authorization", in: "header", scheme: "bearer"),
     OA\SecurityScheme(securityScheme: 'erpApiKey', type: "apiKey", name: "X-Api-Key", in: "header", description: "Token fijo ERP (config ERP_API_KEY)"),
+    OA\SecurityScheme(securityScheme: 'ecommerceApiKey', type: "apiKey", name: "X-Api-Key", in: "header", description: "Token fijo ecommerce (config ECOMMERCE_API_KEY)"),
 ]
 abstract class Controller
 {

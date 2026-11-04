@@ -43965,6 +43965,153 @@
                     }
                 ]
             }
+        },
+        "api/v2/erp/products/images": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Subir imágenes de producto",
+                "description": "Multipart: guarda archivos en el directorio de productos de la empresa y los asocia al producto. Default: default_index (0-based) sobre las subidas de este request; si no se envía, la primera imagen es default cuando replace=1 o el producto no tenía default. Máximo 5 imágenes por producto.",
+                "operationId": "1c696a20c80e5c0f20d6df02185bd576",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "pro_id": {
+                                        "description": "ID interno FullVendor",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "sku": {
+                                        "description": "Alternativa a pro_id",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "images": {
+                                        "description": "Una o más imágenes (también acepta image / files / contents)",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    },
+                                    "default_index": {
+                                        "description": "Índice 0-based de la imagen default entre las subidas de este request (default implícito: 0)",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "replace": {
+                                        "description": "Si true, reemplaza la galería actual antes de subir",
+                                        "type": "boolean",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Imágenes guardadas y asignadas"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "404": {
+                        "description": "Producto no encontrado"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/without-images": {
+            "get": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Listar productos sin fotos",
+                "description": "Productos de la empresa sin default_image usable ni filas product_images con imagen en storage activo. Sirve al ERP para detectar qué SKUs necesitan recibir imágenes.",
+                "operationId": "aceb1b316bca53d37dc28fd54622cfa3",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 500
+                        }
+                    },
+                    {
+                        "name": "X-Company-Id",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "company_id requerido"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -55696,6 +55843,12 @@
             "erpApiKey": {
                 "type": "apiKey",
                 "description": "Token fijo ERP (config ERP_API_KEY)",
+                "name": "X-Api-Key",
+                "in": "header"
+            },
+            "ecommerceApiKey": {
+                "type": "apiKey",
+                "description": "Token fijo ecommerce (config ECOMMERCE_API_KEY)",
                 "name": "X-Api-Key",
                 "in": "header"
             }

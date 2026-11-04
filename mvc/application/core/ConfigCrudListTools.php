@@ -180,7 +180,7 @@ trait ConfigCrudListTools
             ];
         }
 
-        return [
+        $data = [
             'useConfigCrudDatagrid' => true,
             'hideServerPagination' => true,
             'hideServerFilter' => true,
@@ -191,6 +191,36 @@ trait ConfigCrudListTools
             'showRowIndexColumn' => true,
             'showConfigCrudOrderAvatar' => true,
             'configCrudOrderColumnLabel' => $this->resolveConfigCrudToolLabel($lang, 'column_order'),
+        ];
+
+        if (method_exists($this, 'listHasDefaultColumn')
+            && $this->listHasDefaultColumn()
+            && method_exists($this, 'resolveCrudSetDefaultMvcPath')
+            && $this->resolveCrudSetDefaultMvcPath() !== null
+        ) {
+            $data['configCrudDefaultSwitch'] = $this->getConfigCrudDefaultSwitchConfig();
+        }
+
+        return $data;
+    }
+
+    /**
+     * @return array{messages: array<string, string>}
+     */
+    protected function getConfigCrudDefaultSwitchConfig(): array
+    {
+        $lang = $this->getConfigCrudLang();
+
+        return [
+            'messages' => [
+                'success' => trim((string) ($lang['default_switch_set_success'] ?? '')),
+                'error' => trim((string) ($lang['default_switch_error'] ?? ($lang['message_error_generic'] ?? ''))),
+                'cannotUnset' => trim((string) ($lang['default_switch_cannot_unset'] ?? '')),
+                'confirmTitle' => trim((string) ($lang['default_switch_confirm_title'] ?? '')),
+                'confirmText' => trim((string) ($lang['default_switch_confirm_text'] ?? '')),
+                'confirmButton' => trim((string) ($lang['default_switch_confirm_button'] ?? '')),
+                'cancelButton' => trim((string) ($lang['default_switch_cancel_button'] ?? '')),
+            ],
         ];
     }
 

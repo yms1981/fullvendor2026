@@ -38,6 +38,35 @@ trait CrudDefaultListEnrichment
         return null;
     }
 
+    /**
+     * Ruta MVC relativa a company_url() para marcar por defecto desde la grilla.
+     * null = solo indicador visual (sin switch).
+     */
+    protected function resolveCrudSetDefaultMvcPath(): ?string
+    {
+        $entity = trim((string) ($this->entityPath ?? ''));
+        $paths = [
+            'unit' => 'units/setDefault',
+            'termsofsale' => 'terms/setDefault',
+            'customergroup' => 'groups/setDefault',
+        ];
+
+        return $paths[$entity] ?? null;
+    }
+
+    /**
+     * @param int|string $itemId
+     */
+    protected function buildCrudSetDefaultUrl($itemId): string
+    {
+        $path = $this->resolveCrudSetDefaultMvcPath();
+        if ($path === null || $itemId === '' || $itemId === null) {
+            return '';
+        }
+
+        return company_url(rtrim($path, '/') . '/' . $itemId);
+    }
+
     protected function listHasDefaultColumn(): bool
     {
         if (method_exists($this, 'getFieldTemplates')) {
@@ -91,9 +120,7 @@ trait CrudDefaultListEnrichment
         }
 
         $defaultId = (int) (is_object($company) ? ($company->{$companyField} ?? 0) : 0);
-        if ($defaultId <= 0) {
-            return $paginatedList;
-        }
+        $setDefaultPath = $this->resolveCrudSetDefaultMvcPath();
 
         foreach ($paginatedList->data as $index => $item) {
             if (is_array($item)) {
@@ -104,9 +131,12 @@ trait CrudDefaultListEnrichment
             }
 
             $itemId = (int) ($item->{$itemField} ?? 0);
-            $isDefault = $itemId > 0 && $itemId === $defaultId;
+            $isDefault = $itemId > 0 && $defaultId > 0 && $itemId === $defaultId;
             $item->isDefault = $isDefault;
             $item->is_default = $isDefault;
+            if ($setDefaultPath !== null && $itemId > 0) {
+                $item->setDefaultUrl = $this->buildCrudSetDefaultUrl($itemId);
+            }
             $paginatedList->data[$index] = $item;
         }
 

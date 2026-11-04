@@ -82,4 +82,57 @@ class ErpApiSectionTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('message', 'company_id is required');
     }
+
+    public function test_product_images_require_api_key(): void
+    {
+        $this->post('/api/v2/erp/products/images', [
+            'company_id' => 1,
+            'sku' => 'ABC',
+        ])->assertUnauthorized();
+    }
+
+    public function test_product_images_require_company_id(): void
+    {
+        $this->withHeader('X-Api-Key', $this->apiKey)
+            ->post('/api/v2/erp/products/images', [
+                'sku' => 'ABC',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'company_id is required');
+    }
+
+    public function test_product_images_require_product_identifier(): void
+    {
+        $this->withHeader('X-Api-Key', $this->apiKey)
+            ->post('/api/v2/erp/products/images', [
+                'company_id' => 1,
+            ])
+            ->assertStatus(404)
+            ->assertJsonPath('message', 'Product not found (pro_id or sku required).');
+    }
+
+    public function test_product_images_require_files(): void
+    {
+        $this->withHeader('X-Api-Key', $this->apiKey)
+            ->post('/api/v2/erp/products/images', [
+                'company_id' => 1,
+                'sku' => 'ABC-001',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'At least one image file is required (images[] / image / files / contents).');
+    }
+
+    public function test_products_without_images_require_company_id(): void
+    {
+        $this->withHeader('X-Api-Key', $this->apiKey)
+            ->getJson('/api/v2/erp/products/without-images')
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'company_id is required');
+    }
+
+    public function test_products_without_images_require_api_key(): void
+    {
+        $this->getJson('/api/v2/erp/products/without-images?company_id=1')
+            ->assertUnauthorized();
+    }
 }
