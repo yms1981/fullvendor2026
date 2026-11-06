@@ -346,13 +346,13 @@ class ImageController extends Controller
             }
         }
 
-        $roots = array_values(array_unique(array_filter([
-            config('filesystems.disks.images_local.root'),
-            env('IMAGES_LOCAL_ROOT'),
-            env('MVC_UPLOADS_PATH'),
-            is_dir('/var/www/mvc_uploads') ? '/var/www/mvc_uploads' : null,
-            dirname(base_path()) . '/mvc/uploads',
-        ])));
+        $roots = array_values(array_unique(array_filter(array_merge(
+            [
+                config('filesystems.disks.images_local.root'),
+                \App\Support\UploadsPath::root(),
+            ],
+            \App\Support\UploadsPath::candidateRoots()
+        ))));
 
         foreach ($roots as $root) {
             foreach ($candidates as $rel) {

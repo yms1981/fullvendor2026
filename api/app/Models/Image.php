@@ -75,14 +75,9 @@ class Image extends Model
      */
     public static function defaultDisk(): string
     {
-        $configured = strtolower(trim((string) config('filesystems.images', env('IMAGES_DISK', 'minio'))));
-
-        return match ($configured) {
-            'local', 'directory', 'dir', 'filesystem', 'images_local' => 'images_local',
-            's3' => 's3',
-            'cloud' => (string) config('filesystems.cloud', 'minio'),
-            default => $configured !== '' ? $configured : 'minio',
-        };
+        // FullVendor: fotos en filesystem (mvc/uploads). Object storage queda desactivado
+        // aunque un .env viejo tenga IMAGES_DISK=minio.
+        return 'images_local';
     }
 
     public static function usesDirectoryLayout(?string $disk = null): bool
@@ -284,46 +279,73 @@ class Image extends Model
         }
 
         $imageFile = $payload;
-        $storage = $this->getStorage();
+        // FullVendor usa filesystem local (mvc/uploads). Si .env aún apunta a minio/s3 y falla, forzar local.
+        if (! self::usesDirectoryLayout($this->disk)) {
+            \Log::warning('Image::putContent - IMAGES_DISK object-storage ignorado; se usa images_local', [
+                'configured_disk' => $this->disk,
+            ]);
+            $this->disk = 'images_local';
+        }
+
         $filePath = $this->buildStoragePath($companyId, (string) $type);
+        $root = (string) config('filesystems.disks.images_local.root', '');
+        $absolutePath = rtrim(str_replace('\\', '/', $root), '/').'/'.ltrim(str_replace('\\', '/', $filePath), '/');
+        $absoluteDir = dirname($absolutePath);
 
         \Log::info('Image::putContent - guardando imagen', [
             'disk' => $this->disk,
             'path' => $filePath,
+            'absolute' => $absolutePath,
             'company_id' => $companyId,
             'type' => $type,
+            'root' => $root,
         ]);
 
         try {
-            if (self::usesDirectoryLayout($this->disk)) {
-                $directory = dirname($filePath);
-                if ($directory !== '.' && $directory !== '') {
-                    $storage->makeDirectory($directory);
+            if (! is_dir($absoluteDir)) {
+                if (! @mkdir($absoluteDir, 0775, true) && ! is_dir($absoluteDir)) {
+                    throw new \RuntimeException(
+                        "No se pudo crear el directorio de uploads (permisos): {$absoluteDir}"
+                    );
                 }
             }
-
-            $result = $storage->put($filePath, $imageFile);
-
-            if (!$result) {
-                throw new \Exception("No se pudo guardar el archivo en el disco {$this->disk}");
+            if (! is_writable($absoluteDir)) {
+                $phpUser = function_exists('posix_geteuid')
+                    ? (string) (@posix_getpwuid(posix_geteuid())['name'] ?? posix_geteuid())
+                    : get_current_user();
+                throw new \RuntimeException(
+                    "Directorio de uploads no escribible: {$absoluteDir} (usuario PHP: {$phpUser}). Ajusta owner/chmod del árbol uploads."
+                );
             }
 
-            if (!$storage->exists($filePath)) {
-                throw new \Exception("El archivo no se encontró en {$this->disk} después de guardar: {$filePath}");
+            $bytes = is_string($imageFile) ? $imageFile : (string) $imageFile;
+            $written = @file_put_contents($absolutePath, $bytes, LOCK_EX);
+            if ($written === false) {
+                $err = error_get_last();
+                throw new \RuntimeException(
+                    'No se pudo escribir el archivo: '.$absolutePath
+                    .(isset($err['message']) ? ' ('.$err['message'].')' : '')
+                );
+            }
+            @chmod($absolutePath, 0664);
+
+            if (! is_file($absolutePath)) {
+                throw new \RuntimeException("El archivo no existe tras guardar: {$absolutePath}");
             }
         } catch (\Exception $e) {
             \Log::error('Image::putContent - Error al guardar imagen: '.$e->getMessage(), [
                 'disk' => $this->disk,
                 'path' => $filePath,
+                'absolute' => $absolutePath,
+                'root' => $root,
+                'root_writable' => $root !== '' && is_dir($root) ? is_writable($root) : false,
             ]);
             throw $e;
         }
 
         $this->path = $filePath;
-        try {
-            $this->size = $storage->size($filePath);
-        } catch (UnableToRetrieveMetadata $e) {
-            \Log::warning('Image::putContent - No se pudo obtener el tamaño del archivo: '.$e->getMessage());
+        $this->size = @filesize($absolutePath);
+        if ($this->size === false || $this->size === null) {
             $this->size = is_string($payload) ? strlen($payload) : 0;
         }
 
@@ -645,10 +667,8 @@ class Image extends Model
      */
     private function saveToLocalFilesystem($imageFile, $companyId, $type = 'product')
     {
-        // Usar la ruta mapeada de Docker: /var/www/mvc_uploads
-        // En docker-compose.yml: '../mvc/uploads:/var/www/mvc_uploads'
-        $uploadsPath = '/var/www/mvc_uploads';
-        
+        $uploadsPath = \App\Support\UploadsPath::root();
+
         // Determinar el directorio según el tipo
         $typePath = $type === 'category' ? '/categories' : '/products';
         $baseTypePath = $uploadsPath . $typePath;
@@ -868,12 +888,10 @@ class Image extends Model
             return null;
         }
 
-        $uploadsRoots = array_values(array_unique(array_filter([
-            env('MVC_UPLOADS_PATH'),
-            '/var/www/mvc_uploads',
-            dirname(base_path()) . '/mvc/uploads',
-            dirname(base_path()) . '/mvc_uploads',
-        ])));
+        $uploadsRoots = array_values(array_unique(array_filter(array_merge(
+            [\App\Support\UploadsPath::root()],
+            \App\Support\UploadsPath::candidateRoots()
+        ))));
 
         $fileNames = array_values(array_unique(array_filter([
             $this->name,

@@ -284,11 +284,14 @@ class ErpScheduledTaskService
      */
     private function syncProductImages(Company $company, ErpSyncClient $client): array
     {
+        // Sin límite de productos: se encola desde el listado ERP completo;
+        // la descarga sigue de a poco (processLimit) vía cola + cron.
+        // Encolar todo; drenar solo un lote corto (el cron sigue el resto).
         return (new ErpProductImageQueueService)->enqueueAndProcess(
             $company,
             $client,
-            productLimit: 200,
-            processLimit: 40
+            productLimit: 0,
+            processLimit: 10
         );
     }
 
@@ -346,7 +349,8 @@ class ErpScheduledTaskService
     {
         $parts = [];
         foreach ([
-            'total', 'created', 'updated', 'synced', 'skipped', 'failed',
+            'total', 'needing_photo', 'created', 'updated', 'synced', 'skipped', 'failed',
+            'products_with_images', 'products_failed', 'invalid_urls', 'pruned_pending',
             'images_downloaded', 'queued', 'already_queued', 'processed', 'downloaded', 'remaining_pending',
         ] as $key) {
             if (array_key_exists($key, $summary)) {

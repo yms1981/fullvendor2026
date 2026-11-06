@@ -2,10 +2,13 @@
 
 namespace App\Services\Erp;
 
+use App\Http\Controllers\Cron\ScheduleTickController;
 use App\Models\Company;
 use App\Models\ErpProductImageQueue;
+use App\Models\Image;
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -73,6 +76,18 @@ class ErpProductImageQueueService
             })
             ->all();
 
+        $cronLastTick = Cache::get(ScheduleTickController::CACHE_KEY_LAST_TICK);
+        $cronLastTickStr = is_string($cronLastTick) ? $cronLastTick : null;
+        $cronOk = false;
+        if ($cronLastTickStr) {
+            try {
+                // Tick HTTP en los últimos 3 minutos ⇒ cron activo.
+                $cronOk = \Carbon\Carbon::parse($cronLastTickStr)->gte(now()->subMinutes(3));
+            } catch (Throwable) {
+                $cronOk = false;
+            }
+        }
+
         return [
             'total' => $total,
             'pending' => $pending,
@@ -82,99 +97,350 @@ class ErpProductImageQueueService
             'skipped' => $skipped,
             'percent' => $percent,
             'active' => ($pending + $processing) > 0,
+            'cron_last_tick_at' => $cronLastTickStr,
+            'cron_ok' => $cronOk,
             'recent' => $recent,
         ];
     }
 
     /**
-     * Consulta al ERP el listado de imágenes de productos sin foto y encola URLs.
+     * Encola URLs desde el listado ERP de productos (incluye images[]),
+     * solo para SKUs de FullVendor que aún no tienen foto usable.
+     *
+     * Evita pedir /products/{sku}/images uno a uno (404 masivos + límite artificial).
      *
      * @return array{
      *     products_scanned: int,
+     *     products_needing_photo: int,
      *     products_with_images: int,
      *     products_skipped: int,
      *     products_failed: int,
+     *     products_not_in_fv: int,
+     *     products_already_have_photo: int,
      *     queued: int,
-     *     already_queued: int
+     *     already_queued: int,
+     *     invalid_urls: int
      * }
      */
-    public function enqueueMissingProductImages(Company $company, ErpSyncClient $client, int $productLimit = 200): array
+    public function enqueueMissingProductImages(Company $company, ErpSyncClient $client, int $productLimit = 0): array
     {
-        $products = Product::query()
+        $stats = [
+            'products_scanned' => 0,
+            'products_needing_photo' => 0,
+            'products_with_images' => 0,
+            'products_skipped' => 0,
+            'products_failed' => 0,
+            'products_not_in_fv' => 0,
+            'products_already_have_photo' => 0,
+            'queued' => 0,
+            'already_queued' => 0,
+            'invalid_urls' => 0,
+        ];
+
+        try {
+            $erpRows = $client->fetchAll('/external/fv-sync/products');
+        } catch (Throwable $e) {
+            $stats['products_failed']++;
+            $this->fileLog($company, '-', '', 'failed', 'ERP products list: '.$e->getMessage());
+            Log::warning('erp.image_queue.enqueue_list_failed', [
+                'company_id' => $company->company_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $stats;
+        }
+
+        if ($productLimit > 0) {
+            $erpRows = array_slice($erpRows, 0, max(1, $productLimit));
+        }
+
+        $stats['products_scanned'] = count($erpRows);
+
+        // Solo productos activos (status=1) y sin imagen asignada (default_image_id vacío
+        // y sin filas en product_images). No usar withoutPhoto()/storage: en prod marcaba casi todo.
+        $needPhotoIds = Product::query()
             ->where('company_id', $company->company_id)
+            ->where('status', 1)
+            ->whereNotNull('sku')
+            ->where('sku', '!=', '')
             ->where(function ($q) {
                 $q->whereNull('default_image_id')
                     ->orWhere('default_image_id', '');
             })
+            ->whereDoesntHave('product_images')
+            ->pluck('pro_id')
+            ->all();
+        $needPhotoSet = array_fill_keys(array_map('intval', $needPhotoIds), true);
+        $stats['products_needing_photo'] = count($needPhotoSet);
+
+        $allFv = Product::query()
+            ->where('company_id', $company->company_id)
             ->whereNotNull('sku')
             ->where('sku', '!=', '')
-            ->orderBy('pro_id')
-            ->limit(max(1, $productLimit))
-            ->get();
+            ->get(['pro_id', 'sku', 'status']);
 
-        $stats = [
-            'products_scanned' => $products->count(),
-            'products_with_images' => 0,
-            'products_skipped' => 0,
-            'products_failed' => 0,
-            'queued' => 0,
-            'already_queued' => 0,
-        ];
-
-        foreach ($products as $product) {
-            $sku = trim((string) $product->sku);
-            try {
-                $payload = $client->get('/external/fv-sync/products/'.rawurlencode($sku).'/images');
-                $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
-                $images = is_array($data['images'] ?? null) ? $data['images'] : [];
-                if ($images === []) {
-                    $stats['products_skipped']++;
-                    $this->fileLog($company, $sku, '', 'skipped', 'ERP returned no images');
-
-                    continue;
-                }
-
-                $stats['products_with_images']++;
-                $sort = 1;
-                foreach ($images as $img) {
-                    if (! is_array($img)) {
-                        continue;
-                    }
-                    $url = trim((string) ($img['url'] ?? $img['thumb_url'] ?? ''));
-                    if ($url === '' || ! filter_var($url, FILTER_VALIDATE_URL)) {
-                        continue;
-                    }
-                    $isDefault = filter_var($img['is_default'] ?? ($sort === 1), FILTER_VALIDATE_BOOLEAN);
-                    $result = $this->enqueueOne(
-                        (int) $company->company_id,
-                        (int) $product->pro_id,
-                        $sku,
-                        $url,
-                        $sort,
-                        $isDefault
-                    );
-                    if ($result === 'queued') {
-                        $stats['queued']++;
-                    } else {
-                        $stats['already_queued']++;
-                    }
-                    $sort++;
-                    if ($sort > ErpProductImageUploadService::MAX_IMAGES) {
-                        break;
-                    }
-                }
-            } catch (Throwable $e) {
-                $stats['products_failed']++;
-                $this->fileLog($company, $sku, '', 'failed', $e->getMessage());
-                Log::warning('erp.image_queue.enqueue_product_failed', [
-                    'company_id' => $company->company_id,
-                    'sku' => $sku,
-                    'error' => $e->getMessage(),
-                ]);
+        /** @var array<string, array{pro_id:int, needs_photo:bool, active:bool}> $fvBySku */
+        $fvBySku = [];
+        foreach ($allFv as $product) {
+            $key = mb_strtoupper(trim((string) $product->sku), 'UTF-8');
+            if ($key === '' || isset($fvBySku[$key])) {
+                continue;
             }
+            $proId = (int) $product->pro_id;
+            $fvBySku[$key] = [
+                'pro_id' => $proId,
+                'active' => (int) ($product->status ?? 0) === 1,
+                'needs_photo' => isset($needPhotoSet[$proId]),
+            ];
+        }
+
+        foreach ($erpRows as $row) {
+            if (! is_array($row)) {
+                $stats['products_skipped']++;
+                continue;
+            }
+
+            $sku = trim((string) ($row['sku'] ?? ''));
+            if ($sku === '') {
+                $stats['products_skipped']++;
+                continue;
+            }
+
+            $skuKey = mb_strtoupper($sku, 'UTF-8');
+            $fv = $fvBySku[$skuKey] ?? null;
+            if ($fv === null) {
+                $stats['products_not_in_fv']++;
+                continue;
+            }
+            if (! ($fv['active'] ?? false)) {
+                $stats['products_skipped']++;
+                continue;
+            }
+            if (! $fv['needs_photo']) {
+                $stats['products_already_have_photo']++;
+                continue;
+            }
+            $productId = (int) $fv['pro_id'];
+
+            $images = $row['images'] ?? [];
+            if (! is_array($images) || $images === []) {
+                $stats['products_skipped']++;
+                $this->fileLog($company, $sku, '', 'skipped', 'ERP product has no images[]');
+                continue;
+            }
+
+            // Una sola foto (la default / primera válida): evita saturar la cola.
+            $chosen = $this->pickDefaultImage($images);
+            if ($chosen === null) {
+                $stats['products_skipped']++;
+                $stats['invalid_urls']++;
+                $this->fileLog($company, $sku, '', 'skipped', 'ERP images[] had no usable URLs');
+                continue;
+            }
+
+            $result = $this->enqueueOne(
+                (int) $company->company_id,
+                $productId,
+                $sku,
+                $chosen['url'],
+                1,
+                true
+            );
+            if ($result === 'queued') {
+                $stats['queued']++;
+                $stats['products_with_images']++;
+            } else {
+                $stats['already_queued']++;
+                $stats['products_with_images']++;
+            }
+            $fvBySku[$skuKey]['needs_photo'] = false;
         }
 
         return $stats;
+    }
+
+    /**
+     * Elige la imagen principal del ERP (is_default o la primera con URL http válida).
+     *
+     * @param  list<mixed>  $images
+     * @return array{url:string}|null
+     */
+    private function pickDefaultImage(array $images): ?array
+    {
+        $fallback = null;
+        foreach ($images as $img) {
+            $url = $this->extractImageUrl($img);
+            if ($url === null) {
+                continue;
+            }
+            $isDefault = is_array($img)
+                ? filter_var($img['is_default'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                : false;
+            if ($isDefault) {
+                return ['url' => $url];
+            }
+            if ($fallback === null) {
+                $fallback = ['url' => $url];
+            }
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Limpia pendientes irrelevantes con UPDATEs masivos (no cargar miles de modelos).
+     *
+     * @return array{skipped_inactive:int, skipped_has_photo:int, skipped_extra:int}
+     */
+    public function pruneIrrelevantPending(int $companyId): array
+    {
+        $now = now();
+        $stats = [
+            'skipped_inactive' => 0,
+            'skipped_has_photo' => 0,
+            'skipped_extra' => 0,
+        ];
+
+        $base = ErpProductImageQueue::query()
+            ->where('company_id', $companyId)
+            ->where('status', ErpProductImageQueue::STATUS_PENDING);
+
+        // Producto inexistente o inactivo (status != 1).
+        $stats['skipped_inactive'] = (int) (clone $base)
+            ->where(function ($q) use ($companyId) {
+                $q->whereNotExists(function ($sub) use ($companyId) {
+                    $sub->selectRaw('1')
+                        ->from('products')
+                        ->whereColumn('products.pro_id', 'erp_product_image_queue.product_id')
+                        ->where('products.company_id', $companyId)
+                        ->where('products.status', 1);
+                });
+            })
+            ->update([
+                'status' => ErpProductImageQueue::STATUS_SKIPPED,
+                'last_error' => 'product inactive or missing',
+                'finished_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+        // Solo saltar si hay foto usable (misma regla que al encolar): imagen en disco activo,
+        // no bastan default_image_id / product_images huérfanos o "no-image".
+        $activeDisk = Image::defaultDisk();
+        $activeDisks = Image::usesDirectoryLayout($activeDisk)
+            ? ['images_local', 'legacy']
+            : ['minio', 's3'];
+        $stats['skipped_has_photo'] = (int) (clone $base)
+            ->whereExists(function ($sub) use ($companyId, $activeDisks) {
+                $sub->selectRaw('1')
+                    ->from('products')
+                    ->whereColumn('products.pro_id', 'erp_product_image_queue.product_id')
+                    ->where('products.company_id', $companyId)
+                    ->where(function ($p) use ($activeDisks) {
+                        $p->where(function ($d) use ($activeDisks) {
+                            $d->whereNotNull('products.default_image_id')
+                                ->where('products.default_image_id', '!=', '')
+                                ->where('products.default_image_id', '!=', '0')
+                                ->whereExists(function ($img) use ($activeDisks) {
+                                    $img->selectRaw('1')
+                                        ->from('images')
+                                        ->whereColumn('images.uuid', 'products.default_image_id')
+                                        ->whereNotNull('images.path')
+                                        ->where('images.path', '!=', '')
+                                        ->where('images.path', 'not like', '%no-image%')
+                                        ->whereIn('images.disk', $activeDisks);
+                                });
+                        })->orWhereExists(function ($pi) use ($activeDisks) {
+                            $pi->selectRaw('1')
+                                ->from('product_images')
+                                ->join('images', 'images.uuid', '=', 'product_images.image_id')
+                                ->whereColumn('product_images.product_id', 'products.pro_id')
+                                ->whereNotNull('images.path')
+                                ->where('images.path', '!=', '')
+                                ->where('images.path', 'not like', '%no-image%')
+                                ->whereIn('images.disk', $activeDisks);
+                        });
+                    });
+            })
+            ->update([
+                'status' => ErpProductImageQueue::STATUS_SKIPPED,
+                'last_error' => 'product already has image',
+                'finished_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+        // Más de una pendiente por producto: dejar la de menor id.
+        $keepIds = ErpProductImageQueue::query()
+            ->where('company_id', $companyId)
+            ->where('status', ErpProductImageQueue::STATUS_PENDING)
+            ->groupBy('product_id')
+            ->selectRaw('MIN(id) as id')
+            ->pluck('id');
+
+        if ($keepIds->isNotEmpty()) {
+            $stats['skipped_extra'] = (int) ErpProductImageQueue::query()
+                ->where('company_id', $companyId)
+                ->where('status', ErpProductImageQueue::STATUS_PENDING)
+                ->whereNotIn('id', $keepIds)
+                ->update([
+                    'status' => ErpProductImageQueue::STATUS_SKIPPED,
+                    'last_error' => 'extra image skipped (one per product)',
+                    'finished_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Solo acepta la URL absoluta que ya devolvió el API del ERP.
+     * No inventa host ni /products ni /storage: eso lo resuelve MediaStorage en fullvendorERP.
+     *
+     * @param  mixed  $img
+     */
+    private function extractImageUrl(mixed $img, string $baseUrl = ''): ?string
+    {
+        if (is_string($img)) {
+            $url = trim($img);
+        } elseif (is_array($img)) {
+            $url = trim((string) (
+                $img['url']
+                ?? $img['link']
+                ?? $img['image_url']
+                ?? $img['thumb_url']
+                ?? $img['src']
+                ?? ''
+            ));
+        } else {
+            return null;
+        }
+
+        if ($url === '') {
+            return null;
+        }
+
+        $url = str_replace('\\', '/', $url);
+
+        if (str_starts_with($url, '//')) {
+            $url = 'https:'.$url;
+        }
+
+        // El ERP debe devolver http(s) absoluto (local storage o CDN).
+        // Rutas relativas tipo products/... se ignoran: hay que corregir el API del ERP.
+        if (preg_match('#^https?://#i', $url) !== 1) {
+            return null;
+        }
+
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) (parse_url($url, PHP_URL_SCHEME) ?: ''));
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        return $url;
     }
 
     /**
@@ -190,10 +456,13 @@ class ErpProductImageQueueService
      */
     public function processPending(int $limit = 30, ?int $companyId = null): array
     {
+        @set_time_limit(0);
         $limit = max(1, min(200, $limit));
         $query = ErpProductImageQueue::query()
             ->where('status', ErpProductImageQueue::STATUS_PENDING)
             ->where('attempts', '<', self::MAX_ATTEMPTS)
+            // Primero sin intentos fallidos; no bloquear el lote con reintentos.
+            ->orderBy('attempts')
             ->orderBy('id')
             ->limit($limit);
 
@@ -228,28 +497,183 @@ class ErpProductImageQueueService
     }
 
     /**
+     * Si hay pendientes, drena un lote (con lock para no solapar).
+     * Pensado para arranque automático: poll UI, progress API, post-enqueue.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function autoDrainPending(?int $companyId = null, int $limit = 12): ?array
+    {
+        $pendingQuery = ErpProductImageQueue::query()
+            ->where('status', ErpProductImageQueue::STATUS_PENDING)
+            ->where('attempts', '<', self::MAX_ATTEMPTS);
+        if ($companyId !== null && $companyId > 0) {
+            $pendingQuery->where('company_id', $companyId);
+        }
+        if ((int) $pendingQuery->count() <= 0) {
+            return null;
+        }
+
+        $lockKey = 'erp:image-queue:auto-drain:'.($companyId && $companyId > 0 ? $companyId : 'all');
+        $lock = Cache::lock($lockKey, 90);
+        if (! $lock->get()) {
+            return null;
+        }
+
+        try {
+            if ($companyId !== null && $companyId > 0) {
+                $this->pruneIrrelevantPending($companyId);
+            }
+
+            return $this->processPending($limit, $companyId);
+        } catch (Throwable $e) {
+            Log::warning('ErpProductImageQueueService: autoDrainPending failed', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        } finally {
+            try {
+                $lock->release();
+            } catch (Throwable) {
+            }
+        }
+    }
+
+    /**
+     * Tras responder al HTTP: seguir drenando en segundo plano (sin congelar el panel).
+     */
+    public function continueDrainAfterResponse(int $companyId, int $rounds = 10, int $limit = 12): void
+    {
+        if ($companyId <= 0 || app()->runningInConsole()) {
+            return;
+        }
+
+        dispatch(function () use ($companyId, $rounds, $limit) {
+            @set_time_limit(180);
+            @ignore_user_abort(true);
+            $svc = app(self::class);
+            for ($i = 0; $i < max(1, $rounds); $i++) {
+                $stats = $svc->autoDrainPending($companyId, $limit);
+                if ($stats === null || (int) ($stats['remaining_pending'] ?? 0) <= 0) {
+                    break;
+                }
+            }
+            // Si aún queda, cadena CLI independiente del navegador.
+            if (ErpProductImageQueue::query()
+                ->where('company_id', $companyId)
+                ->where('status', ErpProductImageQueue::STATUS_PENDING)
+                ->exists()) {
+                $svc->spawnCliDrain($companyId, $limit);
+            }
+        })->afterResponse();
+    }
+
+    /**
+     * Lanza `php artisan erp:process-image-queue` en background (sin UI abierta).
+     * El comando encadena solo mientras queden pendientes.
+     */
+    public function spawnCliDrain(int $companyId = 0, int $limit = 12): void
+    {
+        if (! Cache::add('erp:image-queue:bg-spawn-gate', 1, 20)) {
+            return;
+        }
+
+        $php = (defined('PHP_BINARY') && is_string(PHP_BINARY) && PHP_BINARY !== '')
+            ? PHP_BINARY
+            : 'php';
+        $artisan = base_path('artisan');
+        $companyOpt = $companyId > 0 ? ' --company='.$companyId : '';
+        $limit = max(1, min(40, $limit));
+
+        try {
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $cmd = 'start /B "" '.escapeshellarg($php).' '.escapeshellarg($artisan)
+                    .' erp:process-image-queue --limit='.$limit.' --chain=0'.$companyOpt;
+                @pclose(@popen($cmd, 'r'));
+
+                return;
+            }
+
+            if (! function_exists('exec')) {
+                return;
+            }
+
+            $cmd = sprintf(
+                'nohup %s %s erp:process-image-queue --limit=%d --chain=0%s > /dev/null 2>&1 &',
+                escapeshellarg($php),
+                escapeshellarg($artisan),
+                $limit,
+                $companyOpt
+            );
+            @exec($cmd);
+            Log::channel('scheduler')->info('erp.image_queue.spawn_cli_drain', [
+                'company_id' => $companyId,
+                'limit' => $limit,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('erp.image_queue.spawn_cli_drain_failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Encola listado + procesa un lote (para "Ejecutar ahora").
      *
      * @return array<string, mixed>
      */
-    public function enqueueAndProcess(Company $company, ErpSyncClient $client, int $productLimit = 200, int $processLimit = 40): array
+    public function enqueueAndProcess(Company $company, ErpSyncClient $client, int $productLimit = 0, int $processLimit = 40): array
     {
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+
+        $companyId = (int) $company->company_id;
+        $pruned = $this->pruneIrrelevantPending($companyId);
+        // Primero drena lo ya pendiente (por si un Run anterior encoló y cortó el request).
+        $processFirst = $this->processPending($processLimit, $companyId);
         $enqueue = $this->enqueueMissingProductImages($company, $client, $productLimit);
-        $process = $this->processPending($processLimit, (int) $company->company_id);
+        $process = $this->processPending($processLimit, $companyId);
+        $process = [
+            'processed' => (int) ($processFirst['processed'] ?? 0) + (int) ($process['processed'] ?? 0),
+            'downloaded' => (int) ($processFirst['downloaded'] ?? 0) + (int) ($process['downloaded'] ?? 0),
+            'failed' => (int) ($processFirst['failed'] ?? 0) + (int) ($process['failed'] ?? 0),
+            'skipped' => (int) ($processFirst['skipped'] ?? 0) + (int) ($process['skipped'] ?? 0),
+            'remaining_pending' => (int) ($process['remaining_pending'] ?? 0),
+        ];
+
+        // Arranque automático aunque el panel no esté abierto:
+        // - HTTP: afterResponse + artisan en background
+        // - Consola/cron: solo artisan en background
+        if ((int) ($process['remaining_pending'] ?? 0) > 0) {
+            $this->continueDrainAfterResponse($companyId);
+            $this->spawnCliDrain($companyId);
+        }
+
+        $prunedTotal = (int) ($pruned['skipped_inactive'] ?? 0)
+            + (int) ($pruned['skipped_has_photo'] ?? 0)
+            + (int) ($pruned['skipped_extra'] ?? 0);
 
         return [
             'total' => (int) ($enqueue['products_scanned'] ?? 0),
+            'needing_photo' => (int) ($enqueue['products_needing_photo'] ?? 0),
             'queued' => (int) ($enqueue['queued'] ?? 0),
             'already_queued' => (int) ($enqueue['already_queued'] ?? 0),
+            'products_with_images' => (int) ($enqueue['products_with_images'] ?? 0),
             'products_skipped' => (int) ($enqueue['products_skipped'] ?? 0),
             'products_failed' => (int) ($enqueue['products_failed'] ?? 0),
+            'products_not_in_fv' => (int) ($enqueue['products_not_in_fv'] ?? 0),
+            'products_already_have_photo' => (int) ($enqueue['products_already_have_photo'] ?? 0),
+            'invalid_urls' => (int) ($enqueue['invalid_urls'] ?? 0),
+            'pruned_pending' => $prunedTotal,
             'downloaded' => (int) ($process['downloaded'] ?? 0),
-            'failed' => (int) ($process['failed'] ?? 0),
+            'failed' => (int) ($process['failed'] ?? 0) + (int) ($enqueue['products_failed'] ?? 0),
             'processed' => (int) ($process['processed'] ?? 0),
             'remaining_pending' => (int) ($process['remaining_pending'] ?? 0),
             'images_downloaded' => (int) ($process['downloaded'] ?? 0),
             'synced' => (int) ($process['downloaded'] ?? 0),
-            'skipped' => (int) ($enqueue['products_skipped'] ?? 0) + (int) ($process['skipped'] ?? 0),
+            'skipped' => (int) ($enqueue['products_skipped'] ?? 0) + (int) ($process['skipped'] ?? 0) + $prunedTotal,
         ];
     }
 
@@ -327,12 +751,17 @@ class ErpProductImageQueueService
             return $this->mark($item, ErpProductImageQueue::STATUS_SKIPPED, 'product not found');
         }
 
-        // Ya tiene imagen por defecto: no saturar con descargas innecesarias.
-        if (! empty($product->default_image_id) && ! $item->is_default) {
+        $hasUsable = $this->productHasUsablePhoto($product);
+
+        // Ya tiene galería usable: no saturar con descargas innecesarias.
+        if ($hasUsable && ! $item->is_default) {
             $hasSlots = $product->product_images()->count();
             if ($hasSlots >= ErpProductImageUploadService::MAX_IMAGES) {
                 return $this->mark($item, ErpProductImageQueue::STATUS_SKIPPED, 'product already has max images');
             }
+        }
+        if ($hasUsable && $item->is_default) {
+            return $this->mark($item, ErpProductImageQueue::STATUS_SKIPPED, 'product already has usable default image');
         }
 
         try {
@@ -345,14 +774,31 @@ class ErpProductImageQueueService
                 return $this->failOrRetry($item, 'download failed (HTTP/empty body)');
             }
 
-            // Una sola imagen por pasada.
-            $replace = empty($product->default_image_id) && (bool) $item->is_default;
+            // Reemplazar si no hay foto usable y esta URL es la principal.
+            $replace = ! $hasUsable && (bool) $item->is_default;
             $this->uploader->upload($product, [$file], 0, replace: $replace);
 
             return $this->mark($item, ErpProductImageQueue::STATUS_DOWNLOADED, null);
         } catch (Throwable $e) {
             return $this->failOrRetry($item, $e->getMessage());
         }
+    }
+
+    private function productHasUsablePhoto(Product $product): bool
+    {
+        $product->loadMissing(['default_image', 'product_images.image']);
+
+        if ($product->default_image && Image::isOnActiveStorage($product->default_image)) {
+            return true;
+        }
+
+        foreach ($product->product_images as $link) {
+            if ($link->image && Image::isOnActiveStorage($link->image)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

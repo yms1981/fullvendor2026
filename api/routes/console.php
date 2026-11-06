@@ -36,15 +36,13 @@ Schedule::command(StripeCreateMissingInvoices::class)
     ->onOneServer()
     ->runInBackground();
 
+// Sync (no runInBackground): el tick HTTP /api/cron/schedule debe esperar el trabajo.
+// onOneServer exige cache/Redis compartido; en XAMPP local bloquea o no dispara.
 Schedule::command(\App\Console\Commands\RunErpScheduledTasksCommand::class)
     ->everyMinute()
-    ->withoutOverlapping()
-    ->onOneServer()
-    ->runInBackground();
+    ->withoutOverlapping(5);
 
-// Cola de fotos ERP: una descarga por vez, cada minuto (cron Linux → schedule:run).
-Schedule::command(\App\Console\Commands\ProcessErpProductImageQueueCommand::class, ['--limit' => 40])
+// Cola de fotos ERP: descarga en el mismo proceso del tick (cada minuto).
+Schedule::command(\App\Console\Commands\ProcessErpProductImageQueueCommand::class, ['--limit' => 12])
     ->everyMinute()
-    ->withoutOverlapping()
-    ->onOneServer()
-    ->runInBackground();
+    ->withoutOverlapping(5);

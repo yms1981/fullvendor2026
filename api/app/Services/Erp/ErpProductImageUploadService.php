@@ -15,7 +15,7 @@ use Throwable;
 /**
  * Subida ERP de fotos de producto respetando las políticas de FullVendor:
  *
- * - Disco: IMAGES_DISK (minio/s3 o images_local) vía Image::putContent().
+ * - Disco: images_local (mvc/uploads) vía Image::putContent().
  * - Normalización: JPEG compacto, max ~1200×1200 (config/images.php), type=product.
  * - Path físico:
  *   - MinIO/S3 → {company_id}/{name}

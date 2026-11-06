@@ -316,6 +316,28 @@
             $('#fv-image-queue-active').addClass('d-none');
         }
 
+        var cronOk = !!data.cron_ok;
+        $panel.attr('data-cron-ok', cronOk ? '1' : '0');
+        var $cronWarn = $('#fv-image-queue-cron-warn');
+        if (cronOk) {
+            $cronWarn.addClass('d-none');
+        } else {
+            $cronWarn.removeClass('d-none');
+        }
+        var $cronLast = $('#fv-image-queue-cron-last');
+        if ($cronLast.length) {
+            if (data.cron_last_tick_at) {
+                $cronLast.html(
+                    escapeHtml(texts.queue_cron_last_tick || '') +
+                        ': <strong>' +
+                        escapeHtml(formatWhen(data.cron_last_tick_at)) +
+                        '</strong>'
+                );
+            } else {
+                $cronLast.empty();
+            }
+        }
+
         var $tbody = $('#fv-image-queue-table tbody');
         var recent = data.recent || [];
         if (!recent.length) {
@@ -366,15 +388,69 @@
         if (!url) {
             return $.Deferred().resolve().promise();
         }
+        // auto_drain=1: el API procesa un lote si hay pendientes (arranque automático).
         return $.ajax({
             url: url,
             method: 'GET',
-            data: { recent: 40 },
+            data: { recent: 40, auto_drain: 1 },
             dataType: 'json',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
         }).done(function (resp) {
             renderImageQueue((resp && resp.data) || {});
         });
+    }
+
+    function processImageQueueBatch(silent) {
+        var $panel = $('#fv-image-queue-progress');
+        var url = $panel.data('process-url');
+        if (!url) {
+            return $.Deferred().resolve().promise();
+        }
+        var $btn = $('#fv-image-queue-process');
+        if (!silent) {
+            $btn.prop('disabled', true);
+            notify(
+                ($('#fv-scheduled-tasks-table').data('msg-running') ||
+                    (window.fvScheduledTaskUiTexts || {}).queue_processing),
+                'info'
+            );
+        }
+        return $.ajax({
+            url: url,
+            method: 'POST',
+            data: { limit: 12 },
+            dataType: 'json',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .done(function (resp) {
+                if (resp && resp.data) {
+                    renderImageQueue(resp.data);
+                }
+                if (!silent) {
+                    var result = (resp && resp.result) || {};
+                    var texts = window.fvScheduledTaskUiTexts || {};
+                    var msg = texts.queue_batch_done || '';
+                    if (result.downloaded != null) {
+                        msg = msg + ' (' + String(result.downloaded || 0) + ')';
+                    }
+                    if (msg) {
+                        notify(msg, 'success');
+                    }
+                }
+            })
+            .fail(function (xhr) {
+                if (!silent) {
+                    var msg =
+                        (xhr.responseJSON && xhr.responseJSON.message) ||
+                        $('#fv-scheduled-tasks-table').data('msg-error');
+                    notify(msg, 'error');
+                }
+            })
+            .always(function () {
+                if (!silent) {
+                    $btn.prop('disabled', false);
+                }
+            });
     }
 
     $(function () {
@@ -391,17 +467,30 @@
                 return;
             }
             queueTimer = window.setInterval(function () {
-                refreshImageQueue().done(function () {
-                    if (String($('#fv-image-queue-progress').attr('data-active')) !== '1' && queueTimer) {
-                        window.clearInterval(queueTimer);
-                        queueTimer = null;
-                    }
+                // Con cola activa: drenar + refrescar sin intervención.
+                var drain =
+                    String($('#fv-image-queue-progress').attr('data-active')) === '1'
+                        ? processImageQueueBatch(true)
+                        : $.Deferred().resolve().promise();
+                drain.always(function () {
+                    refreshImageQueue().done(function () {
+                        if (String($('#fv-image-queue-progress').attr('data-active')) !== '1' && queueTimer) {
+                            window.clearInterval(queueTimer);
+                            queueTimer = null;
+                        }
+                    });
                 });
-            }, 5000);
+            }, 6000);
         }
 
         if (String($('#fv-image-queue-progress').attr('data-active')) === '1') {
             startQueuePolling();
+            // Arranque inmediato al abrir la página si hay pendientes.
+            window.setTimeout(function () {
+                processImageQueueBatch(true).always(function () {
+                    refreshImageQueue();
+                });
+            }, 400);
         }
 
         $table.on('change', '.fv-task-enabled, .fv-task-frequency', function () {
@@ -484,6 +573,15 @@
             refreshImageQueue().fail(function (xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) || $table.data('msg-error');
                 notify(msg, 'error');
+            });
+        });
+
+        $('#fv-image-queue-process').on('click', function () {
+            processImageQueueBatch(false).always(function () {
+                if (String($('#fv-image-queue-progress').attr('data-active')) === '1') {
+                    startQueuePolling();
+                }
+                refreshImageQueue();
             });
         });
     });

@@ -10,9 +10,11 @@
 /** @var string $runUrlBase */
 /** @var string $logsUrl */
 /** @var string $imageQueueUrl */
+/** @var string $imageQueueProcessUrl */
 $logs = is_array($logs ?? null) ? $logs : [];
 $logsUrl = (string) ($logsUrl ?? '');
 $imageQueueUrl = (string) ($imageQueueUrl ?? '');
+$imageQueueProcessUrl = (string) ($imageQueueProcessUrl ?? '');
 $imageQueue = is_array($imageQueue ?? null) ? $imageQueue : [];
 $iqTotal = (int) ($imageQueue['total'] ?? 0);
 $iqPending = (int) ($imageQueue['pending'] ?? 0);
@@ -22,6 +24,8 @@ $iqFailed = (int) ($imageQueue['failed'] ?? 0);
 $iqSkipped = (int) ($imageQueue['skipped'] ?? 0);
 $iqPercent = (float) ($imageQueue['percent'] ?? 0);
 $iqActive = !empty($imageQueue['active']);
+$iqCronOk = !empty($imageQueue['cron_ok']);
+$iqCronLast = (string) ($imageQueue['cron_last_tick_at'] ?? '');
 $iqRecent = is_array($imageQueue['recent'] ?? null) ? $imageQueue['recent'] : [];
 $t = static function (string $key, string $fallback = '') use ($pageTexts): string {
     return htmlspecialchars((string) ($pageTexts[$key] ?? $fallback), ENT_QUOTES, 'UTF-8');
@@ -221,24 +225,49 @@ $shortMessage = static function (string $message, int $max = 140): array {
 
             <div class="card mt-3 fv-scheduled-card" id="fv-image-queue-progress"
                  data-queue-url="<?= htmlspecialchars($imageQueueUrl, ENT_QUOTES, 'UTF-8') ?>"
-                 data-active="<?= $iqActive ? '1' : '0' ?>">
+                 data-process-url="<?= htmlspecialchars($imageQueueProcessUrl, ENT_QUOTES, 'UTF-8') ?>"
+                 data-active="<?= $iqActive ? '1' : '0' ?>"
+                 data-cron-ok="<?= $iqCronOk ? '1' : '0' ?>">
                 <div class="card-header fv-scheduled-card__header">
                     <div class="fv-scheduled-card__title-wrap">
                         <h4 class="fv-scheduled-logs-title mb-0"><?= $t('queue_title') ?></h4>
                         <p class="text-muted small mb-0 mt-1"><?= $t('queue_hint') ?></p>
                     </div>
-                    <button type="button"
-                            class="fv-scheduled-action-btn"
-                            id="fv-image-queue-refresh"
-                            title="<?= $t('btn_refresh_queue') ?>"
-                            aria-label="<?= $t('btn_refresh_queue') ?>">
-                        <svg class="fv-scheduled-action-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
-                        </svg>
-                        <span class="fv-scheduled-action-btn__label"><?= $t('btn_refresh_queue') ?></span>
-                    </button>
+                    <div class="fv-scheduled-card__actions d-flex flex-wrap gap-2">
+                        <button type="button"
+                                class="fv-scheduled-action-btn fv-scheduled-action-btn--primary"
+                                id="fv-image-queue-process"
+                                title="<?= $t('btn_process_queue') ?>"
+                                aria-label="<?= $t('btn_process_queue') ?>">
+                            <svg class="fv-scheduled-action-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M8 5v14l11-7L8 5z"></path>
+                            </svg>
+                            <span class="fv-scheduled-action-btn__label"><?= $t('btn_process_queue') ?></span>
+                        </button>
+                        <button type="button"
+                                class="fv-scheduled-action-btn"
+                                id="fv-image-queue-refresh"
+                                title="<?= $t('btn_refresh_queue') ?>"
+                                aria-label="<?= $t('btn_refresh_queue') ?>">
+                            <svg class="fv-scheduled-action-btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
+                            </svg>
+                            <span class="fv-scheduled-action-btn__label"><?= $t('btn_refresh_queue') ?></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-warning mb-3 <?= $iqCronOk ? 'd-none' : '' ?>" id="fv-image-queue-cron-warn" role="status">
+                        <?= $t('queue_cron_missing') ?>
+                        <?php if ($iqCronLast !== ''): ?>
+                            <span class="d-block small mt-1" id="fv-image-queue-cron-last">
+                                <?= $t('queue_cron_last_tick') ?>:
+                                <strong><?= htmlspecialchars($formatWhen($iqCronLast), ENT_QUOTES, 'UTF-8') ?></strong>
+                            </span>
+                        <?php else: ?>
+                            <span class="d-block small mt-1" id="fv-image-queue-cron-last"></span>
+                        <?php endif; ?>
+                    </div>
                     <div class="fv-image-queue-stats" id="fv-image-queue-stats">
                         <div class="fv-image-queue-stat">
                             <span class="fv-image-queue-stat__label"><?= $t('queue_total') ?></span>
@@ -437,5 +466,8 @@ window.fvScheduledTaskUiTexts = <?= json_encode([
     'queue_status_failed' => (string) ($pageTexts['queue_status_failed'] ?? 'failed'),
     'queue_status_skipped' => (string) ($pageTexts['queue_status_skipped'] ?? 'skipped'),
     'queue_active' => (string) ($pageTexts['queue_active'] ?? ''),
+    'queue_cron_last_tick' => (string) ($pageTexts['queue_cron_last_tick'] ?? ''),
+    'queue_batch_done' => (string) ($pageTexts['queue_batch_done'] ?? ''),
+    'queue_processing' => (string) ($pageTexts['queue_processing'] ?? ''),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>

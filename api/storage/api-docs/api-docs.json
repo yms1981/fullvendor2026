@@ -44395,6 +44395,43 @@
                     }
                 ]
             }
+        },
+        "api/v2/company/{company}/scheduled-tasks/image-queue/process": {
+            "post": {
+                "tags": [
+                    "CompanyScheduledTasks"
+                ],
+                "summary": "Process a batch of pending ERP product image downloads",
+                "operationId": "companyScheduledTasksImageQueueProcess",
+                "parameters": [
+                    {
+                        "name": "company",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Batch processed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

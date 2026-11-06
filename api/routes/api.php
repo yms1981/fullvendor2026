@@ -1,7 +1,14 @@
 <?php
 
+use App\Http\Controllers\Cron\ScheduleTickController;
+
 // Incluir rutas v3 para app móvil
 require __DIR__ . '/api_v3.php';
+
+// Scheduler HTTP (hosting cron → curl). Queda en /api/cron/schedule (XAMPP: htdocs/api → Laravel).
+// Auth: ?token= / X-Schedule-Token / Bearer (SCHEDULE_TOKEN). Sin Sanctum.
+Route::match(['GET', 'POST'], 'cron/schedule', ScheduleTickController::class)
+    ->name('api.cron.schedule');
 
 Route::group(
     [
@@ -737,6 +744,10 @@ Route::group(
                         '/{company}/scheduled-tasks/image-queue',
                         [\App\Http\Controllers\CompanyScheduledTaskController::class, 'imageQueueProgress']
                     )->name('company.scheduledTasks.imageQueue');
+                    Route::post(
+                        '/{company}/scheduled-tasks/image-queue/process',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'processImageQueue']
+                    )->name('company.scheduledTasks.imageQueueProcess');
                     Route::get(
                         '/{company}/scheduled-tasks',
                         [\App\Http\Controllers\CompanyScheduledTaskController::class, 'listTasks']

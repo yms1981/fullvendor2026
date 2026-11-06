@@ -30,11 +30,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Http\Request;
+use App\Support\UploadsPath;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -48,6 +50,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Raíz real de uploads (mvc/uploads) sin depender de IMAGES_LOCAL_ROOT en .env.
+        try {
+            $uploadsRoot = UploadsPath::root();
+            config([
+                'filesystems.disks.images_local.root' => $uploadsRoot,
+                'filesystems.disks.legacy.root' => $uploadsRoot,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('uploads_path.resolve_failed', ['error' => $e->getMessage()]);
+        }
+
         Company::observe(CompanyStripeCustomerObserver::class);
         Subscription::observe(SubscriptionInvoiceObserver::class);
         Subscription::observe(SubscriptionCompanyLimitsObserver::class);

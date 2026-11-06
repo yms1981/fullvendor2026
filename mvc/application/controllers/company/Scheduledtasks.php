@@ -65,6 +65,8 @@ class Scheduledtasks extends Company_Controller
             'skipped' => 0,
             'percent' => 0,
             'active' => false,
+            'cron_ok' => false,
+            'cron_last_tick_at' => null,
             'recent' => [],
         ];
         if (!$this->hasError($queuePayload) && is_object($queuePayload) && is_object($queuePayload->data ?? null)) {
@@ -78,6 +80,8 @@ class Scheduledtasks extends Company_Controller
                 'skipped' => (int) ($d->skipped ?? 0),
                 'percent' => (float) ($d->percent ?? 0),
                 'active' => !empty($d->active),
+                'cron_ok' => !empty($d->cron_ok),
+                'cron_last_tick_at' => isset($d->cron_last_tick_at) ? (string) $d->cron_last_tick_at : null,
                 'recent' => is_array($d->recent ?? null) ? $d->recent : [],
             ];
         }
@@ -100,6 +104,7 @@ class Scheduledtasks extends Company_Controller
             'runUrlBase' => company_url('scheduledtasks/run/'),
             'logsUrl' => company_url('scheduledtasks/logs'),
             'imageQueueUrl' => company_url('scheduledtasks/imageQueue'),
+            'imageQueueProcessUrl' => company_url('scheduledtasks/processImageQueue'),
         ]);
     }
 
@@ -120,6 +125,28 @@ class Scheduledtasks extends Company_Controller
         echo json_encode([
             'success' => true,
             'data' => $response->data ?? null,
+        ]);
+    }
+
+    public function processImageQueue()
+    {
+        $companyId = (int) $this->getCompanyId();
+        $limit = max(1, min(100, (int) ($this->input->post('limit') ?: $this->input->get('limit') ?: 40)));
+        $response = $this->post("company/{$companyId}/scheduled-tasks/image-queue/process", [
+            'limit' => $limit,
+        ]);
+        if ($this->hasError($response)) {
+            $msg = is_array($response) ? ($response['message'] ?? 'Error') : 'Error';
+            $this->jsonError(is_array($response) ? $response : ['message' => $msg], (string) $msg, 422);
+            return;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'result' => $response->result ?? null,
+            'data' => $response->data ?? null,
+            'message' => (string) ($response->message ?? ''),
         ]);
     }
 

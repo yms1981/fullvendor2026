@@ -1,0 +1,36 @@
+# Tick del scheduler FullVendor por HTTP (igual que fullvendorERP /cron/schedule).
+# Ejemplo Task Scheduler cada 1 minuto, o prueba manual:
+#   powershell -ExecutionPolicy Bypass -File H:\xampp\htdocs\mvc\api\scripts\cron\fv-schedule-http.ps1
+
+$ErrorActionPreference = 'Stop'
+$ApiRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+if (-not (Test-Path (Join-Path $ApiRoot 'artisan'))) {
+    $ApiRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+}
+
+$envFile = Join-Path $ApiRoot '.env'
+function Read-DotEnv([string]$key) {
+    if (-not (Test-Path $envFile)) { return $null }
+    $line = Get-Content $envFile | Where-Object { $_ -match "^$key=" } | Select-Object -Last 1
+    if (-not $line) { return $null }
+    return ($line -replace "^$key=", '').Trim().Trim('"')
+}
+
+$token = if ($env:FV_SCHEDULE_TOKEN) { $env:FV_SCHEDULE_TOKEN }
+    elseif ($env:SCHEDULE_TOKEN) { $env:SCHEDULE_TOKEN }
+    else { Read-DotEnv 'SCHEDULE_TOKEN' }
+
+# Prefer explicit URL; APP_URL en .env a veces es solo http://localhost sin /api.
+$url = if ($env:FV_SCHEDULE_URL) {
+    $env:FV_SCHEDULE_URL
+} else {
+    'http://127.0.0.1/api/cron/schedule'
+}
+
+if ([string]::IsNullOrWhiteSpace($token)) {
+    throw 'SCHEDULE_TOKEN vacío. Defínelo en api/.env'
+}
+
+$uri = $url + '?token=' + [uri]::EscapeDataString($token)
+$resp = Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 110
+$resp | ConvertTo-Json -Depth 5

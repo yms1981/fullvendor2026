@@ -208,9 +208,50 @@ class CompanyScheduledTaskController extends Controller
     public function imageQueueProgress(Request $request, Company $company, ErpProductImageQueueService $queue): JsonResponse
     {
         $recent = max(1, min(100, (int) $request->query('recent', 40)));
+        $companyId = (int) $company->company_id;
+
+        // Si hay cola pendiente, arrancarla sola (poll UI / refresh).
+        $auto = filter_var($request->query('auto_drain', true), FILTER_VALIDATE_BOOLEAN);
+        if ($auto) {
+            $queue->autoDrainPending($companyId, 8);
+        }
 
         return response()->json([
-            'data' => $queue->progressForCompany((int) $company->company_id, $recent),
+            'data' => $queue->progressForCompany($companyId, $recent),
+        ]);
+    }
+
+    #[OA\Post(
+        path: 'api/v2/company/{company}/scheduled-tasks/image-queue/process',
+        operationId: 'companyScheduledTasksImageQueueProcess',
+        summary: 'Process a batch of pending ERP product image downloads',
+        security: [['bearerAuth' => []]],
+        tags: ['CompanyScheduledTasks'],
+        parameters: [
+            new OA\Parameter(name: 'company', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'limit', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Batch processed'),
+        ]
+    )]
+    public function processImageQueue(Request $request, Company $company, ErpProductImageQueueService $queue): JsonResponse
+    {
+        @set_time_limit(120);
+        $companyId = (int) $company->company_id;
+        $limit = max(1, min(20, (int) $request->input('limit', $request->query('limit', 12))));
+        $queue->pruneIrrelevantPending($companyId);
+        $stats = $queue->processPending($limit, $companyId);
+
+        // Seguir en segundo plano si aún hay pendientes.
+        if ((int) ($stats['remaining_pending'] ?? 0) > 0) {
+            $queue->continueDrainAfterResponse($companyId);
+        }
+
+        return response()->json([
+            'message' => 'Image queue batch processed',
+            'result' => $stats,
+            'data' => $queue->progressForCompany($companyId, 40),
         ]);
     }
 }

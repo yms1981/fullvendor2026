@@ -59,3 +59,8 @@ echo "Manual checks:"
 echo "  cd ${SCRIPT_DIR}/../.. && php artisan schedule:run -v"
 echo "  php artisan erp:process-image-queue --limit=20"
 echo "  tail -f storage/logs/erp-image-queue.log"
+echo
+echo "HTTP tick (hosting curl, like fullvendorERP):"
+echo "  # set SCHEDULE_TOKEN in api/.env"
+echo "  * * * * * ${SCRIPT_DIR}/fv-schedule-http.sh >> /var/log/fv-schedule-http.log 2>&1"
+echo "  # or: curl -G \"\${APP_URL}/cron/schedule\" --data-urlencode \"token=\${SCHEDULE_TOKEN}\""

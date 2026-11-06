@@ -1,0 +1,47 @@
+# Creates/updates Windows Task Scheduler for FullVendor scheduler HTTP tick.
+# Prefer HTTP (Apache PHP + GD) over CLI artisan (Herd PHP often lacks GD).
+# Run once as Administrator:
+#   powershell -ExecutionPolicy Bypass -File H:\xampp\htdocs\mvc\api\scripts\cron\install-windows-task.ps1
+# Optional: -UseCli  → fv-schedule-run.ps1 (php artisan schedule:run)
+
+param(
+    [switch]$UseCli
+)
+
+$ErrorActionPreference = 'Stop'
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Runner = if ($UseCli) {
+    Join-Path $ScriptDir 'fv-schedule-run.ps1'
+} else {
+    Join-Path $ScriptDir 'fv-schedule-http.ps1'
+}
+$TaskName = 'FullVendorLaravelScheduler'
+
+if (-not (Test-Path $Runner)) {
+    throw "Runner not found: $Runner"
+}
+
+$action = New-ScheduledTaskAction `
+    -Execute 'powershell.exe' `
+    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Runner`""
+
+# Repetición ~10 años (TimeSpan.MaxValue falla en algunos Windows: 0x80041318).
+$trigger = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) `
+    -RepetitionInterval (New-TimeSpan -Minutes 1) `
+    -RepetitionDuration (New-TimeSpan -Days 3650)
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+
+Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+try {
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal | Out-Null
+} catch {
+    # Fallback schtasks (no requiere elevación en algunos entornos)
+    $arg = "-NoProfile -ExecutionPolicy Bypass -File `"$Runner`""
+    schtasks /Create /TN $TaskName /TR "powershell.exe $arg" /SC MINUTE /MO 1 /F | Out-Null
+}
+
+Write-Host "Scheduled task '$TaskName' installed. It runs every minute:"
+Write-Host "  $Runner"
+Write-Host "Requires SCHEDULE_TOKEN in api/.env (HTTP mode)."

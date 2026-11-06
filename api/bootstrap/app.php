@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ]
         );
 
+        // Cron HTTP del hosting (curl) — mismo patrón que fullvendorERP.
+        $middleware->validateCsrfTokens(except: [
+            'cron/schedule',
+            'api/cron/schedule',
+        ]);
+
         // Resuelve el locale desde headers/query del cliente (MVC, app móvil).
         // Debe aplicarse globalmente porque Fortify registra /api/v2/login en el grupo `web`,
         // no en `api`, y queremos que `auth.failed` salga en el idioma del usuario.

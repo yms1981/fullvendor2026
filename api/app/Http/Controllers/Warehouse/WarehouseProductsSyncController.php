@@ -369,15 +369,11 @@ class WarehouseProductsSyncController extends Controller
      */
     private function uploadsRoots(): array
     {
-        return array_values(array_unique(array_filter([
-            env('MVC_UPLOADS_PATH'),
-            '/var/www/mvc_uploads',
-            dirname(base_path()).'/mvc/uploads',
-            dirname(base_path()).'/mvc_uploads',
-            // XAMPP local típico: htdocs/mvc/mvc/uploads
-            dirname(base_path(), 2).'/mvc/uploads',
-            public_path('uploads'),
-        ])));
+        return array_values(array_unique(array_filter(array_merge(
+            [\App\Support\UploadsPath::root()],
+            \App\Support\UploadsPath::candidateRoots(),
+            [public_path('uploads')]
+        ))));
     }
 
     /**

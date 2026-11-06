@@ -23,9 +23,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Switch photo architecture without code changes:
-    |   - minio         → object storage (S3-compatible MinIO)
-    |   - images_local  → directory tree under IMAGES_LOCAL_ROOT
+    |   - images_local  → directory tree under IMAGES_LOCAL_ROOT (default)
     |   - local / directory / dir → aliases of images_local
+    |   - minio / s3    → object storage (solo si lo configuras a propósito)
     |
     | Directory layout (images_local):
 |   {IMAGES_LOCAL_ROOT}/products/{companyId}/{file}
@@ -34,7 +34,7 @@ return [
 |   {IMAGES_LOCAL_ROOT}/chat/{companyId}/{conversationId}/{file}
     |
     */
-    'images' => env('IMAGES_DISK', 'minio'),
+    'images' => env('IMAGES_DISK', 'images_local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,28 +67,26 @@ return [
 
         /*
          * Disco dedicado a fotos en filesystem (alternativa a MinIO).
-         * Por defecto apunta al volumen MVC uploads (Docker: /var/www/mvc_uploads).
+         * Placeholder seguro aquí; AppServiceProvider fija la raíz real con UploadsPath
+         * (evita fatal/colgado al parsear config en producción).
          */
         'images_local' => [
             'driver' => 'local',
-            'root' => env(
-                'IMAGES_LOCAL_ROOT',
-                is_dir('/var/www/mvc_uploads')
+            'root' => env('IMAGES_LOCAL_ROOT')
+                ?: (is_dir('/var/www/mvc_uploads')
                     ? '/var/www/mvc_uploads'
-                    : dirname(base_path()).'/mvc/uploads'
-            ),
+                    : dirname(base_path()).'/mvc/uploads'),
             'visibility' => 'public',
-            'throw' => false,
+            // true: errores reales de permisos/ruta (no un false silencioso que congela la cola).
+            'throw' => true,
         ],
 
         'legacy' => [
             'driver' => 'local',
-            'root' => env(
-                'MVC_UPLOADS_PATH',
-                is_dir('/var/www/mvc_uploads')
+            'root' => env('MVC_UPLOADS_PATH')
+                ?: (is_dir('/var/www/mvc_uploads')
                     ? '/var/www/mvc_uploads'
-                    : dirname(base_path()).'/mvc/uploads'
-            ),
+                    : dirname(base_path()).'/mvc/uploads'),
             'throw' => false,
         ],
 
