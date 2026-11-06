@@ -98,7 +98,9 @@ class Profile extends Company_Controller {
 		);
 
 		$this->addJsFile(base_url('companyasset/company/customer/locationCascadeSelects.js'));
-		$this->addJsFile(base_url('companyasset/company/profile/profile-update.js'));
+		$this->addJsFile(function_exists('dated_file_url')
+			? dated_file_url('companyasset/company/profile/profile-update.js')
+			: base_url('companyasset/company/profile/profile-update.js'));
 		$this->addJsFile(base_url('companyasset/company/product/semaforo.js'));
 
 		$this->showContent('company/profile/profile', array_merge($data, $info));
@@ -366,7 +368,15 @@ class Profile extends Company_Controller {
 			'sem_red' => @$request['sem_red'],
 			'sem_amarillo' => @$request['sem_amarillo'],
 			'sem_verde' => @$request['sem_verde'],
+			'erp_enabled' => $this->input->post('erp_enabled') ? 1 : 0,
+			'erp_company_code' => $this->testInput($this->input->post('erp_company_code')),
+			'erp_url' => $this->testInput($this->input->post('erp_url')),
 		];
+
+		$erpToken = trim((string) $this->input->post('erp_company_token'));
+		if ($erpToken !== '') {
+			$mydata['erp_company_token'] = $erpToken;
+		}
 
 		$currency = $this->testInput($this->input->post('currency'));
 		if ($currency !== '' && $currency !== null) {

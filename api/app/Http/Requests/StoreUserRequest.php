@@ -212,14 +212,13 @@ class StoreUserRequest extends FormRequest
                 return;
             }
 
-            $user = User::withTrashed()
+            $user = User::query()
                 ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email), 'UTF-8')])
                 ->first();
             if ($user === null) {
                 return;
             }
 
-            // Usuario eliminado (soft): si no tiene vínculos activos en otras empresas, se puede reactivar.
             // Regla 0: el correo no puede estar ya registrado en otra empresa (otra compañía distinta a la de la petición).
             if (CompanyUser::query()->where('user_id', $user->id)->where('company_id', '!=', $companyId)->exists()) {
                 $v->errors()->add('email', __('validation.user_email_other_company'));
@@ -277,7 +276,7 @@ class StoreUserRequest extends FormRequest
         $existingPayload = null;
 
         if (is_string($email) && $email !== '') {
-            $existing = User::withTrashed()
+            $existing = User::query()
                 ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email), 'UTF-8')])
                 ->with(['companyUsers' => function ($q) {
                     $q->with(['company' => function ($c) {

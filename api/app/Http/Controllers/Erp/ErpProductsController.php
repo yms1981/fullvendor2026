@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Erp;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Erp\Concerns\ResolvesErpCompany;
+use App\Models\Category;
 use App\Models\Product;
 use App\Services\Erp\ErpProductImageUploadService;
+use App\Services\Erp\ErpProductSyncFromErpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -130,6 +132,14 @@ class ErpProductsController extends Controller
                     new OA\Property(property: 'unit_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'category_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'cat_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'cats_id', type: 'string', nullable: true, description: 'CSV de cat_id remotos'),
+                    new OA\Property(
+                        property: 'category_names',
+                        type: 'array',
+                        nullable: true,
+                        items: new OA\Items(type: 'string'),
+                        description: 'Nombres de categoría (se crean/enlazan y rellenan cats_id)'
+                    ),
                     new OA\Property(property: 'barcode', type: 'string', nullable: true),
                     new OA\Property(property: 'currency_type', type: 'string', nullable: true),
                     new OA\Property(property: 'imgURL', type: 'string', nullable: true),
@@ -177,6 +187,7 @@ class ErpProductsController extends Controller
             'unit_id' => 'unit_id',
             'category_id' => 'category_id',
             'cat_id' => 'cat_id',
+            'cats_id' => 'cats_id',
             'barcode' => 'barcode',
             'currency_type' => 'currency_type',
             'imgURL' => 'imgURL',
@@ -184,6 +195,31 @@ class ErpProductsController extends Controller
         ] as $input => $column) {
             if ($request->exists($input)) {
                 $product->{$column} = $request->input($input);
+            }
+        }
+
+        // category_names[] / category_name: asegura cats remotas por nombre y rellena cats_id.
+        $resolvedCats = $this->resolveCategoryIdsFromRequest($request, $companyId);
+        if ($resolvedCats !== []) {
+            $joined = implode(',', array_map(static fn (int $id): string => (string) $id, $resolvedCats));
+            $product->cats_id = $joined;
+            $product->cat_id = (string) $resolvedCats[0];
+            $product->category_id = (string) $resolvedCats[0];
+        } elseif ($request->exists('cats_id') || $request->exists('cat_id') || $request->exists('category_id')) {
+            $fromIds = $this->parseCategoryIdList(
+                $request->input('cats_id'),
+                $request->input('cat_id'),
+                $request->input('category_id'),
+            );
+            if ($fromIds !== []) {
+                $joined = implode(',', array_map(static fn (int $id): string => (string) $id, $fromIds));
+                $product->cats_id = $joined;
+                if (! $request->exists('cat_id')) {
+                    $product->cat_id = (string) $fromIds[0];
+                }
+                if (! $request->exists('category_id')) {
+                    $product->category_id = (string) $fromIds[0];
+                }
             }
         }
 
@@ -203,6 +239,9 @@ class ErpProductsController extends Controller
             'fob_price' => (float) $product->fob_price,
             'purchase_price' => (float) $product->purchase_price,
             'status' => (int) $product->status,
+            'category_id' => $product->category_id,
+            'cat_id' => $product->cat_id,
+            'cats_id' => $product->cats_id,
         ], $created ? 'Product created' : 'Product updated');
     }
 
@@ -314,6 +353,243 @@ class ErpProductsController extends Controller
             'summary' => ['total' => count($items), 'updated' => $updated, 'failed' => $failed],
             'results' => $results,
         ]);
+    }
+
+    #[OA\Post(
+        path: 'api/v2/erp/products/sync',
+        summary: 'Sync masivo de productos desde el ERP',
+        description: 'Recibe productos con precios (fob_price / purchase_price), company_id y links de imágenes. '
+            .'Si el producto no tiene fotos, el MVC descarga los links y las configura. '
+            .'Si ya tiene fotos y el ERP trae file_mtime más reciente, descarga y reemplaza; si no, solo informa.',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id', 'products'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(
+                        property: 'products',
+                        type: 'array',
+                        items: new OA\Items(
+                            properties: [
+                                new OA\Property(property: 'sku', type: 'string'),
+                                new OA\Property(property: 'name', type: 'string', nullable: true),
+                                new OA\Property(property: 'fob_price', type: 'number', nullable: true),
+                                new OA\Property(property: 'purchase_price', type: 'number', nullable: true),
+                                new OA\Property(property: 'sale_price', type: 'number', nullable: true),
+                                new OA\Property(property: 'stock', type: 'number', nullable: true),
+                                new OA\Property(property: 'company_id', type: 'integer', nullable: true),
+                                new OA\Property(
+                                    property: 'images',
+                                    type: 'array',
+                                    nullable: true,
+                                    items: new OA\Items(
+                                        properties: [
+                                            new OA\Property(property: 'url', type: 'string'),
+                                            new OA\Property(property: 'is_default', type: 'boolean', nullable: true),
+                                            new OA\Property(property: 'file_mtime', type: 'string', nullable: true),
+                                            new OA\Property(property: 'sort_order', type: 'integer', nullable: true),
+                                        ],
+                                        type: 'object'
+                                    )
+                                ),
+                            ],
+                            type: 'object'
+                        )
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Resumen del sync'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Validación'),
+        ]
+    )]
+    public function syncFromErp(Request $request, ErpProductSyncFromErpService $sync): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+        $products = $request->input('products');
+        if (! is_array($products) || $products === []) {
+            return $this->erpFail('products[] is required');
+        }
+
+        try {
+            $result = $sync->sync($companyId, $products);
+        } catch (Throwable $e) {
+            return $this->erpFail($e->getMessage());
+        }
+
+        return $this->erpOk($result, 'Products synced from ERP');
+    }
+
+    #[OA\Post(
+        path: 'api/v2/erp/products/images/from-urls',
+        summary: 'Actualizar imágenes de productos desde URLs del ERP',
+        description: 'Recibe un listado de productos activos con URLs de imágenes. '
+            .'El MVC descarga cada URL y las guarda (o reemplaza si el ERP trae file_mtime más reciente).',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id', 'items'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(
+                        property: 'items',
+                        type: 'array',
+                        items: new OA\Items(
+                            required: ['sku', 'images'],
+                            properties: [
+                                new OA\Property(property: 'sku', type: 'string'),
+                                new OA\Property(property: 'company_id', type: 'integer', nullable: true),
+                                new OA\Property(
+                                    property: 'images',
+                                    type: 'array',
+                                    items: new OA\Items(
+                                        properties: [
+                                            new OA\Property(property: 'url', type: 'string'),
+                                            new OA\Property(property: 'is_default', type: 'boolean', nullable: true),
+                                            new OA\Property(property: 'file_mtime', type: 'string', nullable: true),
+                                            new OA\Property(property: 'sort_order', type: 'integer', nullable: true),
+                                        ],
+                                        type: 'object'
+                                    )
+                                ),
+                            ],
+                            type: 'object'
+                        )
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Resumen de descarga/comparación'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Validación'),
+        ]
+    )]
+    public function imagesFromUrls(Request $request, ErpProductSyncFromErpService $sync): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+        $items = $request->input('items', $request->input('products'));
+        if (! is_array($items) || $items === []) {
+            return $this->erpFail('items[] is required (sku + images[].url)');
+        }
+
+        try {
+            $result = $sync->syncImagesFromUrls($companyId, $items);
+        } catch (Throwable $e) {
+            return $this->erpFail($e->getMessage());
+        }
+
+        return $this->erpOk($result, 'Product images synced from URLs');
+    }
+
+    #[OA\Post(
+        path: 'api/v2/erp/products/images/attach-url',
+        summary: 'Adjuntar una imagen de producto desde URL del ERP',
+        description: 'Recibe company_id, sku, url e is_default. El MVC descarga la URL y la guarda '
+            .'con la misma política que el alta de fotos del backend (Image::putContent / slots SKU).',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id', 'sku', 'url'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'sku', type: 'string', example: 'ABC-001'),
+                    new OA\Property(property: 'url', type: 'string', example: 'https://erp.example/storage/products/1/a.jpg'),
+                    new OA\Property(property: 'image_url', type: 'string', nullable: true, description: 'Alias de url'),
+                    new OA\Property(property: 'is_default', type: 'boolean', nullable: true, example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Imagen adjunta'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Validación'),
+        ]
+    )]
+    public function attachImageFromUrl(Request $request, ErpProductImageUploadService $uploader): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+        $sku = trim((string) $request->input('sku', ''));
+        $url = trim((string) ($request->input('url') ?? $request->input('image_url') ?? ''));
+        if ($sku === '' || $url === '') {
+            return $this->erpFail('sku and url are required');
+        }
+
+        try {
+            $result = $uploader->attachFromUrlItems($companyId, [[
+                'sku' => $sku,
+                'url' => $url,
+                'is_default' => filter_var($request->input('is_default', true), FILTER_VALIDATE_BOOLEAN),
+                'company_id' => $companyId,
+            ]]);
+        } catch (Throwable $e) {
+            return $this->erpFail($e->getMessage());
+        }
+
+        return $this->erpOk($result, 'Product image attached from URL');
+    }
+
+    #[OA\Post(
+        path: 'api/v2/erp/products/images/attach-urls',
+        summary: 'Adjuntar imágenes de productos desde URLs del ERP (lote)',
+        description: 'Recibe company_id + items[{sku,url,is_default}]. Descarga cada URL y guarda '
+            .'igual que el alta manual / multipart (slots {SKU} / {SKU}_PICN).',
+        security: [['erpApiKey' => []]],
+        tags: ['Erp'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id', 'items'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(
+                        property: 'items',
+                        type: 'array',
+                        items: new OA\Items(
+                            required: ['sku', 'url'],
+                            properties: [
+                                new OA\Property(property: 'sku', type: 'string'),
+                                new OA\Property(property: 'url', type: 'string'),
+                                new OA\Property(property: 'image_url', type: 'string', nullable: true),
+                                new OA\Property(property: 'is_default', type: 'boolean', nullable: true),
+                                new OA\Property(property: 'company_id', type: 'integer', nullable: true),
+                            ],
+                            type: 'object'
+                        )
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Resumen de adjuntos'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'X-Api-Key inválida'),
+            new OA\Response(response: Response::HTTP_UNPROCESSABLE_ENTITY, description: 'Validación'),
+        ]
+    )]
+    public function attachImagesFromUrls(Request $request, ErpProductImageUploadService $uploader): JsonResponse
+    {
+        $companyId = $this->requireCompanyId($request);
+        $items = $request->input('items', $request->input('images'));
+        if (! is_array($items) || $items === []) {
+            return $this->erpFail('items[] is required (sku + url + is_default)');
+        }
+
+        try {
+            $result = $uploader->attachFromUrlItems($companyId, $items);
+        } catch (Throwable $e) {
+            return $this->erpFail($e->getMessage());
+        }
+
+        return $this->erpOk($result, 'Product images attached from URLs');
     }
 
     #[OA\Post(
@@ -458,5 +734,85 @@ class ErpProductsController extends Controller
         }
 
         return array_values($files);
+    }
+
+    /**
+     * Resuelve cat_id a partir de category_names / category_name (crea si faltan).
+     *
+     * @return list<int>
+     */
+    private function resolveCategoryIdsFromRequest(Request $request, int $companyId): array
+    {
+        $names = [];
+        $raw = $request->input('category_names', $request->input('category_name'));
+        if (is_array($raw)) {
+            foreach ($raw as $item) {
+                $name = trim((string) $item);
+                if ($name !== '') {
+                    $names[] = $name;
+                }
+            }
+        } elseif (is_string($raw) && trim($raw) !== '') {
+            foreach (preg_split('/[,;|]+/', $raw) ?: [] as $piece) {
+                $name = trim((string) $piece);
+                if ($name !== '') {
+                    $names[] = $name;
+                }
+            }
+        }
+
+        if ($names === []) {
+            return [];
+        }
+
+        $nameColumn = \App\Support\CategoryNameColumn::name();
+        $ids = [];
+        foreach (array_values(array_unique($names)) as $name) {
+            $category = Category::query()
+                ->where('company_id', $companyId)
+                ->whereRaw('LOWER(TRIM('.$nameColumn.')) = ?', [mb_strtolower($name, 'UTF-8')])
+                ->first();
+
+            if (! $category) {
+                $category = new Category;
+                $category->company_id = $companyId;
+                $category->{$nameColumn} = $name;
+                $category->category_status = 1;
+                $category->category_default = 0;
+                $category->category_created_at = now();
+                $category->save();
+            }
+
+            $catId = (int) $category->cat_id;
+            if ($catId > 0) {
+                $ids[] = $catId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function parseCategoryIdList(mixed ...$values): array
+    {
+        $ids = [];
+        foreach ($values as $raw) {
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+            $parts = is_array($raw)
+                ? $raw
+                : (preg_split('/\s*,\s*/', trim((string) $raw)) ?: []);
+            foreach ($parts as $part) {
+                $part = trim((string) $part);
+                if ($part !== '' && is_numeric($part) && (int) $part > 0 && ! str_contains($part, '.')) {
+                    $ids[] = (int) $part;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 }

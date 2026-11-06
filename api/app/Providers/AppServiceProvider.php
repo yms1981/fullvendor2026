@@ -71,7 +71,6 @@ class AppServiceProvider extends ServiceProvider
             OrderNote::class,
             State::class,
             StatusOrder::class,
-            User::class,
             Vendor::class,
             WarehouseUser::class,
         ]);

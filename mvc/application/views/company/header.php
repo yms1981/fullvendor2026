@@ -47,7 +47,7 @@ $navUriLooksLikeSettingsChild = static function (): bool {
     if ($s2 === '') {
         return false;
     }
-    $settingsPrefixes = ['units', 'terms', 'sellerprofile', 'currencies', 'groups', 'users', 'userprofile', 'warehouses', 'sendtemplate'];
+    $settingsPrefixes = ['units', 'terms', 'sellerprofile', 'currencies', 'groups', 'users', 'userprofile', 'warehouses', 'sendtemplate', 'scheduledtasks'];
     if (in_array($s2, $settingsPrefixes, true)) {
         return true;
     }
@@ -112,6 +112,7 @@ if (!isset($main_navigation) || !is_array($main_navigation)) {
                 'users' => ['url' => 'users', 'label' => $langdef['user'] ?? 'Users', 'icon' => 'fa-solid fa-user-lock'],
                 'warehouses' => ['url' => 'warehouses', 'label' => $langdef['warehouse'] ?? 'Warehouse', 'icon' => 'fa-solid fa-house-user'],
                 'send_templates' => ['url' => 'sendtemplate', 'label' => $langdef['nav_send_templates'] ?? 'Send templates', 'icon' => 'fa-solid fa-envelope-open-text'],
+                'scheduled_tasks' => ['url' => 'scheduledtasks', 'label' => $langdef['nav_scheduled_tasks'] ?? 'Scheduled tasks', 'icon' => 'fa-solid fa-clock'],
             ],
         ],
         'products' => [

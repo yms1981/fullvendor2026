@@ -825,6 +825,10 @@ html[data-fv-theme="dark"] .fv-company-nav__search-input {
     animation: none !important;
     display: none;
     white-space: nowrap;
+    /* Evitar que el último ítem (p. ej. Tareas programadas) quede fuera del panel blanco. */
+    max-height: min(80vh, 520px);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .fv-company-nav .dropdown-menu.fv-nav-dropdown.show {
@@ -1415,5 +1419,351 @@ table.dataTable {
         animation: none;
         opacity: 1;
         transform: none;
+    }
+}
+
+/* ——— Scheduled tasks page ——— */
+#main-content .fv-scheduled-tasks-page {
+    padding-bottom: 6.5rem; /* clear floating GPS/chat FABs */
+}
+
+#main-content .fv-image-queue-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+#main-content .fv-image-queue-stat {
+    min-width: 6.5rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--fv-border, #e5e7eb);
+    border-radius: 12px;
+    background: #fff;
+}
+
+#main-content .fv-image-queue-stat__label {
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+#main-content .fv-image-queue-bar-wrap {
+    display: grid;
+    gap: 0.35rem;
+}
+
+#main-content .fv-image-queue-bar {
+    height: 0.65rem;
+    border-radius: 999px;
+    background: #fee2e2;
+    overflow: hidden;
+}
+
+#main-content .fv-image-queue-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #16a34a);
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
+
+#main-content .fv-image-queue-bar__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+}
+
+#main-content .fv-iq-active-label {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+#main-content .fv-scheduled-card {
+    border: 1px solid var(--fv-border, #e5e7eb);
+    border-radius: 14px;
+    box-shadow: var(--fv-shadow-sm, 0 1px 3px rgba(17, 24, 39, 0.06));
+    overflow: visible;
+}
+
+#main-content .fv-scheduled-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: #fff;
+    border-bottom: 1px solid var(--fv-border, #e5e7eb);
+    padding: 1rem 1.25rem;
+}
+
+#main-content .fv-scheduled-card__title-wrap {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+#main-content .fv-scheduled-logs-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--fv-text, #111827);
+}
+
+#main-content .fv-scheduled-erp-banner {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.55rem 0.85rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+}
+
+#main-content .fv-scheduled-erp-banner .mdi {
+    font-size: 1.1rem;
+}
+
+#main-content .fv-scheduled-logs-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+}
+
+#main-content .fv-scheduled-logs-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+#main-content .fv-scheduled-filter {
+    min-width: 10.5rem;
+    max-width: 16rem;
+    height: 2.35rem;
+    border-radius: 10px !important;
+}
+
+/* Custom action buttons (avoid Bootstrap .btn-sm table rules that clip text) */
+#main-content .fv-scheduled-action-btn,
+#main-content .fv-task-run-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    box-sizing: border-box;
+    margin: 0;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none !important;
+    font-family: inherit;
+    font-size: 0.86rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 2.4rem !important;
+    padding: 0.45rem 0.95rem !important;
+    border-radius: 999px !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#main-content .fv-task-run-btn {
+    color: #166534 !important;
+    background: #ecfdf5 !important;
+    border-color: #86efac !important;
+    box-shadow: 0 1px 2px rgba(22, 101, 52, 0.08);
+}
+
+#main-content .fv-task-run-btn:hover:not(:disabled) {
+    color: #14532d !important;
+    background: #d1fae5 !important;
+    border-color: #4ade80 !important;
+}
+
+#main-content .fv-task-run-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+#main-content .fv-task-run-btn__icon,
+#main-content .fv-scheduled-action-btn__icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 auto;
+    display: block;
+}
+
+#main-content .fv-task-run-btn__label,
+#main-content .fv-scheduled-action-btn__label {
+    display: inline-block !important;
+    max-width: none !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+}
+
+#main-content .fv-scheduled-action-btn {
+    color: #991b1b !important;
+    background: #fff !important;
+    border-color: #fca5a5 !important;
+}
+
+#main-content .fv-scheduled-action-btn:hover {
+    color: #7f1d1d !important;
+    background: #fef2f2 !important;
+    border-color: #f87171 !important;
+}
+
+#main-content .fv-scheduled-action-btn--ghost {
+    color: #374151 !important;
+    background: #fff !important;
+    border-color: #d1d5db !important;
+}
+
+#main-content .fv-scheduled-action-btn--ghost:hover {
+    color: #111827 !important;
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+}
+
+#main-content #fv-scheduled-tasks-table .fv-task-actions {
+    width: 1%;
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+
+/* Neutralize global table .btn-sm clipping if any leftover bootstrap classes remain */
+#main-content #fv-scheduled-tasks-table .fv-task-run-btn.btn,
+#main-content #fv-scheduled-tasks-table .fv-task-run-btn.btn-sm,
+#main-content #fv-logs-refresh.btn,
+#main-content #fv-logs-refresh.btn-sm {
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0.45rem 0.95rem !important;
+}
+
+#main-content .fv-scheduled-table td,
+#main-content .fv-scheduled-logs-table td {
+    vertical-align: middle;
+}
+
+#main-content .fv-scheduled-task-name {
+    display: block;
+    color: var(--fv-text, #111827);
+}
+
+#main-content .fv-scheduled-task-msg,
+#main-content .fv-scheduled-log-msg {
+    max-width: 28rem;
+    color: #6b7280;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+#main-content .fv-scheduled-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.35em 0.65em;
+    border-radius: 999px;
+}
+
+#main-content .fv-scheduled-trigger {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+#main-content .fv-scheduled-trigger--cron {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+#main-content .fv-scheduled-logs-scroll {
+    max-height: 28rem;
+    overflow: auto;
+    border: 1px solid var(--fv-table-border, #f3f4f6);
+    border-radius: 10px;
+}
+
+#main-content .fv-scheduled-logs-table {
+    margin-bottom: 0;
+}
+
+#main-content .fv-scheduled-logs-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--fv-table-head-bg, #fafafa);
+    color: var(--fv-table-head-color, #6b7280);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--fv-border, #e5e7eb);
+}
+
+#main-content .fv-scheduled-logs-table tbody tr.fv-log-row-error {
+    background: #fff7f7;
+}
+
+#main-content .fv-scheduled-logs-table tbody tr.fv-log-row-error td:first-child {
+    box-shadow: inset 3px 0 0 #ef4444;
+}
+
+#main-content .fv-scheduled-logs-hint {
+    margin-bottom: 0.85rem !important;
+}
+
+@media (max-width: 768px) {
+    #main-content .fv-scheduled-card__header {
+        align-items: stretch;
+    }
+
+    #main-content .fv-scheduled-logs-toolbar,
+    #main-content .fv-scheduled-logs-filters {
+        width: 100%;
+    }
+
+    #main-content .fv-scheduled-filter {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    #main-content .fv-scheduled-action-btn,
+    #main-content #fv-logs-refresh {
+        width: 100% !important;
+    }
+
+    #main-content .fv-task-run-btn__label {
+        display: none !important;
+    }
+
+    #main-content .fv-task-run-btn {
+        width: 2.5rem !important;
+        min-width: 2.5rem !important;
+        height: 2.5rem !important;
+        min-height: 2.5rem !important;
+        padding: 0 !important;
+        border-radius: 999px !important;
     }
 }

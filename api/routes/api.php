@@ -74,8 +74,16 @@ Route::group(
                     ->name('erp.products.upsert');
                 Route::post('products/stock-update', [\App\Http\Controllers\Erp\ErpProductsController::class, 'stockUpdate'])
                     ->name('erp.products.stockUpdate');
+                Route::post('products/sync', [\App\Http\Controllers\Erp\ErpProductsController::class, 'syncFromErp'])
+                    ->name('erp.products.sync');
                 Route::post('products/images', [\App\Http\Controllers\Erp\ErpProductsController::class, 'uploadImages'])
                     ->name('erp.products.images');
+                Route::post('products/images/from-urls', [\App\Http\Controllers\Erp\ErpProductsController::class, 'imagesFromUrls'])
+                    ->name('erp.products.imagesFromUrls');
+                Route::post('products/images/attach-url', [\App\Http\Controllers\Erp\ErpProductsController::class, 'attachImageFromUrl'])
+                    ->name('erp.products.imagesAttachUrl');
+                Route::post('products/images/attach-urls', [\App\Http\Controllers\Erp\ErpProductsController::class, 'attachImagesFromUrls'])
+                    ->name('erp.products.imagesAttachUrls');
 
                 Route::get('customers', [\App\Http\Controllers\Erp\ErpCustomersController::class, 'list'])
                     ->name('erp.customers.index');
@@ -84,6 +92,8 @@ Route::group(
 
                 Route::get('categories', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'categories'])
                     ->name('erp.categories');
+                Route::post('categories/upsert', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'upsertCategory'])
+                    ->name('erp.categories.upsert');
                 Route::get('customer-groups', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'customerGroups'])
                     ->name('erp.customerGroups');
                 Route::get('terms', [\App\Http\Controllers\Erp\ErpCatalogController::class, 'terms'])
@@ -719,6 +729,27 @@ Route::group(
                 )->name('categorysubgroup.destroy');
 
                 Route::group(['prefix' => 'company'], function () {
+                    Route::get(
+                        '/{company}/scheduled-tasks/logs',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'listLogs']
+                    )->name('company.scheduledTasks.logs');
+                    Route::get(
+                        '/{company}/scheduled-tasks/image-queue',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'imageQueueProgress']
+                    )->name('company.scheduledTasks.imageQueue');
+                    Route::get(
+                        '/{company}/scheduled-tasks',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'listTasks']
+                    )->name('company.scheduledTasks.index');
+                    Route::put(
+                        '/{company}/scheduled-tasks/{taskType}',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'updateTask']
+                    )->name('company.scheduledTasks.update');
+                    Route::post(
+                        '/{company}/scheduled-tasks/{taskType}/run',
+                        [\App\Http\Controllers\CompanyScheduledTaskController::class, 'runTask']
+                    )->name('company.scheduledTasks.run');
+
                     Route::get(
                         '/{companyId}/dashboard/filter-data',
                         [\App\Http\Controllers\Company\DashboardController::class, 'filterData']

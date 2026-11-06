@@ -303,11 +303,17 @@ class Company extends Model
 		'sem_verde_hasta' => 'int',
         'default_unit_id' => 'int',
         'default_term_id' => 'int',
+        'erp_enabled' => 'bool',
 	];
 
     protected $hidden = [
         'password',
-        'token'
+        'token',
+        'erp_company_token',
+    ];
+
+    protected $appends = [
+        'erp_has_token',
     ];
 
     protected $fillable = [
@@ -371,6 +377,10 @@ class Company extends Model
         'city',
         'zip_code',
         'zone',
+        'erp_enabled',
+        'erp_company_code',
+        'erp_url',
+        'erp_company_token',
 	];
 
     public function addresses()
@@ -591,6 +601,16 @@ class Company extends Model
     public function defaultSeller()
     {
         return $this->belongsTo(Vendor::class, 'default_seller_id');
+    }
+
+    public function scheduledTasks()
+    {
+        return $this->hasMany(CompanyScheduledTask::class, 'company_id', 'company_id');
+    }
+
+    public function getErpHasTokenAttribute(): bool
+    {
+        return trim((string) ($this->attributes['erp_company_token'] ?? '')) !== '';
     }
 
 	public function warehouse_users()

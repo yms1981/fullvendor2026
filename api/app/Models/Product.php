@@ -260,6 +260,20 @@ class Product extends Model
     }
 
     /**
+     * Existencias negativas se normalizan a 0.
+     */
+    public function setStockAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['stock'] = 0;
+
+            return;
+        }
+
+        $this->attributes['stock'] = max(0, (float) $value);
+    }
+
+    /**
      * Accessor para convertir sku a mayúsculas al leer
      */
     public function getSkuAttribute($value)

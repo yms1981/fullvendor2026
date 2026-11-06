@@ -36,6 +36,7 @@ Casi todos los endpoints de datos requieren `company_id` (query, body o header `
 | GET | `/api/v2/erp/customers` | Listar clientes |
 | POST | `/api/v2/erp/customers/upsert` | Crear/actualizar cliente (incluye `balance`) |
 | GET | `/api/v2/erp/categories` | Listar categorías |
+| POST | `/api/v2/erp/categories/upsert` | Crear/actualizar categoría por nombre |
 | GET | `/api/v2/erp/customer-groups` | Listar grupos de clientes |
 | GET | `/api/v2/erp/terms` | Listar términos de venta |
 | GET | `/api/v2/erp/sellers` | Listar vendedores |
@@ -116,11 +117,13 @@ Cada ítem: `pro_id`, `sku`, `name`, `has_image: false`. El ERP usa este listado
 
 ### Upsert por SKU
 
+Acepta `category_id` / `cat_id` / `cats_id` (CSV) y/o `category_names` (array o CSV). Con nombres, crea/enlaza categorías y rellena `cats_id`.
+
 ```bash
 curl -s -X POST "http://localhost/api/v2/erp/products/upsert" \
   -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e" \
   -H "Content-Type: application/json" \
-  -d '{"company_id":1,"sku":"ABC-001","name":"Producto","sale_price":10,"stock":5}'
+  -d '{"company_id":1,"sku":"ABC-001","name":"Producto","sale_price":10,"stock":5,"category_names":["Beverages","Snacks"]}'
 ```
 
 ### Stock / precios por lote
@@ -210,6 +213,10 @@ Todos requieren `company_id`:
 
 ```bash
 curl -s "http://localhost/api/v2/erp/categories?company_id=1" -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e"
+curl -s -X POST "http://localhost/api/v2/erp/categories/upsert" \
+  -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e" \
+  -H "Content-Type: application/json" \
+  -d '{"company_id":1,"category_name":"Beverages","category_status":1}'
 curl -s "http://localhost/api/v2/erp/customer-groups?company_id=1" -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e"
 curl -s "http://localhost/api/v2/erp/terms?company_id=1" -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e"
 curl -s "http://localhost/api/v2/erp/sellers?company_id=1" -H "X-Api-Key: f008aa014308059be6c1c20ed70a006e"

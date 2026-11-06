@@ -33,6 +33,103 @@
                         );
                         $profileCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/';
                         ?>
+                        <?php
+                        $erpEnabled = !empty($data->erp_enabled);
+                        $erpCompanyCode = htmlspecialchars((string) ($data->erp_company_code ?? ''), ENT_QUOTES, 'UTF-8');
+                        $erpUrl = htmlspecialchars((string) ($data->erp_url ?? ''), ENT_QUOTES, 'UTF-8');
+                        $erpHasToken = !empty($data->erp_has_token);
+                        ?>
+                        <section class="card mb-3" id="erp">
+                            <div class="card-header">
+                                <h4><?= htmlspecialchars((string) ($lang_perfil['erp_settings'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="custom-control custom-switch mb-3">
+                                            <input type="checkbox"
+                                                   class="custom-control-input"
+                                                   name="erp_enabled"
+                                                   id="erp_enabled"
+                                                   value="1"
+                                                   <?= $erpEnabled ? 'checked' : '' ?>>
+                                            <label class="custom-control-label" for="erp_enabled">
+                                                <?= htmlspecialchars((string) ($lang_perfil['erp_enabled_label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="fv-erp-connection-fields" class="row fv-erp-fields" style="<?= $erpEnabled ? '' : 'display:none;' ?>">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="erp_company_code"><?= htmlspecialchars((string) ($lang_perfil['erp_company_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: <span class="color-red">*</span></label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   name="erp_company_code"
+                                                   id="erp_company_code"
+                                                   autocomplete="off"
+                                                   value="<?= $erpCompanyCode ?>"
+                                                   <?= $erpEnabled ? 'required' : '' ?>>
+                                            <small class="form-text text-muted"><?= htmlspecialchars((string) ($lang_perfil['erp_company_code_hint'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="erp_url"><?= htmlspecialchars((string) ($lang_perfil['erp_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: <span class="color-red">*</span></label>
+                                            <input type="url"
+                                                   class="form-control"
+                                                   name="erp_url"
+                                                   id="erp_url"
+                                                   placeholder="https://example.com/fullvendorERP/public"
+                                                   value="<?= $erpUrl ?>"
+                                                   <?= $erpEnabled ? 'required' : '' ?>>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="erp_company_token"><?= htmlspecialchars((string) ($lang_perfil['erp_company_token'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: <span class="color-red">*</span></label>
+                                            <input type="password"
+                                                   class="form-control"
+                                                   name="erp_company_token"
+                                                   id="erp_company_token"
+                                                   data-has-token="<?= $erpHasToken ? '1' : '0' ?>"
+                                                   autocomplete="new-password"
+                                                   placeholder="<?= htmlspecialchars((string) ($erpHasToken ? ($lang_perfil['erp_token_keep_placeholder'] ?? '') : ($lang_perfil['erp_token_placeholder'] ?? '')), ENT_QUOTES, 'UTF-8') ?>"
+                                                   <?= ($erpEnabled && !$erpHasToken) ? 'required' : '' ?>>
+                                            <small class="form-text text-muted"><?= htmlspecialchars((string) ($lang_perfil['erp_token_hint'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <script>
+                                (function () {
+                                    function syncErpFields() {
+                                        var sw = document.getElementById('erp_enabled');
+                                        var box = document.getElementById('fv-erp-connection-fields');
+                                        if (!sw || !box) return;
+                                        var on = !!sw.checked;
+                                        box.style.display = on ? '' : 'none';
+                                        ['erp_company_code', 'erp_url'].forEach(function (id) {
+                                            var el = document.getElementById(id);
+                                            if (el) el.required = on;
+                                        });
+                                        var tok = document.getElementById('erp_company_token');
+                                        if (tok) {
+                                            var hasToken = String(tok.getAttribute('data-has-token') || '0') === '1';
+                                            tok.required = on && !hasToken;
+                                        }
+                                    }
+                                    document.addEventListener('change', function (e) {
+                                        if (e.target && e.target.id === 'erp_enabled') syncErpFields();
+                                    });
+                                    if (document.readyState === 'loading') {
+                                        document.addEventListener('DOMContentLoaded', syncErpFields);
+                                    } else {
+                                        syncErpFields();
+                                    }
+                                })();
+                                </script>
+                            </div>
+                        </section>
                         <section class="card" id="general">
                             <div class="card-header">
 

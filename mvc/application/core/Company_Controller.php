@@ -680,6 +680,11 @@ class Company_Controller extends Application_Controller
                         'label' => $langNav['nav_send_templates'] ?? 'Send templates',
                         'icon' => 'fa-solid fa-envelope-open-text',
                     ],
+                    'scheduled_tasks' => [
+                        'url' => 'scheduledtasks',
+                        'label' => $langNav['nav_scheduled_tasks'] ?? 'Scheduled tasks',
+                        'icon' => 'fa-solid fa-clock',
+                    ],
                 ],
             ],
             'products' => [

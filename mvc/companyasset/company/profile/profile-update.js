@@ -1,5 +1,20 @@
 $(document).ready(function () {
 
+    function syncErpFieldsVisibility() {
+        var enabled = $('#erp_enabled').is(':checked');
+        var $fields = $('#fv-erp-connection-fields');
+        if (!$fields.length) {
+            return;
+        }
+        $fields.css('display', enabled ? '' : 'none');
+        $('#erp_company_code, #erp_url').prop('required', enabled);
+        var hasToken = String($('#erp_company_token').data('has-token') || '0') === '1';
+        $('#erp_company_token').prop('required', enabled && !hasToken);
+    }
+
+    $(document).on('change', '#erp_enabled', syncErpFieldsVisibility);
+    syncErpFieldsVisibility();
+
     $(".js-example-matcher-start").select2({
         matcher: matchStart,
         width: '100%'

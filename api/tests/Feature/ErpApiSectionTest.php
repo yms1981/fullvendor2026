@@ -72,6 +72,24 @@ class ErpApiSectionTest extends TestCase
             ->assertJsonPath('message', 'items[] is required');
     }
 
+    public function test_products_sync_requires_api_key(): void
+    {
+        $this->postJson('/api/v2/erp/products/sync', [
+            'company_id' => 1,
+            'products' => [['sku' => 'X']],
+        ])->assertUnauthorized();
+    }
+
+    public function test_products_sync_requires_products_array(): void
+    {
+        $this->withHeader('X-Api-Key', $this->apiKey)
+            ->postJson('/api/v2/erp/products/sync', [
+                'company_id' => 1,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'products[] is required');
+    }
+
     public function test_customer_upsert_requires_company_id(): void
     {
         $this->withHeader('X-Api-Key', $this->apiKey)

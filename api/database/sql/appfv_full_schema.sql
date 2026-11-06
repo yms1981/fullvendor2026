@@ -671,6 +671,10 @@ CREATE TABLE `companies` (
   `default_seller_id` bigint(20) unsigned DEFAULT NULL,
   `full_address` text DEFAULT NULL,
   `zone` varchar(191) DEFAULT NULL,
+  `erp_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `erp_company_code` varchar(100) DEFAULT NULL,
+  `erp_url` varchar(500) DEFAULT NULL,
+  `erp_company_token` text DEFAULT NULL,
   PRIMARY KEY (`company_id`),
   KEY `companies_company_category_id_foreign` (`company_category_id`),
   KEY `companies_language_id_foreign` (`language_id`),
@@ -708,6 +712,92 @@ CREATE TABLE `companies_categories` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`category_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `erp_product_image_queue`
+--
+
+DROP TABLE IF EXISTS `erp_product_image_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `erp_product_image_queue` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` bigint(20) unsigned NOT NULL,
+  `product_id` bigint(20) unsigned NOT NULL,
+  `sku` varchar(120) NOT NULL,
+  `image_url` varchar(2048) NOT NULL,
+  `url_hash` varchar(64) NOT NULL,
+  `sort_order` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `status` varchar(32) NOT NULL DEFAULT 'pending',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `last_error` text DEFAULT NULL,
+  `queued_at` timestamp NULL DEFAULT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `finished_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `epi_queue_company_product_url_uq` (`company_id`,`product_id`,`url_hash`),
+  KEY `epi_queue_status_id_idx` (`status`,`id`),
+  KEY `epi_queue_company_status_idx` (`company_id`,`status`,`id`),
+  CONSTRAINT `epi_queue_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `company_scheduled_task_logs`
+--
+
+DROP TABLE IF EXISTS `company_scheduled_task_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `company_scheduled_task_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` bigint(20) unsigned NOT NULL,
+  `scheduled_task_id` bigint(20) unsigned DEFAULT NULL,
+  `task_type` varchar(64) NOT NULL,
+  `trigger` varchar(32) NOT NULL DEFAULT 'manual',
+  `status` varchar(32) NOT NULL,
+  `message` text DEFAULT NULL,
+  `summary` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`summary`)),
+  `started_at` timestamp NULL DEFAULT NULL,
+  `finished_at` timestamp NULL DEFAULT NULL,
+  `duration_ms` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `cstl_company_created_idx` (`company_id`,`created_at`),
+  KEY `cstl_company_type_created_idx` (`company_id`,`task_type`,`created_at`),
+  CONSTRAINT `cstl_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `company_scheduled_tasks`
+--
+
+DROP TABLE IF EXISTS `company_scheduled_tasks`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `company_scheduled_tasks` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` bigint(20) unsigned NOT NULL,
+  `task_type` varchar(64) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `frequency` varchar(32) NOT NULL DEFAULT 'manual',
+  `last_run_at` timestamp NULL DEFAULT NULL,
+  `last_status` varchar(32) DEFAULT NULL,
+  `last_message` text DEFAULT NULL,
+  `next_run_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `company_scheduled_tasks_company_type_unique` (`company_id`,`task_type`),
+  KEY `company_scheduled_tasks_due_index` (`enabled`,`next_run_at`),
+  CONSTRAINT `company_scheduled_tasks_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`company_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

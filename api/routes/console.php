@@ -35,3 +35,16 @@ Schedule::command(StripeCreateMissingInvoices::class)
     ->withoutOverlapping()
     ->onOneServer()
     ->runInBackground();
+
+Schedule::command(\App\Console\Commands\RunErpScheduledTasksCommand::class)
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();
+
+// Cola de fotos ERP: una descarga por vez, cada minuto (cron Linux → schedule:run).
+Schedule::command(\App\Console\Commands\ProcessErpProductImageQueueCommand::class, ['--limit' => 40])
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();

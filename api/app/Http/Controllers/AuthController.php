@@ -27,8 +27,8 @@ class AuthController extends Controller
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('companies', 'email')->whereNull('deleted_at'),
-                Rule::unique('users', 'email')->whereNull('deleted_at')
+                Rule::unique('companies', 'email'),
+                Rule::unique('users', 'email')
             ],
             'company.phone_number' => 'nullable|string|max:20',
             'company.tax_id' => 'nullable|string|max:255',

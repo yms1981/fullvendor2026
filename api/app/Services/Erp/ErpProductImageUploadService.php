@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -29,6 +30,209 @@ use Throwable;
 class ErpProductImageUploadService
 {
     public const MAX_IMAGES = 5;
+
+    /**
+     * Recibe filas ERP {sku, url, is_default} (mismo company_id), descarga y guarda
+     * con la misma política que el alta manual / multipart.
+     *
+     * @param  list<array{sku?:string,url?:string,is_default?:bool|int|string,company_id?:int}>  $items
+     * @return array{
+     *     total: int,
+     *     products: int,
+     *     attached: int,
+     *     failed: int,
+     *     results: list<array<string, mixed>>,
+     *     errors: list<string>
+     * }
+     */
+    public function attachFromUrlItems(int $companyId, array $items): array
+    {
+        $summary = [
+            'total' => count($items),
+            'products' => 0,
+            'attached' => 0,
+            'failed' => 0,
+            'results' => [],
+            'errors' => [],
+        ];
+
+        /** @var array<string, list<array{url:string,is_default:bool}>> $bySku */
+        $bySku = [];
+        foreach ($items as $index => $row) {
+            if (! is_array($row)) {
+                $summary['failed']++;
+                $summary['errors'][] = "index {$index}: invalid_item";
+
+                continue;
+            }
+            $sku = trim((string) ($row['sku'] ?? ''));
+            $url = trim((string) ($row['url'] ?? $row['image_url'] ?? ''));
+            if ($sku === '' || $url === '' || ! filter_var($url, FILTER_VALIDATE_URL)) {
+                $summary['failed']++;
+                $summary['errors'][] = "index {$index}: sku and valid url are required";
+
+                continue;
+            }
+            $key = mb_strtoupper($sku, 'UTF-8');
+            $bySku[$key] ??= [];
+            $bySku[$key][] = [
+                'url' => $url,
+                'is_default' => filter_var($row['is_default'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        foreach ($bySku as $skuKey => $images) {
+            $product = Product::query()
+                ->where('company_id', $companyId)
+                ->whereRaw('UPPER(TRIM(sku)) = ?', [$skuKey])
+                ->first();
+
+            if (! $product) {
+                $summary['failed'] += count($images);
+                if (count($summary['errors']) < 30) {
+                    $summary['errors'][] = $skuKey.': product not found (sync product data first)';
+                }
+                $summary['results'][] = [
+                    'sku' => $skuKey,
+                    'outcome' => 'failed',
+                    'error' => 'product_not_found',
+                ];
+
+                continue;
+            }
+
+            usort($images, static function (array $a, array $b): int {
+                return ((int) $b['is_default']) <=> ((int) $a['is_default']);
+            });
+
+            $files = [];
+            $defaultIndex = 0;
+            $downloadErrors = [];
+            foreach ($images as $i => $img) {
+                $file = $this->downloadUrlToUploadedFile($img['url'], (string) $product->sku, $i);
+                if ($file === null) {
+                    $downloadErrors[] = $img['url'];
+
+                    continue;
+                }
+                if ($img['is_default']) {
+                    $defaultIndex = count($files);
+                }
+                $files[] = $file;
+            }
+
+            if ($files === []) {
+                $summary['failed'] += count($images);
+                $msg = $skuKey.': could not download any URL'
+                    .($downloadErrors !== [] ? ' ('.$downloadErrors[0].')' : '');
+                if (count($summary['errors']) < 30) {
+                    $summary['errors'][] = $msg;
+                }
+                $summary['results'][] = [
+                    'sku' => $skuKey,
+                    'pro_id' => (int) $product->pro_id,
+                    'outcome' => 'failed',
+                    'error' => 'download_failed',
+                    'urls' => array_slice($downloadErrors, 0, 3),
+                ];
+
+                continue;
+            }
+
+            try {
+                $uploaded = $this->upload($product, $files, $defaultIndex, replace: true);
+                $summary['products']++;
+                $summary['attached'] += count($uploaded['uploaded'] ?? []);
+                $summary['failed'] += max(0, count($images) - count($files));
+                $summary['results'][] = [
+                    'sku' => $skuKey,
+                    'pro_id' => (int) $product->pro_id,
+                    'outcome' => 'attached',
+                    'default_image_id' => $uploaded['default_image_id'] ?? null,
+                    'uploaded' => count($uploaded['uploaded'] ?? []),
+                    'download_failed' => count($downloadErrors),
+                ];
+            } catch (Throwable $e) {
+                $summary['failed'] += count($images);
+                if (count($summary['errors']) < 30) {
+                    $summary['errors'][] = $skuKey.': '.$e->getMessage();
+                }
+                $summary['results'][] = [
+                    'sku' => $skuKey,
+                    'pro_id' => (int) $product->pro_id,
+                    'outcome' => 'failed',
+                    'error' => $e->getMessage(),
+                ];
+                Log::warning('erp.products.images.attach_from_url_failed', [
+                    'company_id' => $companyId,
+                    'sku' => $skuKey,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $summary;
+    }
+
+    private function downloadUrlToUploadedFile(string $url, string $sku, int $index): ?UploadedFile
+    {
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => 'FullVendor-MVC-ERP-ImageSync/1.0',
+                'Accept' => 'image/*,*/*',
+            ])
+                ->connectTimeout(15)
+                ->timeout(90)
+                ->withOptions(['verify' => false, 'allow_redirects' => true])
+                ->get($url);
+
+            if (! $response->successful()) {
+                Log::warning('erp.products.images.attach_download_http', [
+                    'url' => $url,
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $body = $response->body();
+            if ($body === '') {
+                return null;
+            }
+
+            $contentType = strtolower((string) $response->header('Content-Type'));
+            $ext = match (true) {
+                str_contains($contentType, 'png') => 'png',
+                str_contains($contentType, 'webp') => 'webp',
+                str_contains($contentType, 'gif') => 'gif',
+                default => 'jpg',
+            };
+            $pathExt = strtolower((string) pathinfo(parse_url($url, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+            if (in_array($pathExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+                $ext = $pathExt === 'jpeg' ? 'jpg' : $pathExt;
+            }
+
+            $tmp = tempnam(sys_get_temp_dir(), 'erpimg_');
+            if ($tmp === false) {
+                return null;
+            }
+            $path = $tmp.'.'.$ext;
+            rename($tmp, $path);
+            file_put_contents($path, $body);
+
+            $filename = preg_replace('/[^A-Za-z0-9._-]+/', '_', $sku) ?: 'product';
+            $filename .= ($index === 0 ? '' : '_PIC'.($index + 1)).'.'.$ext;
+
+            return new UploadedFile($path, $filename, mime_content_type($path) ?: 'image/jpeg', null, true);
+        } catch (Throwable $e) {
+            Log::warning('erp.products.images.attach_download_failed', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
 
     /**
      * @param  list<UploadedFile>  $files

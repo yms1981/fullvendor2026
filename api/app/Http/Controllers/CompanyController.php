@@ -214,6 +214,24 @@ class CompanyController extends Controller
             $attributes['company_category_id'] = null;
         }
 
+        if (array_key_exists('erp_enabled', $attributes)) {
+            $attributes['erp_enabled'] = filter_var($attributes['erp_enabled'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        }
+
+        if (array_key_exists('erp_company_code', $attributes)) {
+            $attributes['erp_company_code'] = trim((string) $attributes['erp_company_code']) ?: null;
+        }
+
+        if (array_key_exists('erp_url', $attributes)) {
+            $attributes['erp_url'] = trim((string) $attributes['erp_url']) ?: null;
+        }
+
+        // Token tipo password: vacío = conservar el actual.
+        if (array_key_exists('erp_company_token', $attributes)
+            && trim((string) $attributes['erp_company_token']) === '') {
+            unset($attributes['erp_company_token']);
+        }
+
         return $attributes;
     }
 
@@ -370,6 +388,11 @@ class CompanyController extends Controller
         if ($passwordChanged) {
             $model->refresh();
             CompanyManagerPasswordService::syncFromCompany($model);
+        }
+
+        $model->refresh();
+        if ((bool) ($model->erp_enabled ?? false)) {
+            app(\App\Services\Erp\ErpScheduledTaskService::class)->ensureTasksForCompany($model);
         }
 
         return $result;

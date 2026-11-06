@@ -80,8 +80,17 @@ $upperText = static function (string $value): string {
             $sku = trim((string) ($listItem->sku ?? ''));
             $unitLabel = $resolveUnitLabel($listItem);
             $categoryName = $resolveFirstCategory($listItem);
-            $tags = trim((string) ($listItem->tags ?? ''));
-            $stock = (string) ($listItem->stock ?? '0');
+            $stockQty = function_exists('fv_product_stock_quantity')
+                ? fv_product_stock_quantity($listItem)
+                : (float) ($listItem->stock ?? 0);
+            $stockQty = max(0.0, $stockQty);
+            $stock = function_exists('fv_format_unit_quantity')
+                ? fv_format_unit_quantity($stockQty, $listItem, (string) $radixPoint, (string) $groupSeparator)
+                : (string) $stockQty;
+            $tagList = function_exists('fv_product_tags_with_stock_status')
+                ? fv_product_tags_with_stock_status($listItem->tags ?? '', $listItem, is_array($pageTexts ?? null) ? $pageTexts : [])
+                : array_values(array_filter(array_map('trim', explode(',', (string) ($listItem->tags ?? '')))));
+            $tags = implode(', ', $tagList);
             $editUrl = $resolveActionUrl($itemActions ?? [], 'edit', $proId);
             $viewUrl = $resolveActionUrl($itemActions ?? [], 'view', $proId);
             $primaryUrl = $editUrl !== '' ? $editUrl : $viewUrl;

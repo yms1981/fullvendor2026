@@ -785,8 +785,93 @@ if (! function_exists('fv_format_unit_quantity')) {
     function fv_format_unit_quantity($value, $product, string $radix = '.', string $group = ','): string
     {
         $places = fv_product_unit_decimal_places($product);
+        // Existencias negativas se muestran como 0.
+        $qty = max(0.0, (float) $value);
 
-        return number_format((float) $value, $places, $radix, $group);
+        return number_format($qty, $places, $radix, $group);
+    }
+}
+
+if (! function_exists('fv_product_stock_quantity')) {
+    /**
+     * @param object|array<string, mixed>|null $product
+     */
+    function fv_product_stock_quantity($product, $fallback = null): float
+    {
+        if ($fallback !== null && $fallback !== '') {
+            return (float) $fallback;
+        }
+        if (is_array($product)) {
+            return (float) ($product['stock'] ?? 0);
+        }
+        if (is_object($product)) {
+            return (float) ($product->stock ?? 0);
+        }
+
+        return 0.0;
+    }
+}
+
+if (! function_exists('fv_product_stock_status_label')) {
+    /**
+     * @param object|array<string, mixed>|null $product
+     * @param array<string, mixed> $pageTexts
+     */
+    function fv_product_stock_status_label($product, array $pageTexts = [], $stockValue = null): string
+    {
+        $qty = fv_product_stock_quantity($product, $stockValue);
+        if ($qty > 0) {
+            return (string) ($pageTexts['tag_in_stock'] ?? 'In Stock');
+        }
+
+        return (string) ($pageTexts['tag_not_in_stock'] ?? 'Not In Stock');
+    }
+}
+
+if (! function_exists('fv_product_is_stock_status_tag')) {
+    function fv_product_is_stock_status_tag(string $tag): bool
+    {
+        $normalized = mb_strtolower(trim($tag), 'UTF-8');
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+        $known = [
+            'in stock',
+            'not in stock',
+            'out of stock',
+            'with stock',
+            'without stock',
+            'en stock',
+            'sin stock',
+            'con stock',
+            'agotado',
+        ];
+
+        return in_array($normalized, $known, true);
+    }
+}
+
+if (! function_exists('fv_product_tags_with_stock_status')) {
+    /**
+     * Sustituye etiquetas de stock libres por el estado real según existencias.
+     *
+     * @param object|array<string, mixed>|null $product
+     * @param array<string, mixed> $pageTexts
+     * @return list<string>
+     */
+    function fv_product_tags_with_stock_status($tagsValue, $product, array $pageTexts = [], $stockValue = null): array
+    {
+        $raw = is_array($tagsValue) ? $tagsValue : explode(',', (string) $tagsValue);
+        $tags = [];
+        foreach ($raw as $tag) {
+            $tag = trim((string) $tag);
+            if ($tag === '' || fv_product_is_stock_status_tag($tag)) {
+                continue;
+            }
+            $tags[] = $tag;
+        }
+
+        array_unshift($tags, fv_product_stock_status_label($product, $pageTexts, $stockValue));
+
+        return array_values(array_unique($tags));
     }
 }
 

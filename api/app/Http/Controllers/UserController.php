@@ -489,7 +489,7 @@ class UserController extends Controller
             return null;
         }
 
-        return User::withTrashed()
+        return User::query()
             ->whereRaw('LOWER(email) = ?', [mb_strtolower($email, 'UTF-8')])
             ->first();
     }
