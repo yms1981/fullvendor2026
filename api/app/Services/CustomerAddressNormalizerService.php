@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Descompone direcciones “completas” pegadas en un solo campo
  * y deja: address (solo calle), state, city, zip, country.
- * Orden de concatenación UI: Address, State, City, ZipCode, Country.
+ * Orden de concatenación UI: Address, City, State(sigla), ZipCode, Country.
  */
 class CustomerAddressNormalizerService
 {
@@ -209,8 +209,8 @@ class CustomerAddressNormalizerService
             $columns[$prefix.'_zip_code'] = $normalized['zip'];
             $columns[$prefix.'_delivery_address'] = $this->concatDisplay(
                 $normalized['address'],
-                $normalized['state'],
                 $normalized['city'],
+                $normalized['state'],
                 $normalized['zip'],
                 $normalized['country']
             );
@@ -221,13 +221,14 @@ class CustomerAddressNormalizerService
 
     public function concatDisplay(
         ?string $address,
-        ?string $state,
         ?string $city,
+        ?string $state,
         ?string $zip,
         ?string $country
     ): ?string {
+        $stateSeg = $this->stateAbbrevForDisplay($state) ?? $state;
         $parts = [];
-        foreach ([$address, $state, $city, $zip, $country] as $seg) {
+        foreach ([$address, $city, $stateSeg, $zip, $country] as $seg) {
             $t = trim((string) $seg);
             if ($t !== '') {
                 $parts[] = $this->upper($t) ?? $t;
@@ -235,6 +236,31 @@ class CustomerAddressNormalizerService
         }
 
         return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    /**
+     * Preferir solo la sigla en la dirección concatenada (nunca "MI - MICHIGAN").
+     * Si no hay sigla, devolver el nombre limpio.
+     */
+    private function stateAbbrevForDisplay(?string $state): ?string
+    {
+        $s = $this->upper($state);
+        if ($s === null || $s === '') {
+            return null;
+        }
+        // "MI - MICHIGAN" → MI
+        if (preg_match('/^([A-Z0-9]{1,5})\s*[-–—]\s+(.+)$/u', $s, $m)) {
+            return $m[1];
+        }
+        if (isset(self::US_STATES[$s])) {
+            return $s;
+        }
+        static $nameToAbbr = null;
+        if ($nameToAbbr === null) {
+            $nameToAbbr = array_flip(self::US_STATES);
+        }
+
+        return $nameToAbbr[$s] ?? $s;
     }
 
     private function normalizeZip(?string $zip): ?string

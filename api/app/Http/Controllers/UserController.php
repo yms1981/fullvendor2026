@@ -318,10 +318,7 @@ class UserController extends Controller
             $query->orderBy($sortColumn, $sortDirection);
         }
 
-        if ($request->boolean('withTrashed')) { //Generalizar para todos los controladores?
-            $query->withTrashed();
-        }
-
+        // Sin SoftDeletes: el listado ya incluye activos e inactivos (deleted_at es solo flag).
         return $query;
     }
 
@@ -431,7 +428,7 @@ class UserController extends Controller
             // Re-importación / re-alta: usuario ya es customer en la empresa → solo asegurar vínculo, no resetear contraseña.
             if (
                 $existing !== null
-                && ! $existing->trashed()
+                && ! $existing->isDisabled()
                 && $role === CompanyUserTypes::Customer->value
                 && $companyId
                 && $relatedId
@@ -448,8 +445,9 @@ class UserController extends Controller
             }
 
             if ($existing !== null) {
-                if ($existing->trashed()) {
-                    $existing->restore();
+                if ($existing->isDisabled()) {
+                    $existing->deleted_at = null;
+                    $existing->save();
                 }
                 $user = $this->syncExistingUserFromStoreRequest($existing, $data);
             } else {
@@ -565,8 +563,9 @@ class UserController extends Controller
             if ($existing === null) {
                 throw $e;
             }
-            if ($existing->trashed()) {
-                $existing->restore();
+            if ($existing->isDisabled()) {
+                $existing->deleted_at = null;
+                $existing->save();
             }
             $data['password'] = $plainPassword;
 
@@ -759,16 +758,12 @@ class UserController extends Controller
         $with = request()->input('relations',[]);
 
         $companyId = request()->input('company_id');
-        $withTrashed = request()->input('withTrashed');
 
         return $this->getModelInstanceBuilder($modelId)
             ->select($columns)
             ->with($with)
             ->when($companyId, function ($query) use ($companyId) {
                 $query->forCompany($companyId);
-            })
-            ->when($withTrashed, function ($query) {
-                $query->withTrashed();
             })
             ->sole();
     }
@@ -1053,7 +1048,7 @@ class UserController extends Controller
             }
         }
         if (!$user->companyUsers()->exists()) {
-            $user->forceDelete();
+            $user->delete();
         }
 
         return response()->noContent();
@@ -1266,19 +1261,18 @@ class UserController extends Controller
     )]
     public function enable($userId)
     {
-        $user = $this->getBuilder()
-            ->withTrashed()
-            ->findOrFail($userId);
+        $user = $this->getBuilder()->findOrFail($userId);
 
         $this->authorize('restore', $user);
 
-        if (!$user || !$user->trashed()) {
+        if (! $user->isDisabled()) {
             return $user;
         }
 
-        $user->restore();
+        $user->deleted_at = null;
+        $user->save();
 
-        return $user;
+        return $user->fresh();
     }
 
     #[OA\Put(
@@ -1343,13 +1337,15 @@ class UserController extends Controller
     {
         $user = $this->getMainModelInstance($userId);
 
-        if (!$user || $user->trashed() || auth()->id() === $user->id) {
+        if (! $user || $user->isDisabled() || auth()->id() === $user->id) {
             return $user;
         }
 
-        $user->delete();
+        // Flag de deshabilitado (no SoftDeletes / no borra el registro).
+        $user->deleted_at = now();
+        $user->save();
 
-        return $user;
+        return $user->fresh();
     }
 
     protected function validateRole(CompanyUser $role, array &$errors): void

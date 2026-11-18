@@ -48,6 +48,7 @@ class UpdateCustomerRequest extends UpdateModelRequest
             'phone' => ['nullable', 'string', 'max:20'],
             'cell_phone' => ['nullable', 'string', 'max:20'],
             'catalog_emails' => ['nullable', 'boolean'],
+            'portal_password' => ['nullable', 'string', 'max:255'],
             'sellers' => ['nullable', 'array'],
             'sellers.*' => ['numeric', 'distinct', 'exists:sellers,id'],
             'seller_assign_catalog' => ['nullable', 'numeric', 'exists:sellers,id'],

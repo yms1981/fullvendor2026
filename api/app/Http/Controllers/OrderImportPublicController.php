@@ -686,7 +686,7 @@ class OrderImportPublicController extends Controller
                 }
 
                 // Reemplazar ítems por los de la orden nueva.
-                $existingOrder->order_details()->forceDelete();
+                $existingOrder->order_details()->delete();
                 $details = $buildDetails();
                 $existingOrder->order_details()->saveMany($details);
 

@@ -35,10 +35,16 @@ $(function () {
     }
 
     $(document).on('submit', '#form_edit', function(e) {
+        const formCandidate = e.currentTarget || document.getElementById('form_edit');
+        // No interceptar edición de usuario (users/send_form.js).
+        if (formCandidate && (formCandidate.getAttribute('data-user-edit') === '1' || formCandidate.getAttribute('data-user-create') === '1')) {
+            return;
+        }
         e.preventDefault();
+        e.stopImmediatePropagation();
         
         try {
-            const form = document.getElementById('form_edit');
+            const form = formCandidate;
             
             if (!form) {
                 console.error('Formulario #form_edit no encontrado');

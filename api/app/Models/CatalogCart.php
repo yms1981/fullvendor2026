@@ -12,7 +12,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CatalogCart
@@ -163,7 +162,6 @@ class CatalogCart extends Order
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     public function save(array $options = [])
     {

@@ -538,7 +538,7 @@ class normalizeData extends Command
                         }
                     }
 
-                    if (!$seller->trashed() && $seller->default) {
+                    if (!($seller->deleted_at !== null) && $seller->default) {
                         Company::where('company_id',$companyId)->update(['default_seller_id' => $seller->id]);
                     }
 

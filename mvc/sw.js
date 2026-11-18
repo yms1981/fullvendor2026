@@ -1,10 +1,11 @@
 /* FullVendor PWA service worker — installability + light offline shell */
-const FV_SW_VERSION = 'fv-pwa-v1';
+const FV_SW_VERSION = 'fv-pwa-v4';
 const FV_SHELL_CACHE = FV_SW_VERSION + '-shell';
 
 const FV_SHELL_URLS = [
   './',
   './company/',
+  './pwa-manifest.php',
   './manifest.json',
   './companyasset/images/pwa/icon-192.png',
   './companyasset/images/pwa/icon-512.png'

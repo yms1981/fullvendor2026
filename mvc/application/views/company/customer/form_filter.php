@@ -173,11 +173,18 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-12 col-xl-2 col-sm-12">
-
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <div class="input-group mb-3">
+                <input id="input-todos" hidden name="input_todos"
+                       value="<?= ($filterData['input_todos']) ? 'todos' : 'pagina' ?>">
+                <input type="hidden" id="order_sort" name="sort"
+                       value="<?= htmlspecialchars((string) ($filterData['sort'] ?? 'modified_at'), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="sort_direction" name="sort_direction"
+                       value="<?= htmlspecialchars((string) ($filterData['orderDirection'] ?? 'desc'), ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label><?= htmlspecialchars($pageTexts['caja_text_search'] ?? ($pageTexts['search'] ?? 'Search'), ENT_QUOTES, 'UTF-8') ?></label>
+                        <div class="input-group">
                             <input type="text" name="prsearch"
                                    onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscar_porfiltro(); }"
                                    class="form-control"
@@ -190,12 +197,6 @@
                         </div>
                     </div>
                 </div>
-                <input id="input-todos" hidden name="input_todos"
-                       value="<?= ($filterData['input_todos']) ? 'todos' : 'pagina' ?>">
-                <input type="hidden" id="order_sort" name="sort"
-                       value="<?= htmlspecialchars((string) ($filterData['sort'] ?? 'modified_at'), ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" id="sort_direction" name="sort_direction"
-                       value="<?= htmlspecialchars((string) ($filterData['orderDirection'] ?? 'desc'), ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </form>
     </div>

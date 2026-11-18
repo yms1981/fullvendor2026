@@ -55,6 +55,7 @@ $freqLabels = [
 $typeLabels = [
     'sync_customers' => $pageTexts['task_sync_customers'] ?? 'sync_customers',
     'sync_products' => $pageTexts['task_sync_products'] ?? 'sync_products',
+    'sync_product_prices' => $pageTexts['task_sync_product_prices'] ?? 'sync_product_prices',
     'sync_categories' => $pageTexts['task_sync_categories'] ?? 'sync_categories',
     'sync_customer_balances' => $pageTexts['task_sync_customer_balances'] ?? 'sync_customer_balances',
     'sync_product_inventories' => $pageTexts['task_sync_product_inventories'] ?? 'sync_product_inventories',

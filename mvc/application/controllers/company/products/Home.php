@@ -50,13 +50,21 @@ class Home extends Company_Controller
     {
         $addToCatalogProductId = (int) ($this->session->flashdata('add_to_catalog_product_id') ?: 0);
 
+        $qualityFilter = '';
+        $filterQuery = $this->resolveProductListFilterQueryParams();
+        if (! empty($filterQuery['quality'])) {
+            $qualityFilter = strtolower(trim((string) $filterQuery['quality']));
+        }
+
         return [
             'showRowIndexColumn' => false,
             'listCompanyId' => (int) $this->getCompanyId(),
             'enableProductViewModes' => true,
             'addToCatalogProductId' => $addToCatalogProductId > 0 ? $addToCatalogProductId : null,
-            'hideExpandSelectionAlert' => true,
             'productListQuality' => $this->productListQuality ?? $this->loadProductListQuality(),
+            'activeQualityFilter' => $qualityFilter,
+            'apiToken' => $this->getUserToken(),
+            'apiBaseUrl' => '/api',
         ];
     }
 
@@ -251,6 +259,7 @@ class Home extends Company_Controller
             'companyasset/company/product/index.js',
             'companyasset/company/product/AssignOrRemove.js',
             'companyasset/company/product/export.js',
+            'companyasset/company/product/export-images.js',
             'companyasset/company/product/validar_campo.js',
             'companyasset/company/product/submit_filtro.js',
             'companyasset/company/product/eventos.js',
@@ -259,6 +268,7 @@ class Home extends Company_Controller
             'companyasset/company/product/category-groups.js',
             'companyasset/company/product/list-taxonomy.js',
             'companyasset/company/product/product-specs.js',
+            'companyasset/company/product/duplicate-barcodes.js',
         ];
 
         // Orden importante: primero las dependencias, luego los scripts de módulo
@@ -293,6 +303,7 @@ class Home extends Company_Controller
             'duplicate_codes' => 0,
             'zero_price' => 0,
             'negative_stock_fixed' => 0,
+            'units_fixed' => 0,
         ];
         try {
             $response = $this->getDataFromApi('product/list-quality');
@@ -312,6 +323,7 @@ class Home extends Company_Controller
             'duplicate_codes' => (int) ($response['duplicate_codes'] ?? 0),
             'zero_price' => (int) ($response['zero_price'] ?? 0),
             'negative_stock_fixed' => (int) ($response['negative_stock_fixed'] ?? 0),
+            'units_fixed' => (int) ($response['units_fixed'] ?? 0),
         ];
     }
 
@@ -368,6 +380,11 @@ class Home extends Company_Controller
             'company/product/modals/export',
             "mdi mdi-download"
         );
+        $contextualButtonBar->addButton(
+            $this->langArr['bnExportImages'] ?? '',
+            'export_product_images();',
+            'mdi mdi-folder-image'
+        );
         return $contextualButtonBar;
     }
 
@@ -401,9 +418,16 @@ class Home extends Company_Controller
                     'minimum_quantity' => $this->langArr['field_minimum_quantity'] ?? 'MOQ'
                 ],
             ] + $this->langArr + $lang_export;
-        // No mostrar el banner amarillo "Hay un total de X productos encontrados".
-        // El total ya aparece en la barra superior (Total de productos / encontrados).
-        $texts['expandSelectionInfo'] = '';
+
+        // Misma franja de selección masiva que clientes: total encontrado + "Mark All Records".
+        if (isset($pageContentObject) && isset($pageContentObject->total)) {
+            $texts['expandSelectionInfo'] = sprintf(
+                (string) ($this->langArr['alert_cantidad_productos'] ?? 'There are a total of %s products found'),
+                $pageContentObject->total,
+                $pageContentObject->total
+            );
+        }
+
         return $texts;
     }
 
@@ -432,6 +456,11 @@ class Home extends Company_Controller
         $filtroCatalog = $q['filtro_catalog'] ?? null;
         $prsearch = $q['prsearch'] ?? null;
 
+        $quality = strtolower(trim((string) ($q['quality'] ?? '')));
+        if (! in_array($quality, ['duplicate_barcode', 'zero_price', 'stock_fixed', 'units_fixed'], true)) {
+            $quality = '';
+        }
+
         return [
             'prdstatus' => $q['prdstatus'] ?? 1,
             'category' => (($q['categoryId'] ?? 'todo') === 'todo') ? null : ($q['categoryId'] ?? null),
@@ -441,6 +470,7 @@ class Home extends Company_Controller
             'location' => $q['filtro_ubicacion'] ?? null,
             'catalog' => ($filtroCatalog !== null && $filtroCatalog !== 'todo') ? $filtroCatalog : null,
             'order_type' => $q['order_type'] ?? null,
+            'quality' => $quality !== '' ? $quality : null,
             'sort' => ($q['sort'] ?? null) !== null && ($q['sort'] ?? '') !== '' ? $q['sort'] : 'modified_on',
             'orderDirection' => ($q['sort_direction'] ?? null) !== null && ($q['sort_direction'] ?? '') !== ''
                 ? $q['sort_direction']
@@ -473,6 +503,7 @@ class Home extends Company_Controller
             'filtro_ubicacion',
             'filtro_catalog',
             'order_type',
+            'quality',
             'sort',
             'sort_direction',
             'input_todos',

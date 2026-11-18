@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class ImportHistory
@@ -58,7 +57,7 @@ class ImportHistory extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'import_history';
+    protected $table = 'import_history';
     protected $primaryKey = 'import_id';
 
 

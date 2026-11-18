@@ -941,7 +941,7 @@ abstract class Controller
     protected function destroyResourceEmptyResponse(Model $item, bool $force = false)
     {
         $pk = $item->getKey();
-        $deleteMethod=$force?'forceDelete':'delete';
+        $deleteMethod='delete';
         if ($item->$deleteMethod()) {
             Log::info("The ".get_class($item)." #".$pk." was deleted by");
             return response()->noContent();

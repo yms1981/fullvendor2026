@@ -232,6 +232,14 @@ class CompanyController extends Controller
             unset($attributes['erp_company_token']);
         }
 
+        if (array_key_exists('ecommerce_enabled', $attributes)) {
+            $attributes['ecommerce_enabled'] = filter_var($attributes['ecommerce_enabled'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        }
+
+        if (array_key_exists('ecommerce_url', $attributes)) {
+            $attributes['ecommerce_url'] = trim((string) $attributes['ecommerce_url']) ?: null;
+        }
+
         return $attributes;
     }
 
@@ -383,6 +391,7 @@ class CompanyController extends Controller
             && trim((string) ($attributes['password'] ?? '')) !== '';
 
         $model = $this->getMainModelInstance($company->company_id);
+        $sellWithInventoryBefore = (int) ($model->sell_with_inventory ?? 0);
         $result = $this->updateModel($model, $attributes);
 
         if ($passwordChanged) {
@@ -393,6 +402,18 @@ class CompanyController extends Controller
         $model->refresh();
         if ((bool) ($model->erp_enabled ?? false)) {
             app(\App\Services\Erp\ErpScheduledTaskService::class)->ensureTasksForCompany($model);
+        }
+
+        // Al activar (o mantener activo) Sell with Inventory: alinear status de productos con stock.
+        $sellWithInventoryAfter = (int) ($model->sell_with_inventory ?? 0);
+        if ($sellWithInventoryAfter === 1 && (
+            $sellWithInventoryBefore !== 1
+            || array_key_exists('sell_with_inventory', $attributes)
+        )) {
+            app(\App\Services\ProductStockStatusSyncService::class)
+                ->syncCompany((int) $model->company_id);
+        } elseif ($sellWithInventoryAfter !== 1 && $sellWithInventoryBefore === 1) {
+            \App\Services\ProductStockStatusSyncService::forgetCompanyCache((int) $model->company_id);
         }
 
         return $result;

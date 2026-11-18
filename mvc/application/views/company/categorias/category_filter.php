@@ -59,47 +59,44 @@
               class="col-sm-12 pt-2"
               action="<?= company_url('categories') ?>">
             <div class="row">
-                <div class="col-12 col-md-9">
-                    <div class="row">
-                        <div class="col-lg-4 col-md-6 col-xl-4 col-sm-12">
-                            <div class="form-group">
-                                <label><?= $pageTexts['active_inactive'] ?? 'Activos/Inactivos' ?></label>
-                                <div class="filter-select-wrapper">
-                                    <select class="form-control filter-select notranslate"
-                                            name="status" id="status"
-                                            onchange="buscar_porfiltro()"
-                                            onfocus="this.selectedIndex = -1;">
-                                        <?php foreach ($status_options as $option): ?>
-                                            <option value="<?= $option['value'] ?>"
-                                                <?= isset($filterData['status']) && $filterData['status'] == $option['value'] ? 'selected' : '' ?>>
-                                                <?= strtoupper($option['text']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <i class="mdi mdi-chevron-down filter-select-arrow"></i>
-                                </div>
-                                <input type="hidden" id="order_type" name="order_type"
-                                       value="<?= isset($filterData['order_type']) ? $filterData['order_type'] : '' ?>">
-                                <input type="hidden" id="order_sort" name="sort"
-                                       value="<?= isset($filterData['sort']) ? $filterData['sort'] : '' ?>">
-                                <input type="hidden" id="input-todos" name="input_todos" value="pagina">
-                            </div>
+                <div class="col-lg-4 col-md-6 col-xl-4 col-sm-12">
+                    <div class="form-group">
+                        <label><?= $pageTexts['active_inactive'] ?? 'Activos/Inactivos' ?></label>
+                        <div class="filter-select-wrapper">
+                            <select class="form-control filter-select notranslate"
+                                    name="status" id="status"
+                                    onchange="buscar_porfiltro()"
+                                    onfocus="this.selectedIndex = -1;">
+                                <?php foreach ($status_options as $option): ?>
+                                    <option value="<?= $option['value'] ?>"
+                                        <?= isset($filterData['status']) && $filterData['status'] == $option['value'] ? 'selected' : '' ?>>
+                                        <?= strtoupper($option['text']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <i class="mdi mdi-chevron-down filter-select-arrow"></i>
                         </div>
-
-                        <div class="col-lg-4 col-md-6 col-xl-4 col-sm-12">
-                            <div class="form-group">
-                                <label><?= $pageTexts['search'] ?? 'Buscar' ?></label>
-                                <div class="input-group mb-3">
-                                    <input type="text" name="prsearch" id="search"
-                                           class="form-control"
-                                           placeholder="<?= $pageTexts['search'] ?? 'Buscar' ?>"
-                                           value="<?= !empty($filterData['terms']) ? htmlentities(implode(' ',$filterData['terms'])) : '' ?>">
-                                    <div class="input-group-append">
-                                        <button id="btn-submit-textsearch" class="btn btn-light" type="button">
-                                            <span id="basic-addon1"><i class="fa-sharp fa-solid fa-magnifying-glass"></i></span>
-                                        </button>
-                                    </div>
-                                </div>
+                        <input type="hidden" id="order_type" name="order_type"
+                               value="<?= isset($filterData['order_type']) ? $filterData['order_type'] : '' ?>">
+                        <input type="hidden" id="order_sort" name="sort"
+                               value="<?= isset($filterData['sort']) ? $filterData['sort'] : '' ?>">
+                        <input type="hidden" id="input-todos" name="input_todos" value="pagina">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="form-group mb-0">
+                        <label><?= $pageTexts['search'] ?? 'Buscar' ?></label>
+                        <div class="input-group">
+                            <input type="text" name="prsearch" id="search"
+                                   class="form-control"
+                                   placeholder="<?= $pageTexts['search'] ?? 'Buscar' ?>"
+                                   value="<?= !empty($filterData['terms']) ? htmlentities(implode(' ',$filterData['terms'])) : '' ?>">
+                            <div class="input-group-append">
+                                <button id="btn-submit-textsearch" class="btn btn-light" type="button">
+                                    <span id="basic-addon1"><i class="fa-sharp fa-solid fa-magnifying-glass"></i></span>
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -603,6 +603,14 @@ Route::group(
                         [\App\Http\Controllers\Company\CatalogCartController::class, 'expiredCatalogCartsCount']
                     )->name('catalogcart.company.expiredCount');
                     Route::get(
+                        '/company/{companyId}/customer/{customerId}/recent',
+                        [\App\Http\Controllers\Company\CatalogCartController::class, 'recentCustomerCatalogs']
+                    )->name('catalogcart.company.customerRecent');
+                    Route::post(
+                        '/company/{companyId}/cart/{cartId}/expire',
+                        [\App\Http\Controllers\Company\CatalogCartController::class, 'expireCart']
+                    )->name('catalogcart.company.expire');
+                    Route::get(
                         '/company/{companyId}/dashboard/send-catalog-count',
                         [\App\Http\Controllers\Company\CatalogCartController::class, 'sendCatalogCount']
                     )->name('catalogcart.company.sendCatalogCount');
@@ -974,6 +982,10 @@ Route::group(
                         [\App\Http\Controllers\CustomerController::class, 'assignUser']
                     )->name('customer.assign-user');
                     Route::post(
+                        '/unassignUser/{customer}',
+                        [\App\Http\Controllers\CustomerController::class, 'unassignUser']
+                    )->name('customer.unassign-user');
+                    Route::post(
                         '/bulkAssignSeller',
                         [\App\Http\Controllers\CustomerController::class, 'bulkAssignSeller']
                     )->name('customer.bulk-assign-seller');
@@ -1063,6 +1075,18 @@ Route::group(
                         '/{customer}/emails/{customerEmail}/set-primary',
                         [\App\Http\Controllers\CustomerEmailController::class, 'setPrimary']
                     )->name('customer.emails.setPrimary');
+                    Route::post(
+                        '/{customer}/emails/{customerEmail}/send-catalog',
+                        [\App\Http\Controllers\CustomerEmailController::class, 'setSendCatalog']
+                    )->name('customer.emails.setSendCatalog');
+                    Route::post(
+                        '/{customer}/portal-password',
+                        [\App\Http\Controllers\CustomerController::class, 'updatePortalPassword']
+                    )->name('customer.portal-password');
+                    Route::post(
+                        '/{customer}/send-portal-credentials',
+                        [\App\Http\Controllers\CustomerController::class, 'sendPortalCredentials']
+                    )->name('customer.send-portal-credentials');
                     Route::put(
                         '/updateGroup',
                         [\App\Http\Controllers\CustomerController::class, 'updateGroup']
@@ -1320,6 +1344,14 @@ Route::group(
                         [\App\Http\Controllers\ProductController::class, 'listQuality']
                     )->name('product.listQuality');
                     Route::get(
+                        '/duplicate-barcodes',
+                        [\App\Http\Controllers\ProductController::class, 'duplicateBarcodes']
+                    )->name('product.duplicateBarcodes');
+                    Route::patch(
+                        '/{product}/barcode',
+                        [\App\Http\Controllers\ProductController::class, 'updateBarcode']
+                    )->whereNumber('product')->name('product.updateBarcode');
+                    Route::get(
                         '/all',
                         [\App\Http\Controllers\ProductController::class, 'all']
                     )->name('product.all');
@@ -1351,6 +1383,8 @@ Route::group(
                     )->name('product.priceList');
                     Route::get('export', [\App\Http\Controllers\ProductController::class, 'export'])->name('product.export');
                     Route::post('export', [\App\Http\Controllers\ProductController::class, 'export'])->name('product.export.post');
+                    Route::post('export-images', [\App\Http\Controllers\ProductController::class, 'exportImages'])
+                        ->name('product.exportImages');
                     Route::post(
                         'assign-ai-images',
                         [\App\Http\Controllers\ProductController::class, 'assignAiImages']

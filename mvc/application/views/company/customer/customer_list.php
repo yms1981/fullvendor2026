@@ -183,11 +183,12 @@ $todos = $_GET['input_todos'];
                                         </div>
 
 
-                                        <div class="col-lg-3 col-md-12 col-xl-3 col-sm-12">
-
-                                            <div class="form-group">
-                                                <label>&nbsp;</label>
-                                                <div class="input-group mb-3">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="form-group mb-2">
+                                                <label><?= htmlspecialchars((string) ($langprods['caja_text_search'] ?? ''), ENT_QUOTES, 'UTF-8') ?></label>
+                                                <div class="input-group">
                                                     <input type="text" name="prsearch"
                                                         onkeyup="reemplazar($(this).val(),event)" class="form-control"
                                                         placeholder="<?= $langprods['caja_text_search'] ?>"
@@ -198,7 +199,6 @@ $todos = $_GET['input_todos'];
                                                     </div>
                                                 </div>
                                             </div>
-
                                             <div>
                                                 <?= $lang_clientes["total_clientes"] .': ' ?><b><?= $clientescount ?></b>
                                                 <br>

@@ -28,6 +28,7 @@ class Export extends Company_Controller
             $lang['change_price'] ?? 'can_change_price',
             $lang['send_catalog'] ?? 'can_send_catalog',
             $lang['create_customer'] ?? 'can_create_customer',
+            $lang['access_backend'] ?? 'can_access_backend',
             $lang['created'] ?? 'created',
         ];
 
@@ -44,6 +45,7 @@ class Export extends Company_Controller
                 !empty($item->can_change_price) ? $yes : $no,
                 !empty($item->can_send_catalog) ? $yes : $no,
                 !empty($item->can_create_customer) ? $yes : $no,
+                !empty($item->can_access_backend) ? $yes : $no,
                 $this->normalizeConfigCrudDate($item->created ?? null),
             ];
         }

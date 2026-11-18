@@ -46,3 +46,8 @@ Schedule::command(\App\Console\Commands\RunErpScheduledTasksCommand::class)
 Schedule::command(\App\Console\Commands\ProcessErpProductImageQueueCommand::class, ['--limit' => 12])
     ->everyMinute()
     ->withoutOverlapping(5);
+
+// Clientes con email sin user portal (o password vacío → 12345678).
+Schedule::command(\App\Console\Commands\EnsureCustomerPortalUsersCommand::class, ['--limit' => 200])
+    ->hourly()
+    ->withoutOverlapping(30);

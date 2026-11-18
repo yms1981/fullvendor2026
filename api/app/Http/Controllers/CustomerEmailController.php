@@ -47,6 +47,7 @@ class CustomerEmailController extends Controller
                     ),
                 ],
                 'is_primary' => ['nullable', 'boolean'],
+                'send_catalog' => ['nullable', 'boolean'],
             ],
             $this->emailValidationMessages($languageId)
         );
@@ -59,12 +60,20 @@ class CustomerEmailController extends Controller
         }
 
         $makePrimary = (bool) ($validated['is_primary'] ?? false);
+        // Por defecto se envía catálogo a este email.
+        $sendCatalog = array_key_exists('send_catalog', $validated)
+            ? (bool) $validated['send_catalog']
+            : true;
         $hasAny = CustomerEmail::query()->where('customer_id', $customer->customer_id)->exists();
         if (!$hasAny) {
             $makePrimary = true;
         }
+        // El email principal siempre recibe catálogo.
+        if ($makePrimary) {
+            $sendCatalog = true;
+        }
 
-        $row = DB::transaction(function () use ($customer, $email, $makePrimary) {
+        $row = DB::transaction(function () use ($customer, $email, $makePrimary, $sendCatalog) {
             if ($makePrimary) {
                 CustomerEmail::query()
                     ->where('customer_id', $customer->customer_id)
@@ -75,6 +84,7 @@ class CustomerEmailController extends Controller
                 'customer_id' => $customer->customer_id,
                 'email' => $email,
                 'is_primary' => $makePrimary,
+                'send_catalog' => $sendCatalog,
             ]);
 
             if ($makePrimary) {
@@ -103,6 +113,7 @@ class CustomerEmailController extends Controller
                         ->ignore($customerEmail->id),
                 ],
                 'is_primary' => ['nullable', 'boolean'],
+                'send_catalog' => ['nullable', 'boolean'],
             ],
             $this->emailValidationMessages($languageId)
         );
@@ -117,8 +128,15 @@ class CustomerEmailController extends Controller
         $makePrimary = array_key_exists('is_primary', $validated)
             ? (bool) $validated['is_primary']
             : (bool) $customerEmail->is_primary;
+        $sendCatalog = array_key_exists('send_catalog', $validated)
+            ? (bool) $validated['send_catalog']
+            : (bool) $customerEmail->send_catalog;
+        // El email principal siempre recibe catálogo.
+        if ($makePrimary) {
+            $sendCatalog = true;
+        }
 
-        $row = DB::transaction(function () use ($customer, $customerEmail, $email, $makePrimary) {
+        $row = DB::transaction(function () use ($customer, $customerEmail, $email, $makePrimary, $sendCatalog) {
             if ($makePrimary) {
                 CustomerEmail::query()
                     ->where('customer_id', $customer->customer_id)
@@ -129,6 +147,7 @@ class CustomerEmailController extends Controller
             $wasPrimary = (bool) $customerEmail->is_primary;
             $customerEmail->email = $email;
             $customerEmail->is_primary = $makePrimary;
+            $customerEmail->send_catalog = $sendCatalog;
             $customerEmail->save();
 
             if ($makePrimary) {
@@ -143,17 +162,42 @@ class CustomerEmailController extends Controller
         return response()->json(['data' => $row]);
     }
 
+    public function setSendCatalog(Request $request, Customer $customer, CustomerEmail $customerEmail): JsonResponse
+    {
+        $this->assertEmailBelongsToCustomer($customer, $customerEmail);
+
+        $validated = $request->validate([
+            'send_catalog' => ['required', 'boolean'],
+        ]);
+
+        // El email principal no puede desactivar el envío de catálogo.
+        if ((bool) $customerEmail->is_primary) {
+            $customerEmail->send_catalog = true;
+            $customerEmail->save();
+
+            return response()->json(['data' => $customerEmail->fresh()]);
+        }
+
+        $customerEmail->send_catalog = (bool) $validated['send_catalog'];
+        $customerEmail->save();
+
+        return response()->json(['data' => $customerEmail->fresh()]);
+    }
+
     public function destroyForCustomer(Customer $customer, CustomerEmail $customerEmail): JsonResponse
     {
         $this->assertEmailBelongsToCustomer($customer, $customerEmail);
 
-        DB::transaction(function () use ($customer, $customerEmail) {
-            $wasPrimary = (bool) $customerEmail->is_primary;
-            $customerEmail->delete();
+        if ((bool) $customerEmail->is_primary) {
+            $languageId = $this->applyCompanyLocale($customer);
 
-            if ($wasPrimary) {
-                $this->ensureOnePrimary($customer);
-            }
+            return response()->json([
+                'message' => $this->langCliente($languageId, 'emails_cannot_delete_primary'),
+            ], 422);
+        }
+
+        DB::transaction(function () use ($customerEmail) {
+            $customerEmail->delete();
         });
 
         return response()->json(['message' => 'ok']);
@@ -169,6 +213,7 @@ class CustomerEmailController extends Controller
                 ->update(['is_primary' => false]);
 
             $customerEmail->is_primary = true;
+            $customerEmail->send_catalog = true;
             $customerEmail->save();
 
             $this->syncCustomerPrimaryEmail($customer, (string) $customerEmail->email);
@@ -232,8 +277,16 @@ class CustomerEmailController extends Controller
             return;
         }
 
+        $dirty = false;
         if (! $next->is_primary) {
             $next->is_primary = true;
+            $dirty = true;
+        }
+        if (! $next->send_catalog) {
+            $next->send_catalog = true;
+            $dirty = true;
+        }
+        if ($dirty) {
             $next->save();
         }
 
@@ -259,6 +312,7 @@ class CustomerEmailController extends Controller
             'customer_id' => $customer->customer_id,
             'email' => mb_strtolower($email, 'UTF-8'),
             'is_primary' => true,
+            'send_catalog' => true,
         ]);
     }
 

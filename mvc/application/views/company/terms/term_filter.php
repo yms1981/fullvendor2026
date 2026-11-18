@@ -19,7 +19,7 @@ $searchValue = !empty($filterData['terms']) ? implode(' ', $filterData['terms'])
 <div class="dataTables_wrapper dt-bootstrap4 no-footer w-100 mb-2">
     <form method="get" id="form-buscar-filtro" action="<?= company_url('terms/lists') ?>">
         <div class="row align-items-center">
-            <div class="col-sm-6">
+            <div class="col-12">
                 <div class="dataTables_length">
                     <label class="mb-0">
                         <?= htmlspecialchars($lengthBefore) ?>
@@ -32,14 +32,16 @@ $searchValue = !empty($filterData['terms']) ? implode(' ', $filterData['terms'])
                     </label>
                 </div>
             </div>
-            <div class="col-sm-6">
-                <div class="dataTables_filter text-sm-right">
-                    <label class="mb-0">
+        </div>
+        <div class="row align-items-center mt-2">
+            <div class="col-12">
+                <div class="dataTables_filter">
+                    <label class="mb-0 d-block w-100">
                         <?= htmlspecialchars($searchLabel) ?>:
                         <input type="search"
                                name="prsearch"
                                id="search-terms"
-                               class="form-control form-control-sm d-inline-block w-auto ml-1"
+                               class="form-control form-control-sm d-block w-100 mt-1"
                                value="<?= htmlspecialchars($searchValue) ?>"
                                placeholder="<?= htmlspecialchars($searchPlaceholder) ?>"
                                aria-controls="infoTable">

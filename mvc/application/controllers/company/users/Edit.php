@@ -7,7 +7,6 @@ class Edit extends Form
     public function run($userId=null)
     {
         $user = $this->getObjectFromApi("{$this->entityPath}/{$userId}", [
-            "withTrashed" => true,
             "relations" => ["companyUsers.profileable"]
         ]);
 
@@ -136,7 +135,12 @@ class Edit extends Form
                 session_write_close();
             }
             $data['embeddedInModal'] = true;
+            // Misma fusión de idiomas que Form::getDataForView (labels de vendedor: perfil, checks, email).
             $data['pageTexts'] = array_merge(
+                $this->getModuleLang('unit-languaje'),
+                $this->getModuleLang('perfil-vendedores'),
+                $this->getModuleLang('cmp-vendedor'),
+                $this->getModuleLang('cmp-clientes'),
                 is_array($this->langArr) ? $this->langArr : [],
                 is_array($data['pageTexts'] ?? null) ? $data['pageTexts'] : []
             );

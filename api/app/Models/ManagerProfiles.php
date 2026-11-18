@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class ManagerProfiles
@@ -64,7 +63,6 @@ class ManagerProfiles extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     const CREATED_AT = 'created_date';
     const UPDATED_AT = 'modified_date';

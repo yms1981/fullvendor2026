@@ -302,12 +302,69 @@
         });
     }
 
+    function applyPendingRelatedId($modal, role) {
+        var relatedId = String($modal.data('pending-related-id') || '').trim();
+        if (relatedId === '') {
+            return;
+        }
+        $modal.removeData('pending-related-id');
+
+        if (role === 'customer') {
+            var $cust = $modal.find('#modal-customer-select');
+            if ($cust.find('option[value="' + relatedId.replace(/"/g, '\\"') + '"]').length) {
+                $cust.val(relatedId).trigger('change');
+            } else {
+                $modal.find('#related_id').val(relatedId);
+            }
+            return;
+        }
+
+        if (role === 'warehouse') {
+            var $wh = $modal.find('#modal-warehouse-select');
+            if ($wh.find('option[value="' + relatedId.replace(/"/g, '\\"') + '"]').length) {
+                $wh.val(relatedId).trigger('change');
+            } else {
+                $modal.find('#related_id').val(relatedId);
+            }
+        }
+    }
+
     function syncRelatedSelect2($modal, role) {
         whenSelect2Ready(function () {
             if (role === 'customer') {
                 initCustomerSelect2($modal);
             } else if (role === 'warehouse') {
                 initWarehouseSelect2($modal);
+            }
+            applyPendingRelatedId($modal, role);
+        });
+    }
+
+    function fillFormFromCustomerSeed(seed) {
+        if (!seed || typeof seed !== 'object') {
+            return;
+        }
+        var $modal = $('#modalAddUser');
+        var map = {
+            address: '#address',
+            city: '#city',
+            state: '#state',
+            zip_code: '#zip_code',
+            phone: '#phone',
+            cellphone: '#cellphone'
+        };
+        Object.keys(map).forEach(function (key) {
+            var val = seed[key];
+            if (val == null) {
+                return;
+            }
+            var text = String(val).trim();
+            if (text === '') {
+                return;
+            }
+            var $el = $modal.find(map[key]);
+            if ($el.length) {
+                $el.val(text).trigger('input').trigger('change');
             }
         });
     }
@@ -395,14 +452,26 @@
                 var cardHtml = res && (res.card_html != null ? res.card_html : res.html);
                 if (typeof cardHtml === 'string' && cardHtml.trim() !== '') {
                     $body.html(cardHtml);
-                    return;
+                } else {
+                    var c = res && res.data ? res.data : null;
+                    if (!c) {
+                        $body.html('<p class="text-danger mb-0 small">' + esc(langUser('user_modal_customer_error', '')) + '</p>');
+                    } else {
+                        $body.html(renderCustomerCard(c));
+                    }
                 }
-                var c = res && res.data ? res.data : null;
-                if (!c) {
-                    $body.html('<p class="text-danger mb-0 small">' + esc(langUser('user_modal_customer_error', '')) + '</p>');
-                    return;
+                if (res && res.form_seed) {
+                    fillFormFromCustomerSeed(res.form_seed);
+                } else if (res && res.data) {
+                    fillFormFromCustomerSeed({
+                        address: res.data.commercial_address || '',
+                        city: res.data.commercial_city || '',
+                        state: res.data.commercial_state || '',
+                        zip_code: res.data.commercial_zip_code || '',
+                        phone: res.data.phone || '',
+                        cellphone: res.data.cell_phone || res.data.cellphone || ''
+                    });
                 }
-                $body.html(renderCustomerCard(c));
             })
             .fail(function () {
                 $body.html('<p class="text-danger mb-0 small">' + esc(langUser('user_modal_customer_error', '')) + '</p>');
@@ -434,11 +503,22 @@
 
         $modal.on('show.bs.modal', function (e) {
             var role = cfg().defaultRole || 'manager';
+            var relatedId = '';
             if (e && e.relatedTarget) {
-                var dr = $(e.relatedTarget).data('defaultRole');
+                var $src = $(e.relatedTarget);
+                var dr = $src.data('defaultRole') || $src.attr('data-default-role');
                 if (dr) {
                     role = String(dr);
                 }
+                var rid = $src.data('relatedId') || $src.attr('data-related-id');
+                if (rid !== undefined && rid !== null && String(rid) !== '') {
+                    relatedId = String(rid);
+                }
+            }
+            if (relatedId !== '') {
+                $modal.data('pending-related-id', relatedId);
+            } else {
+                $modal.removeData('pending-related-id');
             }
             destroyModalRelatedSelect2($modal);
             $modal.find('#role').val(role).trigger('change');

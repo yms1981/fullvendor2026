@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Log
@@ -58,7 +57,6 @@ class Log extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     protected $table = 'logs';
     const CREATED_AT = 'created_on';

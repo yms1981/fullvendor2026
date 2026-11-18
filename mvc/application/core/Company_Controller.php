@@ -550,16 +550,21 @@ class Company_Controller extends Application_Controller
                 }
             }
             
-            $result = parent::getDataForView($view, $dataForView);
-            $result['company_id'] = (int) $this->getCompanyId();
-            $result['globalSearchLang'] = $this->getLangJsonSection('cmp-global-search');
-            if (empty($result['page']) && function_exists('fv_company_nav_active_key')) {
+            $dataForView['company_id'] = (int) $this->getCompanyId();
+            $dataForView['globalSearchLang'] = $this->getLangJsonSection('cmp-global-search');
+            if (empty($dataForView['page']) && function_exists('fv_company_nav_active_key')) {
                 $activeNav = fv_company_nav_active_key();
                 if ($activeNav !== null && $activeNav !== '') {
-                    $result['page'] = $activeNav;
+                    $dataForView['page'] = $activeNav;
                 }
             }
+            // Antes de getDataForView para que global-search.js entre en $jsFiles de la vista.
             $this->addJsFile(base_url('companyasset/company/global-search.js'));
+            $result = parent::getDataForView($view, $dataForView);
+            $result['company_id'] = (int) ($result['company_id'] ?? $this->getCompanyId());
+            $result['globalSearchLang'] = is_array($result['globalSearchLang'] ?? null)
+                ? $result['globalSearchLang']
+                : $dataForView['globalSearchLang'];
 
             return $result;
         } catch (\Exception $e) {

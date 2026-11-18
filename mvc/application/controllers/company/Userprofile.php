@@ -133,6 +133,7 @@ class Userprofile extends My_Controller
 				'can_change_price' => $this->testInput($this->input->post('can_change_price')),
 				'can_send_catalog' => $this->testInput($this->input->post('can_send_catalog')),
 				'can_create_customer' => $this->testInput($this->input->post('can_create_customer')),
+				'can_access_backend' => $this->testInput($this->input->post('can_access_backend')),
 				'status' => 1,
 				'created' =>date("Y-m-d H:i:s")
 			);
@@ -260,6 +261,7 @@ class Userprofile extends My_Controller
 				'can_change_price' => $this->testInput($this->input->post('can_change_price')),
 				'can_send_catalog' => $this->testInput($this->input->post('can_send_catalog')),
 				'can_create_customer' => $this->testInput($this->input->post('can_create_customer')),
+				'can_access_backend' => $this->testInput($this->input->post('can_access_backend')),
 			);
 
 			// Verificar si es una petición AJAX

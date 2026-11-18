@@ -37,7 +37,8 @@ if (trim((string) ($pt['role'] ?? '')) === '') {
     }
 }
 $t = static function (string $key, string $fallback = '') use ($pt): string {
-    return htmlspecialchars((string) ($pt[$key] ?? $fallback), ENT_QUOTES, 'UTF-8');
+    $v = trim((string) ($pt[$key] ?? ''));
+    return htmlspecialchars($v !== '' ? $v : $fallback, ENT_QUOTES, 'UTF-8');
 };
 $rolePlaceholder = $t('select_role', $pt['label_select'] ?? '');
 $currentType = isset($currentType) ? (string) $currentType : 'manager';
@@ -350,7 +351,9 @@ if ($customerFieldLabel === '') {
                                 <label for="modal-customer-select"><?= htmlspecialchars($customerFieldLabel, ENT_QUOTES, 'UTF-8') ?></label>
                                 <select class="form-control" id="modal-customer-select" autocomplete="off">
                                     <option value=""><?= $t('user_modal_select_customer_placeholder', '') ?></option>
-                                    <?php foreach ($userModalCustomers as $c) :
+                                    <?php
+                                    $preselectedCustomerId = (int) ($preselectedCustomerId ?? 0);
+                                    foreach ($userModalCustomers as $c) :
                                         if (! is_object($c)) {
                                             continue;
                                         }
@@ -364,8 +367,9 @@ if ($customerFieldLabel === '') {
                                         if ($cbiz !== '' && strcasecmp($cbiz, $cname) !== 0) {
                                             $label .= ' — ' . $cbiz;
                                         }
+                                        $selCust = ($preselectedCustomerId > 0 && $cid === $preselectedCustomerId) ? ' selected' : '';
                                         ?>
-                                        <option value="<?= $cid ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></option>
+                                        <option value="<?= $cid ?>"<?= $selCust ?>><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -467,9 +471,9 @@ if ($customerFieldLabel === '') {
                     <div class="modal-section-divider" aria-hidden="true"></div>
 
                     <div class="row align-items-end modal-user-phones-row" id="modal-user-main-phones-row">
-                        <div class="col-4 companyuser-phone-col">
+                        <div class="col-6 companyuser-phone-col" id="modal-user-phone-col">
                             <div class="form-group mb-2">
-                                <label for="phone"><?= $t('telefono', '') ?></label>
+                                <label for="phone"><?= $t('telefono', $t('phone_number', '')) ?></label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text px-2 companyuser-tel-prefix" style="min-width: 5.5rem;"></span>
@@ -478,7 +482,7 @@ if ($customerFieldLabel === '') {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-4 companyuser-phone-col">
+                        <div class="col-6 companyuser-phone-col" id="modal-user-cell-col">
                             <div class="form-group mb-2">
                                 <label for="cellphone"><?= $t('cell_number', '') ?></label>
                                 <div class="input-group">
@@ -489,17 +493,7 @@ if ($customerFieldLabel === '') {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-4 companyuser-phone-col">
-                            <div class="form-group mb-2">
-                                <label for="fax"><?= $t('fax', '') ?></label>
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text px-2 companyuser-tel-prefix" style="min-width: 5.5rem;"></span>
-                                    </div>
-                                    <input type="text" class="form-control companyuser-tel-input" name="fax" id="fax" autocomplete="off" value="">
-                                </div>
-                            </div>
-                        </div>
+                        <input type="hidden" name="fax" id="fax" value="">
                     </div>
 
                     <div class="d-none" id="modal-customer-card-wrap">
@@ -522,7 +516,7 @@ if ($customerFieldLabel === '') {
                             <?php endif; ?>
                         </div>
                         <div class="row align-items-end modal-user-phones-row modal-seller-phones-row">
-                            <div class="col-4 companyuser-phone-col">
+                            <div class="col-6 companyuser-phone-col">
                                 <div class="form-group mb-2">
                                     <label for="mobile"><?= $t('phone_number', $pt['telefono'] ?? '') ?></label>
                                     <div class="input-group">
@@ -533,7 +527,7 @@ if ($customerFieldLabel === '') {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-4 companyuser-phone-col">
+                            <div class="col-6 companyuser-phone-col">
                                 <div class="form-group mb-2">
                                     <label for="cellNumber"><?= $t('cell_number', '') ?></label>
                                     <div class="input-group">
@@ -544,17 +538,7 @@ if ($customerFieldLabel === '') {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-4 companyuser-phone-col">
-                                <div class="form-group mb-2">
-                                    <label for="seller_fax"><?= $t('fax', '') ?></label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text px-2 companyuser-tel-prefix" style="min-width: 5.5rem;"></span>
-                                        </div>
-                                        <input type="text" class="form-control companyuser-tel-input" name="seller_fax" id="seller_fax">
-                                    </div>
-                                </div>
-                            </div>
+                            <input type="hidden" name="seller_fax" id="seller_fax" value="">
                         </div>
                         <div class="row">
                             <div class="col-12">

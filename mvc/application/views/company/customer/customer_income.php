@@ -9,13 +9,8 @@
             <!-- Header -->
             <div class="mb-4">
                 <div class="row align-items-center">
-                    <div class="col-md-8">
+                    <div class="col-md-12">
                         <h3 class="page-title"><?= $pageTexts['title'] ?></h3>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <a class="btn btn-danger" href="<?= company_url('customers') ?>">
-                            <?= htmlspecialchars($pageTexts['back'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-                        </a>
                     </div>
                 </div>
             </div>
@@ -73,35 +68,15 @@
                                 </thead>
                                 <tbody>
                                 <?php
-                                $monthss = []; // inicializo array
-                                $totalordersval = isset($totalordersval) && is_array($totalordersval) ? $totalordersval : [];
-
-                                // últimos 6 meses
-                                for ($j = 0; $j < 6; $j++) {
-                                    $monthss[] = date('m-Y', strtotime("-$j month"));
-                                }
-                                sort($monthss);
-
-                                foreach ($monthss as $monthsortt) {
-                                    $strrplcmnth = str_replace("-", "/", $monthsortt);
-
-                                    $totordvalue = 0;
-                                    $totordcount = 0;
-
-                                    foreach ($totalordersval as $qtyyvalue) {
-                                        $totordcount += $qtyyvalue->qty;
-                                        $totordvalue += $qtyyvalue->qty * $qtyyvalue->sale_price;
-                                    }
-
-                                    $tottordqty  = $totordcount;
-                                    $totordprice = round($totordvalue);
+                                $monthlyRows = isset($monthlyRows) && is_array($monthlyRows) ? $monthlyRows : [];
+                                foreach ($monthlyRows as $monthRow):
                                     ?>
                                     <tr>
-                                        <td><?= htmlspecialchars($strrplcmnth) ?></td>
-                                        <td>$<?= number_format($totordprice) ?></td>
-                                        <td><?= number_format($tottordqty) ?></td>
+                                        <td><?= htmlspecialchars((string) ($monthRow['month'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td>$<?= number_format((float) ($monthRow['value'] ?? 0)) ?></td>
+                                        <td><?= number_format((float) ($monthRow['quantity'] ?? 0)) ?></td>
                                     </tr>
-                                <?php } ?>
+                                <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>

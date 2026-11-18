@@ -12,8 +12,20 @@ $(document).ready(function () {
         $('#erp_company_token').prop('required', enabled && !hasToken);
     }
 
+    function syncEcommerceFieldsVisibility() {
+        var enabled = $('#ecommerce_enabled').is(':checked');
+        var $fields = $('#fv-ecommerce-connection-fields');
+        if (!$fields.length) {
+            return;
+        }
+        $fields.css('display', enabled ? '' : 'none');
+        $('#ecommerce_url').prop('required', enabled);
+    }
+
     $(document).on('change', '#erp_enabled', syncErpFieldsVisibility);
+    $(document).on('change', '#ecommerce_enabled', syncEcommerceFieldsVisibility);
     syncErpFieldsVisibility();
+    syncEcommerceFieldsVisibility();
 
     $(".js-example-matcher-start").select2({
         matcher: matchStart,

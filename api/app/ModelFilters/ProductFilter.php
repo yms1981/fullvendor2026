@@ -98,25 +98,46 @@ class ProductFilter extends ModelFilter
 
     public function terms($termList)
     {
-        $trimmedTerms = array_map('trim', $termList);
-        // Convertir términos a mayúsculas para la búsqueda
-        $trimmedTerms = array_map(function($term) {
+        if (! is_array($termList)) {
+            $termList = preg_split('/\s+/', (string) $termList) ?: [];
+        }
+
+        $rawTerms = [];
+        foreach ($termList as $term) {
+            $term = trim((string) $term);
+            if ($term !== '') {
+                $rawTerms[] = $term;
+            }
+        }
+        if ($rawTerms === []) {
+            return $this;
+        }
+
+        // Mayúsculas para SKU/nombre; barcode se busca también con el valor original.
+        $upperTerms = array_map(static function ($term) {
             return mb_strtoupper($term, 'UTF-8');
-        }, $trimmedTerms);
-        $this->where(function ($qTerms) use ($trimmedTerms) {
-            $qTerms->orWhere(function ($q) use ($trimmedTerms) {
-                foreach ($trimmedTerms as $term) {
-                    $q->orWhere('sku', 'like', '%' . $term . '%');
+        }, $rawTerms);
+
+        return $this->where(function ($qTerms) use ($rawTerms, $upperTerms) {
+            $qTerms->orWhere(function ($q) use ($rawTerms, $upperTerms) {
+                foreach ($upperTerms as $i => $term) {
+                    $q->orWhere('sku', 'like', '%'.$term.'%');
                     $q->orWhere('product_id', $term);
+                    $q->orWhere('pro_id', $term);
+                    // Código de barras (uno o varios en el mismo campo).
+                    $q->orWhere('barcode', 'like', '%'.$term.'%');
+                    $original = $rawTerms[$i] ?? $term;
+                    if ($original !== $term) {
+                        $q->orWhere('barcode', 'like', '%'.$original.'%');
+                    }
                 }
             });
-            $qTerms->orWhere(function ($q) use ($trimmedTerms) {
-                foreach ($trimmedTerms as $term) {
-                    $q->where('name', 'like', '%' . $term . '%');
+            $qTerms->orWhere(function ($q) use ($upperTerms) {
+                foreach ($upperTerms as $term) {
+                    $q->where('name', 'like', '%'.$term.'%');
                 }
             });
         });
-
     }
 
     public function catalog($catalogId) {
@@ -131,6 +152,32 @@ class ProductFilter extends ModelFilter
         });
     }
 
+    /**
+     * Filtro de avisos de calidad: duplicate_barcode | zero_price | stock_fixed.
+     */
+    public function quality($type)
+    {
+        $type = strtolower(trim((string) $type));
+        if ($type === '') {
+            return $this;
+        }
 
+        $companyId = (int) ($this->input('company') ?? $this->input('company_id') ?? 0);
+        if ($companyId < 1) {
+            return $this->whereRaw('1 = 0');
+        }
 
+        if ($type === \App\Services\ProductListQualityService::QUALITY_ZERO_PRICE) {
+            return $this->where('sale_price', '=', 0);
+        }
+
+        $ids = app(\App\Services\ProductListQualityService::class)
+            ->productIdsForFilter($companyId, $type);
+
+        if ($ids === []) {
+            return $this->whereRaw('1 = 0');
+        }
+
+        return $this->whereIn('pro_id', $ids);
+    }
 }

@@ -226,13 +226,14 @@ class AppSalesmanController extends Controller
 
     /**
      * POST /api/v2/app-salesman/orderListSeller
-     * Órdenes del vendedor (seller_id) logueado, solo mes en curso.
+     * Órdenes del vendedor (seller_id) logueado.
+     * Por defecto mes en curso; opcional `days` (60/90/120/180) = últimos N días.
      */
     #[OA\Post(
         path: 'api/v2/app-salesman/orderListSeller',
         operationId: 'appSalesmanOrderListSeller',
-        summary: 'Listar órdenes del vendedor logueado (mes en curso)',
-        description: 'Filtra orders.seller_id del usuario (sellers.user_id) + company_id, solo mes actual (tipo_d=D). Público (sin token).',
+        summary: 'Listar órdenes del vendedor logueado',
+        description: 'Filtra orders.seller_id del usuario (sellers.user_id) + company_id (tipo_d=D). Sin days = mes actual; con days = últimos N días.',
         security: [],
         tags: ['AppSalesman'],
         requestBody: new OA\RequestBody(
@@ -244,6 +245,7 @@ class AppSalesmanController extends Controller
                     new OA\Property(property: 'user_id', type: 'integer', example: 15, description: 'users.id del vendedor logueado'),
                     new OA\Property(property: 'company_id', type: 'integer', example: 1),
                     new OA\Property(property: 'seller_id', type: 'integer', example: 42, description: 'Opcional: sellers.id directo'),
+                    new OA\Property(property: 'days', type: 'integer', example: 90, description: 'Opcional: últimos N días (ej. 60, 90, 120, 180). Sin days = mes actual.'),
                 ]
             )
         ),
@@ -279,6 +281,7 @@ class AppSalesmanController extends Controller
             'user_id' => 'required',
             'company_id' => 'required',
             'seller_id' => 'nullable|integer|min:1',
+            'days' => 'nullable|integer|min:1|max:366',
         ]);
 
         if ($validator->fails()) {
@@ -296,10 +299,15 @@ class AppSalesmanController extends Controller
             ? (int) $data['seller_id']
             : null;
 
+        $days = isset($data['days']) && $data['days'] !== '' && $data['days'] !== null
+            ? (int) $data['days']
+            : null;
+
         $result = $this->orderListService->listForSeller(
             (int) $data['company_id'],
             (int) $data['user_id'],
-            $sellerId
+            $sellerId,
+            $days
         );
 
         if (($result['status'] ?? '0') === '0') {

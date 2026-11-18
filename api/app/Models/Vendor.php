@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use FontLib\TrueType\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Vendor
@@ -81,8 +80,6 @@ class Vendor extends Model
 
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     const UPDATED_AT = 'updated_at';

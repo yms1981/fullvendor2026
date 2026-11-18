@@ -159,16 +159,7 @@ window.fvProductInventoryConfig = <?= json_encode([
                                     </div>
                                 </div>
 
-                                <div class="form-inline flex-wrap">
-                                    <div class="form-group mr-2 mb-2">
-                                        <label class="sr-only" for="fv-inventory-search"><?= htmlspecialchars($t('caja_text_search', 'Search'), ENT_QUOTES, 'UTF-8') ?></label>
-                                        <input type="search"
-                                               id="fv-inventory-search"
-                                               name="q"
-                                               class="form-control"
-                                               value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>"
-                                               placeholder="<?= htmlspecialchars($t('inventory_search_placeholder', 'Search by SKU or name'), ENT_QUOTES, 'UTF-8') ?>">
-                                    </div>
+                                <div class="form-inline flex-wrap mb-2">
                                     <div class="form-group mr-2 mb-2">
                                         <select name="per_page" class="form-control">
                                             <?php foreach ([10, 25, 50, 100] as $opt) : ?>
@@ -185,6 +176,15 @@ window.fvProductInventoryConfig = <?= json_encode([
                                             <?= htmlspecialchars($t('btn_clear_filter', 'Clear'), ENT_QUOTES, 'UTF-8') ?>
                                         </a>
                                     <?php endif; ?>
+                                </div>
+                                <div class="form-group mb-0 w-100">
+                                    <label class="sr-only" for="fv-inventory-search"><?= htmlspecialchars($t('caja_text_search', 'Search'), ENT_QUOTES, 'UTF-8') ?></label>
+                                    <input type="search"
+                                           id="fv-inventory-search"
+                                           name="q"
+                                           class="form-control w-100"
+                                           value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>"
+                                           placeholder="<?= htmlspecialchars($t('inventory_search_placeholder', 'Search by SKU or name'), ENT_QUOTES, 'UTF-8') ?>">
                                 </div>
                             </div>
                         </div>

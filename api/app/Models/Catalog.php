@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Catalog
@@ -85,7 +84,6 @@ class Catalog extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     const UPDATED_AT = 'updated_at';

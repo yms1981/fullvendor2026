@@ -248,12 +248,26 @@
     box-shadow: -8px 0 16px rgba(15, 23, 42, 0.04);
 }
 
+.fv-modern-grid__table th.fv-modern-grid__actions--dropdown,
+.fv-modern-grid__table td.fv-modern-grid__actions--dropdown {
+    min-width: 160px;
+    width: 160px;
+    overflow: visible;
+    z-index: 5;
+}
+
 #main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table th.fv-modern-grid__actions,
 #main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table td.fv-modern-grid__actions,
 #main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table th.fv-crud-actions-column,
 #main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table td.crud-list-actions-column {
     min-width: 108px !important;
     width: 108px !important;
+}
+
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table th.fv-modern-grid__actions--dropdown,
+#main-content .fv-config-crud-datagrid-wrap--active .fv-modern-grid__table td.fv-modern-grid__actions--dropdown {
+    min-width: 160px !important;
+    width: 160px !important;
 }
 
 .fv-modern-grid__table thead th.fv-modern-grid__actions {

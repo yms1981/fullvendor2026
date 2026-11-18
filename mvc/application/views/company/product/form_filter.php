@@ -91,6 +91,12 @@
               action="<?= company_url('products') ?>"
               data-fv-products-selection="1"
               data-list-company-id="<?= (int) ($listCompanyId ?? 0) ?>">
+            <?php
+            $qualityFilterValue = strtolower(trim((string) ($filterData['quality'] ?? '')));
+            if (in_array($qualityFilterValue, ['duplicate_barcode', 'zero_price', 'stock_fixed', 'units_fixed'], true)) :
+                ?>
+                <input type="hidden" name="quality" id="fv_product_quality_filter" value="<?= htmlspecialchars($qualityFilterValue, ENT_QUOTES, 'UTF-8') ?>">
+            <?php endif; ?>
             <div class="form-group mb-3">
                 <label class="fw-bold mb-2" style="font-size:1.1em;"><?= $pageTexts['seleccionar_por'] ?></label>
             </div>
@@ -285,7 +291,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-4 col-sm-6 col-12">
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-12">
                     <div class="form-group mb-0">
                         <label class="mb-1"><?= $pageTexts['caja_text_search'] ?></label>
                         <div class="search-input-group">
@@ -296,8 +304,8 @@
                                    value="<?= !empty($filterData['terms']) ? htmlentities(implode(' ',$filterData['terms'])) : '' ?>"
                                    onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscar_porfiltro(); }"
                                    style="flex: 1;">
-                            <button id="btn-submit-textsearch" 
-                                    class="btn btn-search" 
+                            <button id="btn-submit-textsearch"
+                                    class="btn btn-search"
                                     type="submit"
                                     onclick="buscar_porfiltro(); return false;">
                                 <i class="fa-sharp fa-solid fa-magnifying-glass"></i>

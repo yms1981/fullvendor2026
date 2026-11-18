@@ -7,6 +7,7 @@
 namespace App\Models;
 
 use App\Enums\OrderStatusCodes;
+use App\Services\ProductStockStatusSyncService;
 use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Product
@@ -156,18 +156,22 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 )]
 class Product extends Model
 {
-
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
-    use HasFactory;
 
     const CREATED_AT = 'created_on';
 
     const UPDATED_AT = 'modified_on';
     protected $table = 'products';
     protected $primaryKey = 'pro_id';
+
+    protected static function booted(): void
+    {
+        // Sell with Inventory: status sigue al stock (0 → inactivo, >0 → activo).
+        static::saving(static function (Product $product): void {
+            app(ProductStockStatusSyncService::class)->applyToProduct($product);
+        });
+    }
 
     protected $casts = [
         'product_id' => 'int',

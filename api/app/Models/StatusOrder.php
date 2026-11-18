@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class StatusOrder
@@ -72,7 +71,7 @@ class StatusOrder extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'status_orders';
+    protected $table = 'status_orders';
     protected $primaryKey = 'id_status';
 
 

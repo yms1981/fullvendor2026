@@ -133,7 +133,15 @@ $(function () {
 
     function fvProductsLang() {
         try {
-            return (options.lang && options.lang.cmp_products) ? options.lang.cmp_products : {};
+            if (!options || !options.lang) {
+                return {};
+            }
+            var block = options.lang['cmp-products'] || options.lang.cmp_products || {};
+            // Diccionario MVC: { name, lang: { ...claves } }
+            if (block && typeof block === 'object' && block.lang && typeof block.lang === 'object') {
+                return block.lang;
+            }
+            return block || {};
         } catch (e) {
             return {};
         }
@@ -145,23 +153,23 @@ $(function () {
     }
 
     function fvProductsClearExpandStripe() {
+        // No pintar el contenedor exterior: el color lo lleva solo #expand-selection (amarillo).
         $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
         $('#expansible-info').text('');
         $('#expand-selection.alert').hide();
     }
 
-    function fvProductsShowExpandStripe(mode) {
+    function fvProductsShowExpandStripe(/* mode */) {
         if (fvProductsHideExpandAlert()) {
             fvProductsClearExpandStripe();
             return;
         }
-        var $container = $('#contextual-actions-container');
-        if (mode === 'todos') {
-            $container.removeClass('alert-warning').addClass('alert alert-primary');
-        } else {
-            $container.removeClass('alert-primary').addClass('alert alert-warning');
-        }
-        $('#expand-selection.alert').addClass('show').show();
+        // Mismo color que clientes: solo alert-warning en la franja interna.
+        $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
+        $('#expand-selection.alert')
+            .removeClass('alert-primary')
+            .addClass('alert alert-warning show')
+            .show();
     }
 
     function fvProductsTotalFilteredCount() {
@@ -217,10 +225,12 @@ $(function () {
             var totalRows = $rows.length;
             $('#ckbCheckAll').prop('checked', totalRows > 0 && totalChecked === totalRows);
             fvProductsShowExpandStripe('todos');
-            $('#link-todos').text(lang.desmarcar_todos || '');
-            $('#ckbCheckAll').attr('title', lang.desmarcar_todos || lang.toltip_paginas || '');
+            $('#link-todos').text(lang.desmarcar_todos || 'Unmark All Records');
+            $('#ckbCheckAll').attr('title', lang.desmarcar_todos || lang.toltip_paginas || 'Select Current Page');
             var effectiveCount = Math.max(0, fvProductsTotalFilteredCount() - excluded.size);
-            fvProductsSetExpansibleInfo(effectiveCount + ' ' + (lang.bulk_will_be_used || ''));
+            fvProductsSetExpansibleInfo(
+                effectiveCount + ' ' + (lang.bulk_will_be_used || 'will be used')
+            );
         } else {
             $('#input-todos').val('pagina');
             var included = new Set(st.includedIds);
@@ -232,12 +242,15 @@ $(function () {
             $('#ckbCheckAll').prop('checked', total > 0 && checked === total);
             if (included.size > 0) {
                 fvProductsShowExpandStripe('pagina');
-                fvProductsSetExpansibleInfo(included.size + ' ' + (lang.bulk_will_be_used || ''));
+                $('#link-todos').text(lang.marcar_todos || 'Mark All Records');
+                fvProductsSetExpansibleInfo(
+                    included.size + ' ' + (lang.bulk_will_be_used || 'will be used')
+                );
             } else {
                 fvProductsClearExpandStripe();
+                $('#link-todos').text(lang.marcar_todos || 'Mark All Records');
             }
-            $('#link-todos').text(lang.marcar_todos || '');
-            $('#ckbCheckAll').attr('title', lang.toltip_paginas || '');
+            $('#ckbCheckAll').attr('title', lang.toltip_paginas || 'Select Current Page');
         }
 
         updateBulkButtonsState();
@@ -463,84 +476,109 @@ $(function () {
 
     });
 
-    // Toggle expand/collapse "Use all records found?"
+    // Igual que clientes: Mark All Records / Unmark All Records
     $(document).on('click', '#link-todos', function () {
         var lang = fvProductsLang();
         var input_todos = $('#input-todos');
         var expanding = input_todos.val() === 'pagina';
+        var $rowCheckboxes = $('.checkBoxClass');
+        var $headerCheckbox = $('#ckbCheckAll');
 
         if (expanding) {
+            if (typeof window._linkTodosExpanding === 'undefined') {
+                window._linkTodosExpanding = false;
+            }
+            window._linkTodosExpanding = true;
             input_todos.val('todos');
-            $('.checkBoxClass').prop('checked', true);
-            $('#ckbCheckAll').prop('checked', true);
-            $(this).text(lang.desmarcar_todos || '');
+            $headerCheckbox.prop('checked', true);
+            $rowCheckboxes.prop('checked', true);
+            window._linkTodosExpanding = false;
+            $(this).text(lang.desmarcar_todos || 'Unmark All Records');
             fvProductsShowExpandStripe('todos');
-            // Persistir modo todos sin exclusiones.
             fvProductsSelectionWrite({ v: 2, inputTodos: 'todos', excludedIds: [], includedIds: [] });
-            fvProductsSetExpansibleInfo(fvProductsTotalFilteredCount() + ' ' + (lang.bulk_will_be_used || ''));
+            fvProductsSetExpansibleInfo(
+                fvProductsTotalFilteredCount() + ' ' + (lang.bulk_will_be_used || 'will be used')
+            );
         } else {
             input_todos.val('pagina');
-            $('.checkBoxClass').prop('checked', false);
-            $('#ckbCheckAll').prop('checked', false);
-            $('#ckbCheckAll').attr('title', lang.toltip_paginas || '');
-            $(this).text(lang.marcar_todos || '');
+            $headerCheckbox.prop('checked', false);
+            $rowCheckboxes.prop('checked', false);
+            $headerCheckbox.attr('title', lang.toltip_paginas || 'Select Current Page');
+            $(this).text(lang.marcar_todos || 'Mark All Records');
             fvProductsClearExpandStripe();
             fvProductsSelectionWrite({ v: 2, inputTodos: 'pagina', excludedIds: [], includedIds: [] });
+            fvProductsSetExpansibleInfo('');
         }
         updateBulkButtonsState();
     });
 
-    // Checkbox del header (#ckbCheckAll)
+    // Checkbox del header: solo página actual + oferta "Mark All Records" (como clientes)
     $(document).on('change', '#ckbCheckAll', function () {
+        if (window._linkTodosExpanding) {
+            return;
+        }
         var lang = fvProductsLang();
         var checked = $(this).prop('checked');
-        $('.checkBoxClass').prop('checked', checked);
+        var $rows = $('.checkBoxClass');
+        $rows.prop('checked', checked);
+        var checkedCount = $('.checkBoxClass:checked').length;
         var inputTodos = $('#input-todos');
 
         if (checked) {
-            // Marcar todo equivale a "Use all records"
-            inputTodos.val('todos');
-            fvProductsShowExpandStripe('todos');
-            $('#link-todos').text(lang.desmarcar_todos || '');
-            $(this).attr('title', lang.desmarcar_todos || lang.toltip_paginas || '');
-            fvProductsSelectionWrite({ v: 2, inputTodos: 'todos', excludedIds: [], includedIds: [] });
-            fvProductsSetExpansibleInfo(fvProductsTotalFilteredCount() + ' ' + (lang.bulk_will_be_used || ''));
+            inputTodos.val('pagina');
+            fvProductsShowExpandStripe('pagina');
+            $('#link-todos').text(lang.marcar_todos || 'Mark All Records');
+            $(this).attr('title', lang.toltip_paginas || 'Select Current Page');
+            fvProductsSelectionWrite({ v: 2, inputTodos: 'pagina', excludedIds: [], includedIds: [] });
+            fvProductsSelectionPersist();
+            fvProductsSetExpansibleInfo(
+                checkedCount + ' ' + (lang.bulk_will_be_used || 'will be used')
+            );
         } else {
             inputTodos.val('pagina');
-            $('#link-todos').text(lang.marcar_todos || '');
-            $(this).attr('title', lang.toltip_paginas || '');
+            $('#link-todos').text(lang.marcar_todos || 'Mark All Records');
+            $(this).attr('title', lang.toltip_paginas || 'Select Current Page');
             fvProductsClearExpandStripe();
             fvProductsSelectionWrite({ v: 2, inputTodos: 'pagina', excludedIds: [], includedIds: [] });
+            fvProductsSetExpansibleInfo('');
         }
         updateBulkButtonsState();
     });
 
     // Cambio individual en una fila
     $(document).on('change', '.checkBoxClass', function () {
+        if (window._linkTodosExpanding) {
+            return;
+        }
         var lang = fvProductsLang();
         var inputTodos = $('#input-todos').val() === 'todos' ? 'todos' : 'pagina';
 
         if (inputTodos === 'todos') {
-            // No cambiar de modo: solo persistir exclusiones.
             fvProductsSelectionPersist();
             var st = fvProductsSelectionRead();
             var excluded = (st && Array.isArray(st.excludedIds)) ? st.excludedIds.length : 0;
             var effective = Math.max(0, fvProductsTotalFilteredCount() - excluded);
-            fvProductsSetExpansibleInfo(effective + ' ' + (lang.bulk_will_be_used || ''));
-            // Header refleja si todos los visibles siguen marcados
+            fvProductsSetExpansibleInfo(
+                effective + ' ' + (lang.bulk_will_be_used || 'will be used')
+            );
             var total = $('.checkBoxClass').length;
             var checked = $('.checkBoxClass:checked').length;
             $('#ckbCheckAll').prop('checked', total > 0 && total === checked);
+            fvProductsShowExpandStripe('todos');
+            $('#link-todos').text(lang.desmarcar_todos || 'Unmark All Records');
         } else {
             fvProductsSelectionPersist();
             var st2 = fvProductsSelectionRead();
             var includedTotal = (st2 && Array.isArray(st2.includedIds)) ? st2.includedIds.length : 0;
-            fvProductsSetExpansibleInfo(includedTotal + ' ' + (lang.bulk_will_be_used || ''));
             var total2 = $('.checkBoxClass').length;
             var checked2 = $('.checkBoxClass:checked').length;
             $('#ckbCheckAll').prop('checked', total2 > 0 && total2 === checked2);
             if (includedTotal > 0) {
                 fvProductsShowExpandStripe('pagina');
+                $('#link-todos').text(lang.marcar_todos || 'Mark All Records');
+                fvProductsSetExpansibleInfo(
+                    includedTotal + ' ' + (lang.bulk_will_be_used || 'will be used')
+                );
             } else {
                 fvProductsClearExpandStripe();
             }

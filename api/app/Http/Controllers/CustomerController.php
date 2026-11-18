@@ -7,6 +7,9 @@ use App\Enums\CompanyUserTypes;
 use App\Enums\OrderStatusCodes;
 use App\Exports\CustomersExport;
 use App\Http\Requests\CustomerAssignUserRequest;
+use App\Http\Requests\CustomerUnassignUserRequest;
+use App\Http\Requests\SendCustomerPortalCredentialsRequest;
+use App\Http\Requests\UpdateCustomerPortalPasswordRequest;
 use App\Http\Requests\BulkAssignSellerRequest;
 use App\Http\Requests\BulkCustomerDeleteRequest;
 use App\Http\Requests\BulkSendCatalogRequest;
@@ -29,6 +32,8 @@ use App\Models\User;
 use App\Services\CompanyPlanLimitService;
 use App\Services\CustomerPortalSessionCartService;
 use App\Services\OrderCatalogCartSessionService;
+use App\Services\SendCustomerPortalCredentialsService;
+use App\Services\UserPasswordService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,7 +59,7 @@ class CustomerController extends Controller
 
     #[OA\Get(
         path: "api/v2/customer",
-        summary: "Display a listing of the Customer.",
+        summary: "Listado de clientes. Sin grupo o sin seller, asigna los por defecto de la compañía.",
         security: [
             [
                 'bearerAuth' => []
@@ -130,7 +135,126 @@ class CustomerController extends Controller
     )]
     public function index()
     {
+        $this->ensureDefaultGroupAndSellerOnListEntry();
+        $this->ensurePortalUsersOnListEntry();
+
         return $this->getModelList();
+    }
+
+    /**
+     * En el listado: clientes con email sin user portal → crear/vincular (password vacío → 12345678).
+     */
+    private function ensurePortalUsersOnListEntry(): void
+    {
+        $companyId = (int) (request()->input('company_id') ?: request()->input('company') ?: 0);
+        if ($companyId < 1) {
+            return;
+        }
+
+        try {
+            app(\App\Services\EnsureCustomerPortalUserService::class)
+                ->ensureMissing($companyId, 100);
+        } catch (\Throwable $e) {
+            Log::warning('ensurePortalUsersOnListEntry failed: '.$e->getMessage(), [
+                'company_id' => $companyId,
+            ]);
+        }
+    }
+
+    /**
+     * En el listado: clientes sin grupo → grupo por defecto de la compañía;
+     * sin vendedor → vendedor por defecto de la compañía (persistido).
+     */
+    private function ensureDefaultGroupAndSellerOnListEntry(): void
+    {
+        $companyId = (int) (request()->input('company_id') ?: request()->input('company') ?: 0);
+        if ($companyId < 1) {
+            return;
+        }
+
+        try {
+            $company = Company::query()
+                ->select(['company_id', 'default_customer_group_id', 'default_seller_id'])
+                ->find($companyId);
+            if ($company === null) {
+                return;
+            }
+
+            $defaultGroupId = (int) ($company->default_customer_group_id ?? 0);
+            $defaultSellerId = (int) ($company->default_seller_id ?? 0);
+
+            if ($defaultGroupId > 0) {
+                $groupOk = DB::table('customer_groups')
+                    ->where('group_id', $defaultGroupId)
+                    ->where('company_id', $companyId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($groupOk) {
+                    Customer::query()
+                        ->where('company_id', $companyId)
+                        ->where(static function ($q) {
+                            $q->whereNull('group_id')->orWhere('group_id', 0);
+                        })
+                        ->update(['group_id' => $defaultGroupId]);
+                }
+            }
+
+            if ($defaultSellerId > 0) {
+                $sellerOk = DB::table('sellers')
+                    ->where('id', $defaultSellerId)
+                    ->where('company_id', $companyId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if (! $sellerOk) {
+                    return;
+                }
+
+                $customerIdsWithoutSeller = Customer::query()
+                    ->where('company_id', $companyId)
+                    ->whereDoesntHave('sellers')
+                    ->pluck('customer_id');
+                if ($customerIdsWithoutSeller->isEmpty()) {
+                    return;
+                }
+
+                $now = now();
+                DB::table('customer_seller')
+                    ->whereIn('customer_id', $customerIdsWithoutSeller)
+                    ->where('seller_id', $defaultSellerId)
+                    ->whereNotNull('deleted_at')
+                    ->update([
+                        'deleted_at' => null,
+                        'updated_at' => $now,
+                    ]);
+
+                $stillMissing = Customer::query()
+                    ->whereIn('customer_id', $customerIdsWithoutSeller)
+                    ->whereDoesntHave('sellers')
+                    ->pluck('customer_id');
+                if ($stillMissing->isEmpty()) {
+                    return;
+                }
+
+                $rows = [];
+                foreach ($stillMissing as $customerId) {
+                    $rows[] = [
+                        'customer_id' => (int) $customerId,
+                        'seller_id' => $defaultSellerId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                        'deleted_at' => null,
+                    ];
+                }
+                foreach (array_chunk($rows, 500) as $chunk) {
+                    DB::table('customer_seller')->insert($chunk);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Customer list default group/seller assign failed', [
+                'company_id' => $companyId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -871,10 +995,11 @@ class CustomerController extends Controller
         ]);
 
         if ($addressId !== null) {
-            $address = Address::withTrashed()->find($addressId);
+            $address = Address::query()->find($addressId);
             if ($address) {
-                if ($address->trashed()) {
-                    $address->restore();
+                if ($address->deleted_at !== null) {
+                    $address->deleted_at = null;
+                    $address->save();
                 }
                 $address->fill($addressData);
                 $address->save();
@@ -899,14 +1024,15 @@ class CustomerController extends Controller
         ]);
 
         // Sincronizar la relación con el cliente (restaurar pivot soft-deleted si aplica)
-        $pivot = \App\Models\AddressCustomer::withTrashed()
+        $pivot = \App\Models\AddressCustomer::query()
             ->where('customer_id', $customer->customer_id)
             ->where('address_id', $address->id)
             ->first();
 
         if ($pivot) {
-            if ($pivot->trashed()) {
-                $pivot->restore();
+            if (($pivot->deleted_at !== null)) {
+                $pivot->deleted_at = null;
+                $pivot->save();
             }
             $pivot->is_primary = $isPrimary;
             $pivot->type = $type;
@@ -986,6 +1112,18 @@ class CustomerController extends Controller
         }
 
         $customer->sellers()->sync($sellers);
+
+        // Siempre: email del cliente ⇒ usuario portal (password request o 12345678).
+        $portalPassword = array_key_exists('portal_password', $validated)
+            ? trim((string) $validated['portal_password'])
+            : '';
+        if (trim((string) ($customer->email ?? '')) !== '') {
+            app(\App\Services\EnsureCustomerPortalUserService::class)
+                ->ensure($customer, $portalPassword !== '' ? $portalPassword : null);
+        }
+        if ($portalPassword !== '') {
+            $this->syncPrimaryPortalUserPassword($customer, $portalPassword);
+        }
 
         \Log::info('Datos comerciales recibidos', [
             'commercial_data' => $commercialData,
@@ -1119,17 +1257,51 @@ class CustomerController extends Controller
     public function show($customer)
     {
         $builder = $this->getModelInstanceBuilder($customer);
+        $with = request()->input('relations', []);
+        if (! empty($with)) {
+            $builder = $builder->with($with);
+        }
 
-        if(\request()->has('withGroup'))
+        if (request()->has('withGroup')) {
             $builder = $builder->with('customer_group');
+        }
 
         $customer = $builder->sole();
 
-        if ((\request()->has('withGroup')) && !$customer->customer_group) {
+        if ((request()->has('withGroup')) && ! $customer->customer_group) {
             if (Company::where('company_id', $customer->company_id)->exists()) {
                 $company = Company::where('company_id', $customer->company_id)->sole();
                 $defaultGroup = $company->default_customer_group();
                 $customer->setRelation('customer_group', $defaultGroup);
+            }
+        }
+
+        // Cliente con email sin user portal: crear/vincular (password vacío → 12345678).
+        if (trim((string) ($customer->email ?? '')) !== '') {
+            app(\App\Services\EnsureCustomerPortalUserService::class)->ensure($customer);
+            $wantsUsers = false;
+            $relationsInput = request()->input('relations', []);
+            if (is_array($relationsInput)) {
+                foreach ($relationsInput as $rel) {
+                    if (is_string($rel) && str_starts_with($rel, 'users')) {
+                        $wantsUsers = true;
+                        break;
+                    }
+                }
+            }
+            if ($wantsUsers || $customer->relationLoaded('users')) {
+                $customer->unsetRelation('users');
+                $customer->load('users');
+            }
+        }
+
+        // Si vienen users y falta password_plain, intentar recuperarlo (candidatas / legacy).
+        if ($customer->relationLoaded('users')) {
+            $passwordService = app(UserPasswordService::class);
+            foreach ($customer->users as $linkedUser) {
+                if ($linkedUser instanceof User) {
+                    $passwordService->recoverPlainIfPossible($linkedUser);
+                }
             }
         }
 
@@ -1478,6 +1650,7 @@ class CustomerController extends Controller
                     'customer_id' => $customer->customer_id,
                     'email' => $normalized,
                     'is_primary' => true,
+                    'send_catalog' => true,
                 ]);
             }
         });
@@ -2342,6 +2515,181 @@ class CustomerController extends Controller
         return $customer;
     }
 
+    /**
+     * Actualiza la contraseña del usuario portal del cliente (mismo email en users).
+     */
+    #[OA\Post(
+        path: '/api/v2/customer/{customer}/portal-password',
+        operationId: 'customerUpdatePortalPassword',
+        summary: 'Cambiar contraseña del usuario portal (email del cliente)',
+        security: [['sanctum' => []]],
+        tags: ['Customer']
+    )]
+    #[OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\Response(response: 200, description: 'Contraseña actualizada')]
+    #[OA\Response(response: 422, description: 'Validación o sin usuario portal')]
+    public function updatePortalPassword(UpdateCustomerPortalPasswordRequest $request, Customer $customer): JsonResponse
+    {
+        $plain = (string) $request->validated()['password'];
+        $updated = $this->syncPrimaryPortalUserPassword($customer, $plain, true);
+
+        if (! $updated) {
+            return response()->json([
+                'message' => $this->cmpClienteApiMessage('portal_password_no_user'),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => $this->cmpClienteApiMessage('portal_password_updated'),
+            'password_plain' => $plain,
+        ]);
+    }
+
+    /**
+     * Envía al usuario portal: link ecommerce (si hay), Customer Portal (/customer), email y password.
+     * Canales: email | sms | whatsapp.
+     */
+    #[OA\Post(
+        path: '/api/v2/customer/{customer}/send-portal-credentials',
+        operationId: 'customerSendPortalCredentials',
+        summary: 'Enviar credenciales y links del portal (email, SMS o WhatsApp)',
+        security: [['sanctum' => []]],
+        tags: ['Customer']
+    )]
+    #[OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ['user_id'],
+            properties: [
+                new OA\Property(property: 'user_id', type: 'integer', example: 42),
+                new OA\Property(property: 'channel', type: 'string', enum: ['email', 'sms', 'whatsapp'], example: 'email'),
+                new OA\Property(property: 'phonecode', type: 'string', example: '51', description: 'Prefijo país (SMS/WhatsApp)'),
+                new OA\Property(property: 'phone', type: 'string', example: '51900947238', description: 'Teléfono E.164 en dígitos (SMS/WhatsApp)'),
+            ]
+        )
+    )]
+    #[OA\Response(response: 200, description: 'Credenciales enviadas')]
+    #[OA\Response(response: 422, description: 'Validación o error de envío')]
+    public function sendPortalCredentials(
+        SendCustomerPortalCredentialsRequest $request,
+        Customer $customer,
+        SendCustomerPortalCredentialsService $service
+    ): JsonResponse {
+        $validated = $request->validated();
+        $userId = (int) $validated['user_id'];
+        $channel = (string) ($validated['channel'] ?? 'email');
+        $usersQuery = $customer->users()->where('users.id', $userId);
+        if (Schema::hasColumn('customer_user', 'deleted_at')) {
+            $usersQuery->wherePivotNull('deleted_at');
+        }
+        $user = $usersQuery->first();
+        if ($user === null) {
+            return response()->json([
+                'message' => $this->cmpClienteApiMessage('portal_credentials_user_not_linked'),
+            ], 422);
+        }
+
+        try {
+            $result = $service->send($customer, $user, $channel, [
+                'phonecode' => $validated['phonecode'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            $key = $e->getMessage();
+            $message = in_array($key, [
+                'portal_credentials_no_email',
+                'portal_credentials_no_phone',
+                'portal_credentials_no_phonecode',
+                'portal_credentials_send_failed',
+            ], true)
+                ? $this->cmpClienteApiMessage($key)
+                : $this->cmpClienteApiMessage('portal_credentials_send_failed');
+
+            Log::warning('sendPortalCredentials failed: '.$e->getMessage(), [
+                'customer_id' => $customer->customer_id,
+                'user_id' => $userId,
+                'channel' => $channel,
+            ]);
+
+            return response()->json(['message' => $message], 422);
+        }
+
+        $sentKey = match ($result['channel']) {
+            'sms' => 'portal_credentials_sent_sms',
+            'whatsapp' => 'portal_credentials_sent_whatsapp',
+            default => 'portal_credentials_sent',
+        };
+
+        return response()->json([
+            'message' => $this->cmpClienteApiMessage($sentKey),
+            'channel' => $result['channel'],
+            'email' => $result['email'],
+            'phone' => $result['phone'],
+            'ecommerce_url' => $result['ecommerce_url'],
+            'customer_portal_url' => $result['customer_portal_url'],
+        ]);
+    }
+
+    /**
+     * Actualiza la contraseña del usuario portal con el mismo email del cliente.
+     * Guarda hash + password_plain. Si $requireEmailMatch, no usa fallback al primer usuario.
+     */
+    private function syncPrimaryPortalUserPassword(Customer $customer, string $plainPassword, bool $requireEmailMatch = false): bool
+    {
+        $plain = trim($plainPassword);
+        if ($plain === '') {
+            return false;
+        }
+
+        $customerEmail = mb_strtolower(trim((string) ($customer->email ?? '')), 'UTF-8');
+        $usersQuery = $customer->users();
+        if (Schema::hasColumn('customer_user', 'deleted_at')) {
+            $usersQuery->wherePivotNull('deleted_at');
+        }
+
+        $user = null;
+        if ($customerEmail !== '') {
+            $user = (clone $usersQuery)
+                ->whereRaw('LOWER(TRIM(users.email)) = ?', [$customerEmail])
+                ->first();
+        }
+
+        if ($user === null && ! $requireEmailMatch) {
+            $user = $usersQuery->orderBy('users.id')->first();
+        }
+
+        if ($user === null && $customerEmail !== '') {
+            // Usuario con ese email aunque aún no esté en el pivote (legacy).
+            $user = User::query()
+                ->whereRaw('LOWER(TRIM(email)) = ?', [$customerEmail])
+                ->orderBy('id')
+                ->first();
+            if ($user !== null) {
+                $customer->users()->syncWithoutDetaching([$user->id]);
+            }
+        }
+
+        if ($user === null) {
+            return false;
+        }
+
+        app(UserPasswordService::class)->apply($user, $plain);
+        $user->save();
+
+        return true;
+    }
+
+    #[OA\Post(
+        path: '/api/v2/customer/assignUser/{customer}',
+        operationId: 'customerAssignUser',
+        summary: 'Asignar un usuario al cliente',
+        security: [['sanctum' => []]],
+        tags: ['Customer']
+    )]
+    #[OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\Response(response: 201, description: 'Usuario asignado')]
+    #[OA\Response(response: 422, description: 'Validación')]
     public function assignUser(CustomerAssignUserRequest $request, Customer $customer)
     {
         $customer->users()->syncWithoutDetaching($request->validated()['user_id']);
@@ -2353,7 +2701,40 @@ class CustomerController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Usuario asignado correctamente',
+            'message' => $this->cmpClienteApiMessage('user_assigned'),
         ], 201);
+    }
+
+    #[OA\Post(
+        path: '/api/v2/customer/unassignUser/{customer}',
+        operationId: 'customerUnassignUser',
+        summary: 'Quitar un usuario asociado del cliente',
+        security: [['sanctum' => []]],
+        tags: ['Customer']
+    )]
+    #[OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\Response(response: 200, description: 'Usuario desasignado')]
+    #[OA\Response(response: 422, description: 'Validación')]
+    public function unassignUser(CustomerUnassignUserRequest $request, Customer $customer)
+    {
+        $userId = (int) $request->validated()['user_id'];
+        $customer->users()->detach($userId);
+
+        return response()->json([
+            'message' => $this->cmpClienteApiMessage('user_unassigned'),
+        ]);
+    }
+
+    private function cmpClienteApiMessage(string $key): string
+    {
+        $locale = strtolower((string) request()->header('Accept-Language', request()->header('X-App-Locale', 'en')));
+        $file = str_contains($locale, 'es') ? 'es-ES.json' : 'en-EN.json';
+        $path = base_path('lang/'.$file);
+        if (! is_readable($path)) {
+            return $key;
+        }
+        $data = json_decode((string) file_get_contents($path), true);
+
+        return is_array($data) ? (string) ($data['cmp-cliente'][$key] ?? $key) : $key;
     }
 }

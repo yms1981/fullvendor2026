@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CatalogProduct
@@ -36,7 +35,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class CatalogProduct extends Model
 {
     use HasFactory;
-    use SoftDeletes;
 
     protected $table = 'catalog_product';
 

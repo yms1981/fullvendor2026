@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Enquiry
@@ -59,7 +58,7 @@ class Enquiry extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'enquiries';
+    protected $table = 'enquiries';
     protected $primaryKey = 'enquiryId';
     public $timestamps = false;
 

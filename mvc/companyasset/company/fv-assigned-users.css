@@ -2,6 +2,19 @@
     overflow: visible;
 }
 
+.fv-assigned-users-card--portal {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0 !important;
+    margin-bottom: 0;
+}
+
+.fv-portal-users-sep {
+    border-top: 1px solid #dee2e6;
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
 .fv-assigned-users-card__header {
     gap: 0.75rem;
 }
@@ -9,6 +22,35 @@
 .fv-assigned-users-card__title {
     font-weight: 600;
     font-size: 1rem;
+}
+
+.fv-assigned-users-table--portal {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.fv-assigned-users-table--portal th:nth-child(1),
+.fv-assigned-users-table--portal td:nth-child(1) {
+    width: 22%;
+}
+
+.fv-assigned-users-table--portal th:nth-child(2),
+.fv-assigned-users-table--portal td:nth-child(2) {
+    width: 34%;
+    word-break: break-word;
+}
+
+.fv-assigned-users-table--portal th:nth-child(3),
+.fv-assigned-users-table--portal td:nth-child(3) {
+    width: 28%;
+}
+
+.fv-assigned-users-table__password-col .fv-portal-row-password {
+    max-width: 14rem;
+}
+
+.fv-assigned-users-table__password-col .fv-portal-row-password .form-control {
+    min-width: 0;
 }
 
 .fv-assigned-users-card__add-btn {
@@ -32,9 +74,14 @@
 }
 
 .fv-assigned-users-table__actions-col {
-    width: 6.5rem;
-    min-width: 6.5rem;
+    width: 12.5rem;
+    min-width: 12.5rem;
     white-space: nowrap;
+}
+
+.fv-assigned-users-card--portal .fv-assigned-users-table__actions-col {
+    width: 14.5rem;
+    min-width: 14.5rem;
 }
 
 .fv-assigned-users-table__actions {

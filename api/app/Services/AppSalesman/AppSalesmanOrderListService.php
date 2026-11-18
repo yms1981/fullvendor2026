@@ -64,14 +64,19 @@ class AppSalesmanOrderListService
     }
 
     /**
-     * Órdenes del vendedor logueado (mes en curso).
+     * Órdenes del vendedor logueado.
      * Resuelve `sellers.id` desde `user_id` (+ company_id) y filtra
      * `orders.seller_id` (en la vista warehouseorders = columna `user_id`).
      *
+     * @param  int|null  $days  Si > 0: últimos N días; si null/0: mes en curso.
      * @return array{status: string, language_id?: int|string, user_id?: int|string, seller_id?: int, order_list?: array<int, array<string, mixed>>, error?: string}
      */
-    public function listForSeller(int $companyId, int $userId, ?int $sellerId = null): array
-    {
+    public function listForSeller(
+        int $companyId,
+        int $userId,
+        ?int $sellerId = null,
+        ?int $days = null,
+    ): array {
         $resolvedSellerId = $sellerId !== null && $sellerId > 0
             ? $sellerId
             : $this->resolveSellerId($companyId, $userId);
@@ -83,8 +88,13 @@ class AppSalesmanOrderListService
             ];
         }
 
-        $from = Carbon::now()->startOfMonth()->startOfDay();
-        $to = Carbon::now()->endOfMonth()->endOfDay();
+        if ($days !== null && $days > 0) {
+            $from = Carbon::now()->subDays($days)->startOfDay();
+            $to = Carbon::now()->endOfDay();
+        } else {
+            $from = Carbon::now()->startOfMonth()->startOfDay();
+            $to = Carbon::now()->endOfMonth()->endOfDay();
+        }
 
         /** @var Collection<int, Warehouseorder> $orders */
         $orders = Warehouseorder::query()
@@ -178,14 +188,25 @@ class AppSalesmanOrderListService
             $customer = $customers->get((int) $cart->customer_id);
             $productListRows = $detailsByOrder->get((int) $cart->order_id, collect());
             $subTotal = 0.0;
+            // Misma regla que Order::subtotal_asignado / total_asignado (web).
+            $subTotalAssigned = 0.0;
             $newarray = [];
 
             foreach ($productListRows as $pr) {
                 $productInfo = $products->get((int) $pr->product_id);
                 // tipo_d = D: qty negativa → ABS (misma regla que el resto del sistema).
                 $qty = abs((float) $pr->qty);
-                $lineTotal = $qty * ((float) $pr->sale_price);
+                $salePrice = (float) ($pr->sale_price ?? 0);
+                $lineTotal = $qty * $salePrice;
                 $subTotal += $lineTotal;
+
+                // Igual que OrderDetail::total_amount_assigned / Order::subtotal_asignado.
+                $deliveredQty = (float) ($pr->delivered_quantity ?? 0);
+                if ($deliveredQty < 0) {
+                    $deliveredQty = 0.0;
+                }
+                $lineAssigned = $deliveredQty > 0 ? ($deliveredQty * $salePrice) : 0.0;
+                $subTotalAssigned += $lineAssigned;
 
                 $newarray[] = [
                     'order_id' => $cart->order_id,
@@ -194,21 +215,52 @@ class AppSalesmanOrderListService
                     'name' => strtoupper((string) ($productInfo?->name ?? '')),
                     'sku' => $productInfo?->sku ?? '',
                     'qty' => number_format($qty, 2),
-                    'sale_price' => number_format((float) $pr->sale_price, 2),
+                    'delivered_quantity' => number_format($deliveredQty, 2),
+                    'delivered_qty' => number_format($deliveredQty, 2),
+                    'sale_price' => number_format($salePrice, 2),
                     'fob_price' => number_format((float) $pr->fob_price, 2),
                     'purchase_price' => number_format((float) $pr->purchase_price, 2),
                     'barcode' => $productInfo?->barcode ?? '',
                     'discount' => number_format((float) $pr->discount, 2),
                     'discount_type' => $pr->discount_type,
+                    // Solo si hay qty asignada: evita amount_delivered stale inflando Assigned.
+                    'amount_delivered' => number_format($lineAssigned, 2),
+                    'total_delivered' => number_format($lineAssigned, 2),
+                    'total_amount_assigned' => number_format($lineAssigned, 2),
                     'comment' => $pr->comment ?? '',
                     'created' => $this->formatDate($pr->created),
                 ];
             }
 
             $discount = (float) ($cart->discount ?? 0);
+            $discountType = (int) ($cart->discount_type ?? 1);
+            // Order::descuento_asignado
+            if ($discountType === 1) {
+                $discountAssigned = $subTotalAssigned * ($discount / 100);
+            } elseif ($discountType === 2) {
+                $discountAssigned = min($discount, $subTotalAssigned);
+            } else {
+                $discountAssigned = 0.0;
+            }
+            if ($discountAssigned > $subTotalAssigned && $subTotalAssigned >= 0) {
+                $discountAssigned = $subTotalAssigned;
+            }
+            $totalAssigned = max(0, $subTotalAssigned - $discountAssigned);
 
             // warehouseorders: orders.seller_id AS user_id
             $sellerId = (int) ($cart->user_id ?? 0);
+
+            $attrs = method_exists($cart, 'getAttributes')
+                ? $cart->getAttributes()
+                : [];
+            $invoiceNumber = trim((string) (
+                $attrs['invoice_number']
+                ?? $attrs['nfactura']
+                ?? $attrs['factura']
+                ?? $attrs['doc_number']
+                ?? $attrs['factura_number']
+                ?? ''
+            ));
 
             $orderList[] = [
                 'tipo_d' => $cart->tipo_d ?? '',
@@ -220,6 +272,13 @@ class AppSalesmanOrderListService
                 'discount_a' => number_format((float) ($cart->discount_a ?? 0), 2),
                 'amount' => number_format($subTotal, 2),
                 'total_amount' => number_format($subTotal - $discount, 2),
+                'subtotal_asignado' => number_format($subTotalAssigned, 2),
+                'descuento_asignado' => number_format($discountAssigned, 2),
+                'amount_delivered' => number_format($subTotalAssigned, 2),
+                'discount_delivered' => number_format($discountAssigned, 2),
+                'total_delivered' => number_format($totalAssigned, 2),
+                'total_asignado' => number_format($totalAssigned, 2),
+                'invoice_number' => $invoiceNumber,
                 'discount_type' => $cart->discount_type,
                 'business_name' => $customer?->business_name ?? '',
                 'customer_id' => $customer?->customer_id ?? $cart->customer_id,

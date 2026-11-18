@@ -588,11 +588,9 @@ class ErpProductImageQueueService
         $limit = max(1, min(40, $limit));
 
         try {
+            // Windows: no abrir procesos CMD (molestan en escritorio local).
+            // En XAMPP el tick HTTP / afterResponse bastan; en Linux producción sí usamos nohup.
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $cmd = 'start /B "" '.escapeshellarg($php).' '.escapeshellarg($artisan)
-                    .' erp:process-image-queue --limit='.$limit.' --chain=0'.$companyOpt;
-                @pclose(@popen($cmd, 'r'));
-
                 return;
             }
 

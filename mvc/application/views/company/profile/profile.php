@@ -130,6 +130,47 @@
                                 </script>
                             </div>
                         </section>
+                        <?php
+                        $ecommerceEnabled = !empty($data->ecommerce_enabled);
+                        $ecommerceUrl = htmlspecialchars((string) ($data->ecommerce_url ?? ''), ENT_QUOTES, 'UTF-8');
+                        ?>
+                        <section class="card mb-3" id="ecommerce">
+                            <div class="card-header">
+                                <h4><?= htmlspecialchars((string) ($lang_perfil['ecommerce_settings'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="custom-control custom-switch mb-3">
+                                            <input type="checkbox"
+                                                   class="custom-control-input"
+                                                   name="ecommerce_enabled"
+                                                   id="ecommerce_enabled"
+                                                   value="1"
+                                                   <?= $ecommerceEnabled ? 'checked' : '' ?>>
+                                            <label class="custom-control-label" for="ecommerce_enabled">
+                                                <?= htmlspecialchars((string) ($lang_perfil['ecommerce_enabled_label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="fv-ecommerce-connection-fields" class="row fv-ecommerce-fields" style="<?= $ecommerceEnabled ? '' : 'display:none;' ?>">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="ecommerce_url"><?= htmlspecialchars((string) ($lang_perfil['ecommerce_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: <span class="color-red">*</span></label>
+                                            <input type="url"
+                                                   class="form-control"
+                                                   name="ecommerce_url"
+                                                   id="ecommerce_url"
+                                                   placeholder="https://example.com"
+                                                   value="<?= $ecommerceUrl ?>"
+                                                   <?= $ecommerceEnabled ? 'required' : '' ?>>
+                                            <small class="form-text text-muted"><?= htmlspecialchars((string) ($lang_perfil['ecommerce_url_hint'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                         <section class="card" id="general">
                             <div class="card-header">
 

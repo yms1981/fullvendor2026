@@ -7,7 +7,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CatalogCategory
@@ -39,7 +38,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 )]
 class CatalogCategory extends Model
 {
-    use SoftDeletes;
 
 	protected $table = 'catalog_category';
 	public $incrementing = false;

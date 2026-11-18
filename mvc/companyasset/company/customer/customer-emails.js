@@ -18,7 +18,6 @@
             Accept: 'application/json',
             'Content-Type': 'application/json'
         };
-        // Preferir idioma de la compañía (no el del navegador).
         if (cfg.appLocale) {
             headers['X-App-Locale'] = String(cfg.appLocale);
         }
@@ -57,6 +56,11 @@
         $('#email_field').val(val);
         $('#email_hidden').val(val);
         $('#current_email').val(val);
+        $('input[name="email"]').not('#fv_ce_email_input, #fv_ce_list_new_email').each(function () {
+            if ($(this).attr('type') !== 'hidden' || $(this).attr('id') === 'email_hidden') {
+                $(this).val(val);
+            }
+        });
     }
 
     function truncateText(text, maxLen) {
@@ -87,6 +91,13 @@
             .show();
     }
 
+    function rowSendCatalog(row) {
+        if (typeof row.send_catalog === 'undefined' || row.send_catalog === null) {
+            return true;
+        }
+        return !!row.send_catalog;
+    }
+
     function renderListModal(rows) {
         var $list = $('#fv_ce_emails_list');
         if (!$list.length) {
@@ -101,17 +112,31 @@
             var id = parseInt(row.id, 10) || 0;
             var email = String(row.email || '');
             var isPrimary = !!row.is_primary;
+            var sendCatalog = rowSendCatalog(row);
             var badge = isPrimary
                 ? '<span class="badge badge-success">' + escapeHtml(t('default_badge') || t('primary_yes')) + '</span>'
-                : '';
-            var btn = isPrimary
-                ? ''
                 : '<button type="button" class="btn btn-sm btn-outline-primary fv-ce-list-set-primary" data-id="' + id + '">' +
                     escapeHtml(t('set_primary')) + '</button>';
+            var catalogCheck =
+                '<label class="fv-ce-list__catalog mb-0">' +
+                '<input type="checkbox" class="fv-ce-list-send-catalog" data-id="' + id + '"' +
+                (isPrimary || sendCatalog ? ' checked' : '') +
+                (isPrimary ? ' disabled' : '') + '>' +
+                '<span>' + escapeHtml(t('send_catalog')) + '</span>' +
+                '</label>';
+            var delBtn = '';
+            if (!isPrimary) {
+                delBtn =
+                    '<button type="button" class="btn btn-sm btn-outline-danger fv-ce-list-delete" data-id="' + id + '" title="' +
+                    escapeHtml(t('eliminar')) + '">' +
+                    '<i class="fa-solid fa-trash" aria-hidden="true"></i></button>';
+            }
+
             $list.append(
-                '<li class="list-group-item' + (isPrimary ? ' is-primary' : '') + '" data-id="' + id + '">' +
+                '<li class="list-group-item' + (isPrimary ? ' is-primary' : '') + '" data-id="' + id + '"' +
+                (isPrimary ? ' data-primary="1"' : ' data-primary="0"') + '>' +
                 '<span class="fv-ce-list__email">' + escapeHtml(email) + '</span>' +
-                '<span class="fv-ce-list__actions">' + badge + btn + '</span>' +
+                '<span class="fv-ce-list__actions">' + badge + catalogCheck + delBtn + '</span>' +
                 '</li>'
             );
         });
@@ -121,6 +146,7 @@
         hideError($('#fv_ce_list_new_error'));
         $('#fv_ce_list_new_email').val('');
         $('#fv_ce_list_new_primary').prop('checked', false);
+        $('#fv_ce_list_new_send_catalog').prop('checked', true).prop('disabled', false);
         renderListModal(lastRows);
         $('#fv_customer_emails_list_modal').modal('show');
         setTimeout(function () {
@@ -136,7 +162,11 @@
             url: emailsUrl(id + '/set-primary'),
             method: 'POST',
             headers: apiHeaders(),
-            success: function () {
+            success: function (resp) {
+                var email = resp && resp.data && resp.data.email ? resp.data.email : '';
+                if (email) {
+                    syncPrimaryField(email);
+                }
                 loadEmails();
             },
             error: function (xhr) {
@@ -147,9 +177,83 @@
         });
     }
 
+    function setSendCatalogById(id, enabled, $checkbox) {
+        if (!id) {
+            return;
+        }
+        $.ajax({
+            url: emailsUrl(id + '/send-catalog'),
+            method: 'POST',
+            headers: apiHeaders(),
+            data: JSON.stringify({ send_catalog: !!enabled }),
+            success: function () {
+                loadEmails();
+            },
+            error: function (xhr) {
+                if ($checkbox && $checkbox.length) {
+                    $checkbox.prop('checked', !enabled);
+                }
+                if (window.Swal) {
+                    Swal.fire({ icon: 'error', title: extractError(xhr), confirmButtonText: t('btn_accept') });
+                }
+            }
+        });
+    }
+
+    function deleteEmailById(id) {
+        if (!id) {
+            return;
+        }
+        var row = (lastRows || []).find(function (r) {
+            return parseInt(r.id, 10) === parseInt(id, 10);
+        });
+        if (row && row.is_primary) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: t('cannot_delete_primary') || t('error_generic'),
+                    confirmButtonText: t('btn_accept')
+                });
+            }
+            return;
+        }
+        var doDelete = function () {
+            $.ajax({
+                url: emailsUrl(id),
+                method: 'DELETE',
+                headers: apiHeaders(),
+                success: function () {
+                    loadEmails();
+                },
+                error: function (xhr) {
+                    if (window.Swal) {
+                        Swal.fire({ icon: 'error', title: extractError(xhr), confirmButtonText: t('btn_accept') });
+                    }
+                }
+            });
+        };
+
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'warning',
+                title: t('confirm_delete'),
+                showCancelButton: true,
+                confirmButtonText: t('eliminar'),
+                cancelButtonText: t('cancelar')
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    doDelete();
+                }
+            });
+        } else if (window.confirm(t('confirm_delete'))) {
+            doDelete();
+        }
+    }
+
     function addEmailFromListModal() {
         var email = String($('#fv_ce_list_new_email').val() || '').trim();
         var isPrimary = $('#fv_ce_list_new_primary').is(':checked');
+        var sendCatalog = isPrimary ? true : $('#fv_ce_list_new_send_catalog').is(':checked');
         var $err = $('#fv_ce_list_new_error');
         var $btn = $('#fv_ce_list_add_btn');
 
@@ -164,11 +268,19 @@
             url: emailsUrl(),
             method: 'POST',
             headers: apiHeaders(),
-            data: JSON.stringify({ email: email, is_primary: isPrimary }),
-            success: function () {
+            data: JSON.stringify({
+                email: email,
+                is_primary: isPrimary,
+                send_catalog: sendCatalog
+            }),
+            success: function (resp) {
                 $('#fv_ce_list_new_email').val('');
                 $('#fv_ce_list_new_primary').prop('checked', false);
+                $('#fv_ce_list_new_send_catalog').prop('checked', true);
                 hideError($err);
+                if (isPrimary && resp && resp.data && resp.data.email) {
+                    syncPrimaryField(resp.data.email);
+                }
                 loadEmails();
             },
             error: function (xhr) {
@@ -189,7 +301,7 @@
 
         if (!rows || !rows.length) {
             $tbody.append(
-                '<tr class="fv-customer-emails-empty-row"><td colspan="3" class="text-muted text-center py-3">' +
+                '<tr class="fv-customer-emails-empty-row"><td colspan="4" class="text-muted text-center py-3">' +
                 escapeHtml(t('empty')) +
                 '</td></tr>'
             );
@@ -200,6 +312,7 @@
             var id = parseInt(row.id, 10) || 0;
             var email = String(row.email || '');
             var isPrimary = !!row.is_primary;
+            var sendCatalog = rowSendCatalog(row);
             var primaryBadge = isPrimary
                 ? '<span class="badge badge-success">' + escapeHtml(t('primary_yes')) + '</span>'
                 : '<span class="badge badge-secondary">' + escapeHtml(t('primary_no')) + '</span>';
@@ -211,15 +324,22 @@
             }
             actions += '<button type="button" class="btn btn-outline-secondary fv-crud-btn--row fv-ce-edit" title="' +
                 escapeHtml(t('edit_email')) + '"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>';
-            actions += '<button type="button" class="btn btn-outline-danger fv-crud-btn--row fv-ce-delete" title="' +
-                escapeHtml(t('eliminar')) + '"' + (isPrimary ? ' disabled' : '') +
-                '><i class="fa-solid fa-trash" aria-hidden="true"></i></button>';
+            if (!isPrimary) {
+                actions += '<button type="button" class="btn btn-outline-danger fv-crud-btn--row fv-ce-delete" title="' +
+                    escapeHtml(t('eliminar')) + '"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>';
+            }
             actions += '</div>';
 
             $tbody.append(
-                '<tr data-id="' + id + '" data-email="' + escapeHtml(email) + '" data-primary="' + (isPrimary ? '1' : '0') + '">' +
+                '<tr data-id="' + id + '" data-email="' + escapeHtml(email) +
+                '" data-primary="' + (isPrimary ? '1' : '0') +
+                '" data-send-catalog="' + (sendCatalog ? '1' : '0') + '">' +
                 '<td>' + escapeHtml(email) + '</td>' +
                 '<td>' + primaryBadge + '</td>' +
+                '<td class="text-center"><input type="checkbox" class="fv-ce-send-catalog"' +
+                (isPrimary || sendCatalog ? ' checked' : '') +
+                (isPrimary ? ' disabled' : '') +
+                ' title="' + escapeHtml(t('send_catalog')) + '"></td>' +
                 '<td class="text-center">' + actions + '</td>' +
                 '</tr>'
             );
@@ -245,6 +365,15 @@
         });
     }
 
+    function syncSendCatalogCheckboxState() {
+        var isPrimary = $('#fv_ce_is_primary').is(':checked');
+        if (isPrimary) {
+            $('#fv_ce_send_catalog').prop('checked', true).prop('disabled', true);
+        } else {
+            $('#fv_ce_send_catalog').prop('disabled', false);
+        }
+    }
+
     function openModal(editRow) {
         hideError($('#fv_ce_email_error'));
         if (editRow) {
@@ -252,12 +381,15 @@
             $('#fv_ce_edit_id').val(editRow.id);
             $('#fv_ce_email_input').val(editRow.email);
             $('#fv_ce_is_primary').prop('checked', !!editRow.is_primary);
+            $('#fv_ce_send_catalog').prop('checked', !!editRow.is_primary || rowSendCatalog(editRow));
         } else {
             $('#fv_customer_email_modal_title').text(t('add_email'));
             $('#fv_ce_edit_id').val('');
             $('#fv_ce_email_input').val('');
             $('#fv_ce_is_primary').prop('checked', false);
+            $('#fv_ce_send_catalog').prop('checked', true);
         }
+        syncSendCatalogCheckboxState();
         $('#fv_customer_email_modal').modal('show');
     }
 
@@ -268,7 +400,6 @@
                 ? String(j.errors.email[0])
                 : (typeof j.message === 'string' ? j.message : '');
             if (emailMsg) {
-                // Mensaje legacy de validación de usuarios (idioma incorrecto) → i18n de la UI.
                 if (
                     emailMsg.indexOf('No puede crear otro usuario') !== -1 ||
                     emailMsg.indexOf('cannot create another user') !== -1 ||
@@ -286,6 +417,7 @@
         var email = String($('#fv_ce_email_input').val() || '').trim();
         var editId = String($('#fv_ce_edit_id').val() || '').trim();
         var isPrimary = $('#fv_ce_is_primary').is(':checked');
+        var sendCatalog = isPrimary ? true : $('#fv_ce_send_catalog').is(':checked');
         var $err = $('#fv_ce_email_error');
         var $btn = $('#fv_ce_save_btn');
 
@@ -296,25 +428,27 @@
         }
 
         $btn.prop('disabled', true);
+        var payload = {
+            email: email,
+            is_primary: isPrimary,
+            send_catalog: sendCatalog
+        };
         var req = editId
-            ? {
-                url: emailsUrl(editId),
-                method: 'PUT',
-                data: JSON.stringify({ email: email, is_primary: isPrimary })
-            }
-            : {
-                url: emailsUrl(),
-                method: 'POST',
-                data: JSON.stringify({ email: email, is_primary: isPrimary })
-            };
+            ? { url: emailsUrl(editId), method: 'PUT', data: JSON.stringify(payload) }
+            : { url: emailsUrl(), method: 'POST', data: JSON.stringify(payload) };
 
         $.ajax({
             url: req.url,
             method: req.method,
             headers: apiHeaders(),
             data: req.data,
-            success: function () {
+            success: function (resp) {
                 $('#fv_customer_email_modal').modal('hide');
+                if (isPrimary) {
+                    syncPrimaryField(email);
+                } else if (resp && resp.data && resp.data.is_primary && resp.data.email) {
+                    syncPrimaryField(resp.data.email);
+                }
                 loadEmails();
                 if (window.Swal) {
                     Swal.fire({
@@ -339,10 +473,8 @@
             return;
         }
 
-        // Cargar desde API para sincronizar primario legacy.
         loadEmails();
 
-        // Grilla (+) y lápiz del campo Email → mismo modal (listado + alta + principal)
         $('#fv_customer_emails_add_btn').on('click', function () {
             openListModal();
         });
@@ -353,12 +485,22 @@
 
         $('#fv_ce_save_btn').on('click', saveEmail);
 
+        $('#fv_ce_is_primary').on('change', syncSendCatalogCheckboxState);
+        $('#fv_ce_list_new_primary').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('#fv_ce_list_new_send_catalog').prop('checked', true).prop('disabled', true);
+            } else {
+                $('#fv_ce_list_new_send_catalog').prop('disabled', false);
+            }
+        });
+
         $('#fv_customer_emails_tbody').on('click', '.fv-ce-edit', function () {
             var $tr = $(this).closest('tr');
             openModal({
                 id: $tr.data('id'),
                 email: $tr.data('email'),
-                is_primary: String($tr.data('primary')) === '1'
+                is_primary: String($tr.data('primary')) === '1',
+                send_catalog: String($tr.data('send-catalog')) !== '0'
             });
         });
 
@@ -366,7 +508,15 @@
             setPrimaryById($(this).closest('tr').data('id'));
         });
 
-        // Label de otros emails (junto a "Email:") → mismo modal
+        $('#fv_customer_emails_tbody').on('change', '.fv-ce-send-catalog', function () {
+            var $cb = $(this);
+            if ($cb.is(':disabled') || String($cb.closest('tr').data('primary')) === '1') {
+                $cb.prop('checked', true);
+                return;
+            }
+            setSendCatalogById($cb.closest('tr').data('id'), $cb.is(':checked'), $cb);
+        });
+
         $('#fv_email_others_preview').on('click', function (e) {
             e.preventDefault();
             openListModal();
@@ -374,6 +524,19 @@
 
         $('#fv_ce_emails_list').on('click', '.fv-ce-list-set-primary', function () {
             setPrimaryById($(this).data('id'));
+        });
+
+        $('#fv_ce_emails_list').on('change', '.fv-ce-list-send-catalog', function () {
+            var $cb = $(this);
+            if ($cb.is(':disabled')) {
+                $cb.prop('checked', true);
+                return;
+            }
+            setSendCatalogById($cb.data('id'), $cb.is(':checked'), $cb);
+        });
+
+        $('#fv_ce_emails_list').on('click', '.fv-ce-list-delete', function () {
+            deleteEmailById($(this).data('id'));
         });
 
         $('#fv_ce_list_add_btn').on('click', addEmailFromListModal);
@@ -386,42 +549,7 @@
         });
 
         $('#fv_customer_emails_tbody').on('click', '.fv-ce-delete', function () {
-            var $tr = $(this).closest('tr');
-            if (String($tr.data('primary')) === '1') {
-                return;
-            }
-            var id = $tr.data('id');
-            var doDelete = function () {
-                $.ajax({
-                    url: emailsUrl(id),
-                    method: 'DELETE',
-                    headers: apiHeaders(),
-                    success: function () {
-                        loadEmails();
-                    },
-                    error: function (xhr) {
-                        if (window.Swal) {
-                            Swal.fire({ icon: 'error', title: extractError(xhr), confirmButtonText: t('btn_accept') });
-                        }
-                    }
-                });
-            };
-
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: t('confirm_delete'),
-                    showCancelButton: true,
-                    confirmButtonText: t('eliminar'),
-                    cancelButtonText: t('cancelar')
-                }).then(function (result) {
-                    if (result.isConfirmed) {
-                        doDelete();
-                    }
-                });
-            } else if (window.confirm(t('confirm_delete'))) {
-                doDelete();
-            }
+            deleteEmailById($(this).closest('tr').data('id'));
         });
     });
 })(jQuery);

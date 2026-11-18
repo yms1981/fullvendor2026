@@ -18,13 +18,16 @@ class Search extends Company_Controller
 
         $results = array_merge(
             $this->mapProducts($compId, $term, $lang),
+            $this->mapCategories($compId, $term, $lang),
             $this->mapOrders($compId, $term, $lang),
             $this->mapCustomers($compId, $term, $lang),
             $this->mapSellers($compId, $term, $lang),
-            $this->mapCompanyUsers($compId, $term, $lang)
+            $this->mapCompanyUsers($compId, $term, $lang),
+            $this->mapPortalUsers($compId, $term, $lang),
+            $this->mapWarehouses($compId, $term, $lang)
         );
 
-        return $this->jsonSuccess('', ['results' => array_slice($results, 0, 30)]);
+        return $this->jsonSuccess('', ['results' => array_slice($results, 0, 40)]);
     }
 
     /**
@@ -81,25 +84,97 @@ class Search extends Company_Controller
         $rows = $this->normalizeApiList($this->getObjectFromApi('product', [
             'all' => true,
             'search' => $term,
-            'props' => ['pro_id', 'name', 'sku'],
+            'props' => ['pro_id', 'name', 'sku', 'default_image_id', 'sale_price', 'stock', 'barcode'],
+            'relations' => ['default_image', 'currency'],
         ]));
 
         $section = (string) ($lang['section_products'] ?? 'Products');
+        $typeLabel = (string) ($lang['type_product'] ?? $section);
         $out = [];
-        foreach (array_slice($rows, 0, 6) as $row) {
+        foreach (array_slice($rows, 0, 8) as $row) {
             $o = is_object($row) ? $row : (object) $row;
             $id = (int) ($o->pro_id ?? 0);
             if ($id < 1) {
                 continue;
             }
+            $sku = trim((string) ($o->sku ?? ''));
+            $subtitle = $sku !== '' ? ('SKU '.$sku) : ('#'.$id);
+            $currency = is_object($o->currency ?? null) ? $o->currency : (object) [];
+            $symbol = (string) ($currency->symbol ?? $currency->Symbol ?? '');
+            $meta = array_values(array_filter([
+                $sku !== '' ? ((string) ($lang['field_sku'] ?? 'SKU').': '.$sku) : '',
+                isset($o->sale_price) && $o->sale_price !== '' && $o->sale_price !== null
+                    ? ((string) ($lang['field_price'] ?? 'Price').': '.$this->formatMoney($o->sale_price, $symbol))
+                    : '',
+                isset($o->stock) && $o->stock !== '' && $o->stock !== null
+                    ? ((string) ($lang['field_stock'] ?? 'Stock').': '.$o->stock)
+                    : '',
+            ]));
+            $image = '';
+            if (function_exists('company_product_image_uuid') && company_product_image_uuid($o) !== '') {
+                $image = function_exists('company_product_image_url')
+                    ? (string) company_product_image_url($o, 96)
+                    : '';
+            }
             $out[] = $this->resultItem(
                 'product',
                 $id,
                 (string) ($o->name ?? ''),
-                (string) ($o->sku ?? ''),
+                $subtitle,
                 $section,
                 'mdi-package-variant',
-                company_url('products/edit/' . $id)
+                company_url('products/edit/' . $id),
+                $typeLabel,
+                $image,
+                $meta
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $lang
+     * @return list<array<string, string>>
+     */
+    private function mapCategories(int $companyId, string $term, array $lang): array
+    {
+        $rows = $this->normalizeApiList($this->getObjectFromApi('category', [
+            'all' => true,
+            'search' => $term,
+            'props' => ['cat_id', 'category_name', 'image'],
+            'relations' => ['imageRecord'],
+        ]));
+
+        $section = (string) ($lang['section_categories'] ?? 'Categories');
+        $typeLabel = (string) ($lang['type_category'] ?? $section);
+        $out = [];
+        foreach (array_slice($rows, 0, 6) as $row) {
+            $o = is_object($row) ? $row : (object) $row;
+            $id = (int) ($o->cat_id ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            $image = '';
+            if (function_exists('fv_category_image_urls')) {
+                $urls = fv_category_image_urls($o);
+                if (!empty($urls['has_image'])) {
+                    $image = (string) ($urls['preview'] ?? $urls['thumb'] ?? '');
+                }
+            }
+            $out[] = $this->resultItem(
+                'category',
+                $id,
+                (string) ($o->category_name ?? ('#'.$id)),
+                ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                $section,
+                'mdi-shape',
+                company_url('categories/edit/' . $id),
+                $typeLabel,
+                $image,
+                [
+                    ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                ]
             );
         }
 
@@ -114,9 +189,9 @@ class Search extends Company_Controller
     {
         $resp = $this->getObjectFromApi('order', [
             'search' => $term,
-            'per_page' => 6,
+            'per_page' => 8,
             'page' => 1,
-            'props' => ['order_id', 'order_number', 'created', 'updated'],
+            'props' => ['order_id', 'order_number', 'created', 'updated', 'amount', 'total_amount'],
             'relations' => ['customer', 'statusOrder'],
         ]);
         $rows = $this->normalizeApiList($resp);
@@ -136,14 +211,31 @@ class Search extends Company_Controller
             }
             $status = is_object($o->statusOrder ?? null) ? $o->statusOrder : (object) [];
             $statusLabel = (string) ($status->name_status ?? $status->name_status_english ?? '');
+            $amountRaw = $o->total_amount ?? $o->amount ?? null;
+            $amountLabel = $this->formatMoney($amountRaw);
+            $dateLabel = $this->formatDate($o->created ?? null);
+            $subtitle = trim(implode(' · ', array_filter([
+                $dateLabel !== '' ? $dateLabel : '',
+                $amountLabel !== '' ? $amountLabel : '',
+                $custName,
+            ])));
+            $meta = array_values(array_filter([
+                $dateLabel !== '' ? ((string) ($lang['field_created'] ?? 'Date').': '.$dateLabel) : '',
+                $amountLabel !== '' ? ((string) ($lang['field_amount'] ?? $lang['field_price'] ?? 'Amount').': '.$amountLabel) : '',
+                $custName !== '' ? ((string) ($lang['field_customer'] ?? 'Customer').': '.$custName) : '',
+                $statusLabel !== '' ? ((string) ($lang['field_status'] ?? 'Status').': '.$statusLabel) : '',
+            ]));
             $out[] = $this->resultItem(
                 'order',
                 $id,
                 (string) ($o->order_number ?? ('#' . $id)),
-                trim($custName . ($statusLabel !== '' ? ' · ' . $statusLabel : '')),
+                $subtitle,
                 $section,
                 'mdi-file-document-outline',
-                company_url('orders/view/' . $id)
+                company_url('orders/view/' . $id),
+                (string) ($lang['type_order'] ?? $section),
+                '',
+                $meta
             );
         }
 
@@ -159,12 +251,12 @@ class Search extends Company_Controller
         $rows = $this->normalizeApiList($this->getObjectFromApi('customer', [
             'all' => true,
             'search' => $term,
-            'props' => ['customer_id', 'name', 'business_name', 'email'],
+            'props' => ['customer_id', 'name', 'business_name', 'email', 'phone', 'cell_phone', 'commercial_city'],
         ]));
 
         $section = (string) ($lang['section_customers'] ?? 'Customers');
         $out = [];
-        foreach (array_slice($rows, 0, 5) as $row) {
+        foreach (array_slice($rows, 0, 6) as $row) {
             $o = is_object($row) ? $row : (object) $row;
             $id = (int) ($o->customer_id ?? 0);
             if ($id < 1) {
@@ -174,14 +266,29 @@ class Search extends Company_Controller
             if ($title === '') {
                 $title = (string) ($o->name ?? '');
             }
+            $contact = trim((string) ($o->name ?? ''));
+            $email = trim((string) ($o->email ?? ''));
+            $phone = trim((string) ($o->phone ?? $o->cell_phone ?? ''));
+            $city = trim((string) ($o->commercial_city ?? ''));
+            $subtitle = implode(' · ', array_filter([$contact !== $title ? $contact : '', $email, $phone], static fn ($v) => $v !== ''));
+            $meta = array_values(array_filter([
+                ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                $contact !== '' ? ((string) ($lang['field_name'] ?? 'Name').': '.$contact) : '',
+                $email !== '' ? ((string) ($lang['field_email'] ?? 'Email').': '.$email) : '',
+                $phone !== '' ? ((string) ($lang['field_phone'] ?? 'Phone').': '.$phone) : '',
+                $city !== '' ? ((string) ($lang['field_city'] ?? 'City').': '.$city) : '',
+            ]));
             $out[] = $this->resultItem(
                 'customer',
                 $id,
                 $title,
-                (string) ($o->email ?? ''),
+                $subtitle,
                 $section,
                 'mdi-account-group',
-                company_url('customers/edit/' . $id)
+                company_url('customers/edit/' . $id),
+                (string) ($lang['type_customer'] ?? $section),
+                '',
+                $meta
             );
         }
 
@@ -209,15 +316,21 @@ class Search extends Company_Controller
             if ($id < 1) {
                 continue;
             }
-            $name = trim(($mapped->first_name ?? '') . ' ' . ($mapped->last_name ?? ''));
+            $email = (string) ($mapped->email ?? '');
             $out[] = $this->resultItem(
                 'seller',
                 $id,
-                $name,
-                (string) ($mapped->email ?? ''),
+                $this->userDisplayName($mapped),
+                $email,
                 $section,
                 'mdi-account-tie',
-                company_url('users/edit/' . $id)
+                company_url('users/edit/' . $id),
+                (string) ($lang['type_seller'] ?? $section),
+                '',
+                array_values(array_filter([
+                    ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                    $email !== '' ? ((string) ($lang['field_email'] ?? 'Email').': '.$email) : '',
+                ]))
             );
         }
 
@@ -245,19 +358,116 @@ class Search extends Company_Controller
             if ($id < 1) {
                 continue;
             }
-            $name = trim(($mapped->first_name ?? '') . ' ' . ($mapped->last_name ?? ''));
+            $email = (string) ($mapped->email ?? '');
             $out[] = $this->resultItem(
                 'user',
                 $id,
-                $name,
-                (string) ($mapped->email ?? ''),
+                $this->userDisplayName($mapped),
+                $email,
                 $section,
                 'mdi-account',
-                company_url('users/edit/' . $id)
+                company_url('users/edit/' . $id),
+                (string) ($lang['type_user'] ?? $section),
+                '',
+                array_values(array_filter([
+                    ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                    $email !== '' ? ((string) ($lang['field_email'] ?? 'Email').': '.$email) : '',
+                ]))
             );
         }
 
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $lang
+     * @return list<array<string, string>>
+     */
+    private function mapPortalUsers(int $companyId, string $term, array $lang): array
+    {
+        $rows = $this->normalizeApiList($this->getObjectFromApi('user', [
+            'type' => 'customer',
+            'all' => true,
+            'search' => $term,
+            'props' => ['id', 'name', 'email', 'first_name', 'last_name'],
+        ]));
+
+        $section = (string) ($lang['section_portal_users'] ?? 'Portal users');
+        $out = [];
+        foreach (array_slice($rows, 0, 4) as $row) {
+            $mapped = $this->mapUserRow($row);
+            $id = (int) ($mapped->user_id ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            $email = (string) ($mapped->email ?? '');
+            $out[] = $this->resultItem(
+                'portal_user',
+                $id,
+                $this->userDisplayName($mapped),
+                $email,
+                $section,
+                'mdi-account-cowboy-hat',
+                company_url('users/edit/' . $id),
+                (string) ($lang['type_portal_user'] ?? $section),
+                '',
+                array_values(array_filter([
+                    ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                    $email !== '' ? ((string) ($lang['field_email'] ?? 'Email').': '.$email) : '',
+                ]))
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $lang
+     * @return list<array<string, string>>
+     */
+    private function mapWarehouses(int $companyId, string $term, array $lang): array
+    {
+        $rows = $this->normalizeApiList($this->getObjectFromApi('warehouse', [
+            'all' => true,
+            'search' => $term,
+            'props' => ['id', 'name'],
+        ]));
+
+        $section = (string) ($lang['section_warehouses'] ?? 'Warehouses');
+        $out = [];
+        foreach (array_slice($rows, 0, 4) as $row) {
+            $o = is_object($row) ? $row : (object) $row;
+            $id = (int) ($o->id ?? $o->warehouse_id ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            $out[] = $this->resultItem(
+                'warehouse',
+                $id,
+                (string) ($o->name ?? ('#' . $id)),
+                ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                $section,
+                'mdi-warehouse',
+                company_url('warehouses/edit/' . $id),
+                (string) ($lang['type_warehouse'] ?? $section),
+                '',
+                [
+                    ((string) ($lang['field_id'] ?? 'ID')).': '.$id,
+                ]
+            );
+        }
+
+        return $out;
+    }
+
+    private function userDisplayName(object $mapped): string
+    {
+        $name = trim(($mapped->first_name ?? '') . ' ' . ($mapped->last_name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        return trim((string) ($mapped->name ?? ''));
     }
 
     /**
@@ -403,7 +613,8 @@ class Search extends Company_Controller
     }
 
     /**
-     * @return array<string, string>
+     * @param list<string> $meta
+     * @return array<string, mixed>
      */
     private function resultItem(
         string $type,
@@ -412,7 +623,10 @@ class Search extends Company_Controller
         string $subtitle,
         string $section,
         string $icon,
-        string $url
+        string $url,
+        string $typeLabel = '',
+        string $image = '',
+        array $meta = []
     ): array {
         return [
             'type' => $type,
@@ -422,6 +636,9 @@ class Search extends Company_Controller
             'section' => $section,
             'icon' => $icon,
             'url' => $url,
+            'type_label' => $typeLabel !== '' ? $typeLabel : $section,
+            'image' => $image,
+            'meta' => array_values(array_filter(array_map('strval', $meta), static fn ($v) => trim($v) !== '')),
         ];
     }
 

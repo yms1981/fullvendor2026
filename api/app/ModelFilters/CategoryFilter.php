@@ -52,6 +52,21 @@ class CategoryFilter extends ModelFilter
         });
     }
 
+    public function search($term)
+    {
+        $term = trim((string) $term);
+        if ($term === '') {
+            return $this;
+        }
+
+        return $this->where(function ($query) use ($term) {
+            $query->where('category_name', 'like', '%'.$term.'%');
+            if (ctype_digit($term)) {
+                $query->orWhere('cat_id', (int) $term);
+            }
+        });
+    }
+
     public function orderSort($orderSort = 'cat_id')
     {
         $this->orderColumn = $orderSort;

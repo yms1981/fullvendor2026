@@ -120,13 +120,8 @@ class ProcessErpProductImageQueueCommand extends Command
         $artisan = base_path('artisan');
         $companyOpt = ($companyId !== null && $companyId > 0) ? ' --company='.(int) $companyId : '';
 
+        // Windows: no spawnear CMD (abre ventanas cada minuto). Solo Linux/cron con nohup.
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $cmd = 'start /B "" '.escapeshellarg($php).' '.escapeshellarg($artisan)
-                .' erp:process-image-queue --limit='.(int) $limit
-                .' --chain='.(int) $nextChain
-                .$companyOpt;
-            @pclose(@popen($cmd, 'r'));
-
             return;
         }
 

@@ -69,26 +69,63 @@
             return result;
         },
 
-        buildAddress: function (cus) {
-            var segments = [];
-            var push = function (val) {
-                var t = String(val || '').trim();
-                if (t) {
-                    segments.push(t.toUpperCase());
-                }
+        stateForConcat: function (raw) {
+            var s = String(raw || '').trim().toUpperCase();
+            if (!s) {
+                return '';
+            }
+            var m = s.match(/^([A-Z0-9]{1,5})\s*[-–—]\s+(.+)$/);
+            if (m) {
+                return m[1];
+            }
+            if (/^[A-Z]{2}$/.test(s)) {
+                return s;
+            }
+            var map = {
+                'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR',
+                'CALIFORNIA': 'CA', 'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE',
+                'FLORIDA': 'FL', 'GEORGIA': 'GA', 'HAWAII': 'HI', 'IDAHO': 'ID',
+                'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA', 'KANSAS': 'KS',
+                'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+                'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS',
+                'MISSOURI': 'MO', 'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV',
+                'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ', 'NEW MEXICO': 'NM', 'NEW YORK': 'NY',
+                'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH', 'OKLAHOMA': 'OK',
+                'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+                'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT',
+                'VERMONT': 'VT', 'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV',
+                'WISCONSIN': 'WI', 'WYOMING': 'WY', 'DISTRICT OF COLUMBIA': 'DC'
             };
-            ['commercial_address', 'commercial_state', 'commercial_city', 'commercial_zone', 'commercial_zip_code', 'commercial_country'].forEach(function (k) {
-                push(cus[k]);
+            return map[s] || s;
+        },
+
+        buildAddressParts: function (cus, prefix) {
+            var address = String(cus[prefix + '_address'] || '').trim().toUpperCase();
+            var city = String(cus[prefix + '_city'] || '').trim().toUpperCase();
+            var state = this.stateForConcat(cus[prefix + '_state'] || '');
+            var zip = String(cus[prefix + '_zip_code'] || '').trim().toUpperCase();
+            var country = String(cus[prefix + '_country'] || '').trim().toUpperCase();
+            var parts = [];
+            [address, city, state, zip, country].forEach(function (seg) {
+                if (seg) {
+                    parts.push(seg);
+                }
             });
-            if (!segments.length) {
-                ['dispatch_address', 'dispatch_state', 'dispatch_city', 'dispatch_zone', 'dispatch_zip_code', 'dispatch_country'].forEach(function (k) {
-                    push(cus[k]);
-                });
+            return parts.join(', ');
+        },
+
+        buildAddress: function (cus) {
+            // Orden fijo: Address, City, State(sigla|nombre), ZipCode, Country
+            var commercial = this.buildAddressParts(cus, 'commercial');
+            if (commercial) {
+                return commercial;
             }
-            if (!segments.length && cus.dispatch_delivery_address) {
-                push(cus.dispatch_delivery_address);
+            var dispatch = this.buildAddressParts(cus, 'dispatch');
+            if (dispatch) {
+                return dispatch;
             }
-            return segments.join(', ');
+            var fallback = String(cus.dispatch_delivery_address || cus.commercial_delivery_address || '').trim();
+            return fallback ? fallback.toUpperCase() : '';
         },
 
         getInitials: function (business, contact) {

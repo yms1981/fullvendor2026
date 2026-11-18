@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Cm
@@ -55,7 +54,6 @@ class Cm extends Model
 {
 
     use HasFactory;
-    use SoftDeletes;
     use Filterable;
 
     protected $table = 'cms';

@@ -3,11 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CategorySubgroup extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'category_subgroups';
     protected $primaryKey = 'subgroup_id';

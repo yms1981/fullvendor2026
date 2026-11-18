@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Conversación de chat empresarial (Sellers, Warehouse, Managers).
@@ -23,7 +22,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class CompanyConversation extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'company_conversations';
 

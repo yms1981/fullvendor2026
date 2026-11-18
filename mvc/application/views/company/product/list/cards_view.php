@@ -184,6 +184,20 @@ $upperText = static function (string $value): string {
                         <?php endif; ?>
                     </h3>
                     <?php
+                    $cardBarcode = trim((string) ($listItem->barcode ?? ''));
+                    $cardBarcodeLabel = (string) ($pageTexts['f_barcode'] ?? $pageTexts['barcode'] ?? '');
+                    if ($cardBarcode !== '') :
+                        ?>
+                        <p class="fv-product-card__barcode text-muted small mb-1"
+                           title="<?= htmlspecialchars($cardBarcodeLabel, ENT_QUOTES, 'UTF-8') ?>">
+                            <img src="<?= base_url('images/codbarra.png') ?>"
+                                 alt=""
+                                 class="img-fluid"
+                                 style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 4px;">
+                            <span class="notranslate"><?= htmlspecialchars($cardBarcode, ENT_QUOTES, 'UTF-8') ?></span>
+                        </p>
+                    <?php endif; ?>
+                    <?php
                     $cardRating = function_exists('company_product_rating_value')
                         ? company_product_rating_value($listItem)
                         : 3.5;

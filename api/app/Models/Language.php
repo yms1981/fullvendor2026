@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Language
@@ -80,7 +79,7 @@ class Language extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'languages';
+    protected $table = 'languages';
     protected $primaryKey = 'language_id';
 
 

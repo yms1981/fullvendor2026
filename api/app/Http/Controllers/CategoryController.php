@@ -1316,7 +1316,7 @@ class CategoryController extends Controller
         $deleted = CategoryProduct::query()
             ->where('category_id', $categoryId)
             ->whereIn('product_id', $productIds)
-            ->forceDelete();
+            ->delete();
         return $deleted;
     }
 

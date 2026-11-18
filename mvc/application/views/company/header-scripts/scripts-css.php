@@ -142,7 +142,7 @@ CoreLoader.waitForJQuery(function() {
 });
 </script>
 
-<link rel="manifest" href="<?= base_url('manifest.json?v=' . $v_imagen) ?>">
+<link rel="manifest" href="<?= htmlspecialchars(base_url('pwa-manifest.php'), ENT_QUOTES, 'UTF-8') ?>">
 <meta name="theme-color" content="#e60000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -151,6 +151,17 @@ CoreLoader.waitForJQuery(function() {
 <link rel="apple-touch-icon" href="<?= base_url('companyasset/images/pwa/icon-192.png') ?>">
 <link rel="icon" type="image/png" sizes="192x192" href="<?= base_url('companyasset/images/pwa/icon-192.png') ?>">
 <link rel="icon" type="image/png" sizes="512x512" href="<?= base_url('companyasset/images/pwa/icon-512.png') ?>">
+<script>
+/* Captura temprana: beforeinstallprompt a veces dispara antes del JS del footer. */
+window.__fvPwaDeferredPrompt = window.__fvPwaDeferredPrompt || null;
+window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    window.__fvPwaDeferredPrompt = e;
+    try {
+        window.dispatchEvent(new CustomEvent('fv-pwa-installable'));
+    } catch (err) {}
+});
+</script>
 
 <style>
     /* No forzar z-index bajo en todos los popovers: oculta el preview de imágenes. */

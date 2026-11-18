@@ -386,6 +386,7 @@ class ConfigCrudImportSchemas
                 ['index' => 5, 'label_key' => 'import_col_can_change_price', 'required' => false],
                 ['index' => 6, 'label_key' => 'import_col_can_send_catalog', 'required' => false],
                 ['index' => 7, 'label_key' => 'import_col_can_create_customer', 'required' => false],
+                ['index' => 8, 'label_key' => 'import_col_can_access_backend', 'required' => false],
             ],
             'duplicate_key_indexes' => [0],
             'validate' => static function (array $cells): array {
@@ -409,6 +410,7 @@ class ConfigCrudImportSchemas
                     'can_change_price' => self::parseBoolean($cells[5] ?? '0') ? 1 : 0,
                     'can_send_catalog' => self::parseBoolean($cells[6] ?? '0') ? 1 : 0,
                     'can_create_customer' => self::parseBoolean($cells[7] ?? '0') ? 1 : 0,
+                    'can_access_backend' => self::parseBoolean($cells[8] ?? '0') ? 1 : 0,
                     'status' => 1,
                 ];
                 $response = $controller->post('sellerprofiles', $payload);

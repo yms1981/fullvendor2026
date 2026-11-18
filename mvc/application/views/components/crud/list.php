@@ -38,6 +38,16 @@ window.validationLang = <?= json_encode($validationLang ?? [], JSON_UNESCAPED_UN
 // Mensaje del loader durante acciones (traducción)
 window.orderActionLoaderMessage = <?= json_encode($pageTexts['procesando_accion'] ?? $pageTexts['cargando'] ?? '', JSON_UNESCAPED_UNICODE) ?>;
 window.listLoaderMessage = <?= json_encode($pageTexts['loading_data'] ?? $pageTexts['cargando'] ?? $pageTexts['procesando_accion'] ?? '', JSON_UNESCAPED_UNICODE) ?>;
+<?php if (! empty($pageTexts['bnExportImages'])) : ?>
+window.fvProductExportImagesLang = <?= json_encode([
+    'bnExportImages' => $pageTexts['bnExportImages'] ?? '',
+    'export_images_loading' => $pageTexts['export_images_loading'] ?? '',
+    'export_images_no_selection' => $pageTexts['export_images_no_selection'] ?? '',
+    'export_images_empty' => $pageTexts['export_images_empty'] ?? '',
+    'export_images_too_many' => $pageTexts['export_images_too_many'] ?? '',
+    'export_images_failed' => $pageTexts['export_images_failed'] ?? '',
+], JSON_UNESCAPED_UNICODE) ?>;
+<?php endif; ?>
 <?php if (!empty($enableProductViewModes)) : ?>
 window.fvProductsViewLang = <?= json_encode([
     'view_mode_table' => $pageTexts['view_mode_table'] ?? '',
@@ -169,6 +179,100 @@ window.hideOrderActionLoader = function() {
     text-align: center !important;
     vertical-align: middle !important;
 }
+#main-content .fv-modern-grid__table th.fv-modern-grid__actions--dropdown,
+#main-content .fv-modern-grid__table td.fv-modern-grid__actions--dropdown {
+    min-width: 160px !important;
+    width: 160px !important;
+    max-width: none !important;
+    overflow: visible !important;
+    z-index: 5;
+}
+#main-content .fv-modern-grid__table th[data-field="business_name_extended"],
+#main-content .fv-modern-grid__table td[data-field="business_name_extended"] {
+    width: 600px !important;
+    min-width: 600px !important;
+    max-width: 600px !important;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: middle !important;
+}
+#main-content .fv-modern-grid__table td[data-field="business_name_extended"] {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+#main-content .fv-crud-actions-dropdown {
+    position: relative;
+}
+#main-content .fv-crud-actions-dropdown > .btn.fv-crud-actions-toggle {
+    width: auto !important;
+    min-width: 8rem !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 2.4rem !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    border-radius: 0.4rem !important;
+}
+.fv-crud-actions-dropdown-menu,
+body > .fv-crud-actions-dropdown-menu {
+    display: none;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: auto !important;
+    bottom: auto !important;
+    float: none !important;
+    width: max-content !important;
+    min-width: 11.5rem !important;
+    max-width: 16rem !important;
+    padding: 0.35rem 0 !important;
+    margin: 0 !important;
+    z-index: 2050 !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18) !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem !important;
+    background: #fff !important;
+    transform: none !important;
+    list-style: none;
+}
+.fv-crud-actions-dropdown-menu.is-open,
+body > .fv-crud-actions-dropdown-menu.is-open {
+    display: block !important;
+}
+.fv-crud-actions-dropdown-menu .dropdown-item,
+body > .fv-crud-actions-dropdown-menu .dropdown-item {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.95rem !important;
+    white-space: nowrap !important;
+    font-size: 0.9rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    text-align: left;
+    color: #111827;
+    background: transparent;
+    border: 0;
+    box-sizing: border-box;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+.fv-crud-actions-dropdown-menu .dropdown-item:hover,
+body > .fv-crud-actions-dropdown-menu .dropdown-item:hover {
+    background: #f3f4f6 !important;
+}
+.fv-crud-actions-dropdown-menu .dropdown-item i,
+body > .fv-crud-actions-dropdown-menu .dropdown-item i {
+    font-size: 1.1rem;
+    width: 1.2rem;
+    text-align: center;
+    flex-shrink: 0;
+}
 .product-image-column {
     width: 118px !important;
     min-width: 118px !important;
@@ -194,6 +298,10 @@ window.hideOrderActionLoader = function() {
                         $this->load->view('company/product/list_quality_alert', [
                             'productListQuality' => $productListQuality,
                             'pageTexts' => $pageTexts ?? [],
+                            'activeQualityFilter' => $activeQualityFilter ?? '',
+                            'listCompanyId' => $listCompanyId ?? ($companyId ?? 0),
+                            'apiToken' => $apiToken ?? '',
+                            'apiBaseUrl' => $apiBaseUrl ?? '/api',
                         ]);
                     }
                     if (isset($returnOverSales) && is_array($returnOverSales)) {
@@ -464,7 +572,7 @@ window.hideOrderActionLoader = function() {
                                         <?php endif; ?>
 
                                         <?php if (!empty($itemActions)): ?>
-                                        <th class="fuente_16px text-center crud-list-actions-column fv-crud-actions-column fv-modern-grid__actions fv-dt-no-sort" scope="col"><?= htmlspecialchars((string) ($pageTexts['colmn_action'] ?? 'Actions'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th class="fuente_16px text-center crud-list-actions-column fv-crud-actions-column fv-modern-grid__actions<?= !empty($useActionsDropdown) ? ' fv-modern-grid__actions--dropdown' : '' ?> fv-dt-no-sort" scope="col"><?= htmlspecialchars((string) ($pageTexts['colmn_action'] ?? 'Actions'), ENT_QUOTES, 'UTF-8') ?></th>
                                         <?php endif; ?>
                                     </tr>
                                     </thead>
@@ -713,7 +821,47 @@ window.hideOrderActionLoader = function() {
                                             <?php endif; ?>
 
                                             <?php if (!empty($itemActions)): ?>
-                                            <td class="text-center crud-list-actions-column fv-modern-grid__actions" style="vertical-align: middle;">
+                                            <td class="text-center crud-list-actions-column fv-modern-grid__actions<?= !empty($useActionsDropdown) ? ' fv-modern-grid__actions--dropdown' : '' ?>" style="vertical-align: middle;">
+                                                <?php if (!empty($useActionsDropdown)): ?>
+                                                <div class="fv-crud-actions-dropdown d-inline-block">
+                                                    <button class="btn btn-outline-secondary dropdown-toggle fv-crud-actions-toggle"
+                                                            type="button"
+                                                            id="fv-crud-actions-<?= htmlspecialchars((string) ($listItem->$itemIdField ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                            aria-haspopup="true"
+                                                            aria-expanded="false">
+                                                        <?= htmlspecialchars((string) ($pageTexts['actions'] ?? $pageTexts['colmn_action'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                    </button>
+                                                    <div class="fv-crud-actions-dropdown-menu"
+                                                         aria-labelledby="fv-crud-actions-<?= htmlspecialchars((string) ($listItem->$itemIdField ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <?php foreach ($itemActions as $actionName => $itemAction):
+                                                            if (isset($actionButtonTemplates[$actionName])) {
+                                                                continue;
+                                                            }
+                                                            $isDeleteButton = ($actionName === 'delete' || strpos($itemAction['buttonClass'] ?? '', 'go-delete') !== false || strpos($itemAction['buttonClass'] ?? '', 'btn-go-delete') !== false);
+                                                            $isDefaultCatalog = isset($listItem->default_catalog) && (int) $listItem->default_catalog === 1;
+                                                            $actionLabel = htmlspecialchars((string) ($itemAction['label'] ?? ''), ENT_QUOTES, 'UTF-8');
+                                                            $actionIcon = htmlspecialchars((string) ($itemAction['iconClass'] ?? ''), ENT_QUOTES, 'UTF-8');
+                                                            if ($isDeleteButton && $isDefaultCatalog): ?>
+                                                        <span class="dropdown-item disabled">
+                                                            <i class="mdi mdi-lock mr-1"></i><?= htmlspecialchars((string) ($pageTexts['catalogo_default'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                        </span>
+                                                            <?php elseif ($isDeleteButton): ?>
+                                                        <button type="button"
+                                                                class="dropdown-item text-danger go-delete btn-delete-catalog"
+                                                                data-delete-url="<?= $itemAction['action'] ?><?= $listItem->$itemIdField ?>"
+                                                                data-catalog-id="<?= $listItem->$itemIdField ?>">
+                                                            <?php if ($actionIcon !== ''): ?><i class="<?= $actionIcon ?> mr-1"></i><?php endif; ?><?= $actionLabel ?>
+                                                        </button>
+                                                            <?php else: ?>
+                                                        <a class="dropdown-item"
+                                                           href="<?= $itemAction['action'] ?><?= $listItem->$itemIdField ?>">
+                                                            <?php if ($actionIcon !== ''): ?><i class="<?= $actionIcon ?> mr-1"></i><?php endif; ?><?= $actionLabel ?>
+                                                        </a>
+                                                            <?php endif;
+                                                        endforeach; ?>
+                                                    </div>
+                                                </div>
+                                                <?php else: ?>
                                                 <div class="fv-modern-grid__actions-inner fv-crud-row-actions">
                                                     <?php foreach ($itemActions as $actionName => $itemAction):
                                                         if(isset($actionButtonTemplates[$actionName])):
@@ -751,6 +899,7 @@ window.hideOrderActionLoader = function() {
                                                     endif;
                                                     endforeach; ?>
                                                 </div>
+                                                <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
                                         </tr>
@@ -1068,6 +1217,121 @@ window.hideOrderActionLoader = function() {
 </div>
 
 <script>
+(function () {
+    var MENU_WIDTH = 200;
+
+    function closeAllActionsMenus($) {
+        $('body > .fv-crud-actions-dropdown-menu.is-open').each(function () {
+            var $menu = $(this);
+            var $dropdown = $menu.data('fv-actions-owner');
+            $menu.removeClass('is-open').removeAttr('style');
+            if ($dropdown && $dropdown.length) {
+                $dropdown.removeClass('is-open');
+                $dropdown.find('.fv-crud-actions-toggle').attr('aria-expanded', 'false');
+                if ($menu.parent()[0] !== $dropdown[0]) {
+                    $dropdown.append($menu);
+                }
+            } else {
+                $menu.remove();
+            }
+        });
+        $('.fv-crud-actions-dropdown.is-open').each(function () {
+            var $dropdown = $(this);
+            var $menu = $dropdown.children('.fv-crud-actions-dropdown-menu');
+            $dropdown.removeClass('is-open');
+            $dropdown.find('.fv-crud-actions-toggle').attr('aria-expanded', 'false');
+            $menu.removeClass('is-open').removeAttr('style');
+        });
+    }
+
+    function openActionsMenu($, $dropdown) {
+        var $toggle = $dropdown.find('.fv-crud-actions-toggle').first();
+        var $menu = $dropdown.children('.fv-crud-actions-dropdown-menu').first();
+        if (!$toggle.length || !$menu.length) {
+            return;
+        }
+        closeAllActionsMenus($);
+        $menu.data('fv-actions-owner', $dropdown);
+        $('body').append($menu);
+        $menu.addClass('is-open').css({
+            position: 'fixed',
+            top: '-9999px',
+            left: '0',
+            display: 'block',
+            visibility: 'hidden'
+        });
+        var rect = $toggle[0].getBoundingClientRect();
+        var menuWidth = Math.min(Math.max($menu.outerWidth() || MENU_WIDTH, MENU_WIDTH), 256);
+        var menuHeight = $menu.outerHeight() || 0;
+        var left = rect.right - menuWidth;
+        if (left < 8) {
+            left = 8;
+        }
+        if (left + menuWidth > window.innerWidth - 8) {
+            left = Math.max(8, window.innerWidth - menuWidth - 8);
+        }
+        var top = rect.bottom + 4;
+        if (top + menuHeight > window.innerHeight - 8 && rect.top > menuHeight + 8) {
+            top = rect.top - menuHeight - 4;
+        }
+        $menu.attr(
+            'style',
+            'position:fixed!important;top:' + top + 'px!important;left:' + left + 'px!important;' +
+            'right:auto!important;bottom:auto!important;width:max-content!important;' +
+            'min-width:' + MENU_WIDTH + 'px!important;max-width:16rem!important;' +
+            'display:block!important;visibility:visible!important;z-index:2050!important;margin:0!important;'
+        );
+        $dropdown.addClass('is-open');
+        $toggle.attr('aria-expanded', 'true');
+    }
+
+    function bindCrudActionsDropdowns($) {
+        if (window.__fvCrudActionsDropdownBound) {
+            return;
+        }
+        window.__fvCrudActionsDropdownBound = true;
+
+        $(document).on('click', '.fv-crud-actions-toggle', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var $dropdown = $(this).closest('.fv-crud-actions-dropdown');
+            if ($dropdown.hasClass('is-open')) {
+                closeAllActionsMenus($);
+                return;
+            }
+            openActionsMenu($, $dropdown);
+        });
+
+        $(document).on('click', function (e) {
+            if ($(e.target).closest('.fv-crud-actions-dropdown, .fv-crud-actions-dropdown-menu').length) {
+                return;
+            }
+            closeAllActionsMenus($);
+        });
+
+        $(document).on('click', 'body > .fv-crud-actions-dropdown-menu .dropdown-item', function () {
+            // Dejar que el enlace/botón actúe; cerrar el menú.
+            setTimeout(function () {
+                closeAllActionsMenus($);
+            }, 0);
+        });
+
+        $(window).on('scroll.fvCrudActions resize.fvCrudActions', function () {
+            closeAllActionsMenus($);
+        });
+    }
+
+    if (typeof jQuery !== 'undefined') {
+        bindCrudActionsDropdowns(jQuery);
+    } else {
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof jQuery !== 'undefined') {
+                bindCrudActionsDropdowns(jQuery);
+            }
+        });
+    }
+})();
+
 // Definir funciones globales (no dependen de jQuery)
 window.openurl = function(url) {
     var w = 1500;

@@ -118,6 +118,7 @@ class Sellerprofile extends Home
 				'can_change_price' => $this->testInput($this->input->post('can_change_price')),
 				'can_send_catalog' => $this->testInput($this->input->post('can_send_catalog')),
 				'can_create_customer' => $this->testInput($this->input->post('can_create_customer')),
+				'can_access_backend' => $this->testInput($this->input->post('can_access_backend')),
 				'order_discount' => 0,
 				'order_disc_price' => '',
 				'order_net_discount' => 0,
@@ -245,6 +246,7 @@ class Sellerprofile extends Home
 				'can_change_price' => $this->testInput($this->input->post('can_change_price')),
 				'can_send_catalog' => $this->testInput($this->input->post('can_send_catalog')),
 				'can_create_customer' => $this->testInput($this->input->post('can_create_customer')),
+				'can_access_backend' => $this->testInput($this->input->post('can_access_backend')),
 			);
 
 			$isAjax = $this->input->is_ajax_request() || $this->input->server('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest';
@@ -367,6 +369,7 @@ class Sellerprofile extends Home
 			$lang['change_price'] ?? '',
 			$lang['send_catalog'] ?? '',
 			$lang['create_customer'] ?? '',
+			$lang['access_backend'] ?? '',
 			$lang['created'] ?? '',
 		];
 
@@ -379,6 +382,7 @@ class Sellerprofile extends Home
 				!empty($item->can_change_price) ? $yes : $no,
 				!empty($item->can_send_catalog) ? $yes : $no,
 				!empty($item->can_create_customer) ? $yes : $no,
+				!empty($item->can_access_backend) ? $yes : $no,
 				$this->normalizeConfigCrudDate($item->created ?? null),
 			];
 		}
@@ -411,6 +415,7 @@ class Sellerprofile extends Home
 			$lang['change_price'] ?? 'can_change_price',
 			$lang['send_catalog'] ?? 'can_send_catalog',
 			$lang['create_customer'] ?? 'can_create_customer',
+			$lang['access_backend'] ?? 'can_access_backend',
 			$lang['created'] ?? 'created',
 		];
 
@@ -427,6 +432,7 @@ class Sellerprofile extends Home
 				!empty($item->can_change_price) ? $yes : $no,
 				!empty($item->can_send_catalog) ? $yes : $no,
 				!empty($item->can_create_customer) ? $yes : $no,
+				!empty($item->can_access_backend) ? $yes : $no,
 				$this->normalizeConfigCrudDate($item->created ?? null),
 			];
 		}

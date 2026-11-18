@@ -52,7 +52,7 @@ class UpdateDeliveredItemService
         }
 
         // Incluir soft-deleted: si existía y se borró, restaurar en vez de insertar.
-        $detail = OrderDetail::withTrashed()
+        $detail = OrderDetail::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->first();
@@ -73,7 +73,7 @@ class UpdateDeliveredItemService
         ) {
             $created = false;
             // Warehouse app "Add Product": crear / restaurar línea si no existe.
-            if (! $detail || $detail->trashed()) {
+            if (! $detail || ($detail->deleted_at !== null)) {
                 $productCompanyId = (int) ($order->company_id ?: $companyId);
                 $product = Product::query()
                     ->where('pro_id', $productId)
@@ -95,8 +95,9 @@ class UpdateDeliveredItemService
                 $orderedQty = $qty > 0 ? $qty : 1.0;
                 $orderedPack = ($pack !== null && $pack > 0) ? $pack : 1.0;
 
-                if ($detail && $detail->trashed()) {
-                    $detail->restore();
+                if ($detail && ($detail->deleted_at !== null)) {
+                    $detail->deleted_at = null;
+                    $detail->save();
                     $detail->qty = $orderedQty;
                     $detail->pack = $orderedPack;
                     $detail->sale_price = $salePrice;
@@ -167,7 +168,7 @@ class UpdateDeliveredItemService
             DeliveredOrder::query()
                 ->where('order_id', $orderId)
                 ->where('product_id', $productId)
-                ->forceDelete();
+                ->delete();
 
             $delivered = DeliveredOrder::query()->create([
                 'order_id' => $orderId,

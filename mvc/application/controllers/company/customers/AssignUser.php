@@ -15,6 +15,7 @@ class AssignUser extends Company_Controller
     public function index()
     {
         $postData = $this->input->post();
+        $postData['company_id'] = $this->getCompanyId();
 
         $response = $this->post("customer/assignUser/{$postData['customer_id']}", $postData);
 

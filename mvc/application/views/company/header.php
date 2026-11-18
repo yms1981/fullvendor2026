@@ -230,6 +230,7 @@ if (empty($page) && function_exists('fv_company_nav_active_key')) {
 }
 ?>
 <script>window.fvGlobalSearchLang = <?= json_encode($globalSearchLang, JSON_UNESCAPED_UNICODE) ?>;</script>
+<script src="<?= htmlspecialchars(function_exists('dated_file_url') ? dated_file_url('companyasset/company/global-search.js') : base_url('companyasset/company/global-search.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
 
 <header class="fv-company-nav navbar-fijo navbar navbar-expand-lg">
     <div class="fv-company-nav__shell">

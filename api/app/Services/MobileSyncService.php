@@ -52,10 +52,11 @@ final class MobileSyncService
         ];
 
         /** @var MobileDevice|null $device */
-        $device = MobileDevice::withTrashed()->where('device_uuid', $uuid)->first();
+        $device = MobileDevice::query()->where('device_uuid', $uuid)->first();
         if ($device) {
-            if ($device->trashed()) {
-                $device->restore();
+            if (($device->deleted_at !== null)) {
+                $device->deleted_at = null;
+                $device->save();
             }
             // Conservar company_id si no viene en el payload.
             if (! array_key_exists('company_id', $payload) || $payload['company_id'] === null || $payload['company_id'] === '') {

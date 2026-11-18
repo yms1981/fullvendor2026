@@ -432,6 +432,14 @@ trait HasAuth
                 $companyLangId = $this->resolveCompanyLanguageIdFromApi($companyId);
                 $this->persistCompanyPanelLanguage($companyId, $companyLangId);
                 $this->registerManager($companyLangId, $userId);
+                // Seller con permiso de backend: también cargar contexto vendedor.
+                if ($this->getRole() === 'seller') {
+                    try {
+                        $this->registerSeller($companyLangId, $userId, $companyId);
+                    } catch (\Throwable $e) {
+                        log_message('error', 'registerSeller on company login: '.$e->getMessage());
+                    }
+                }
                 $this->recordCompanyPanelLoginLog($companyId, (int) $userId, $companyLangId);
                 $redirectUrl = company_url('dashboard');
                 $resolvedLangId = $companyLangId;

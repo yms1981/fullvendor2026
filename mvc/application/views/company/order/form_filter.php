@@ -218,11 +218,18 @@ $dateToIso = (string) ($filterData['date_to'] ?? date('Y-m-d'));
                             </div>
                         </div>
 
-                        <!-- BUSCADOR -->
-                        <div class="col-lg-2 col-md-12 col-xl-2 col-sm-12">
-                            <div class="form-group">
+                        <input id="input-todos" hidden name="input_todos"
+                               value="<?= ($filterData['input_todos']) ? 'todos' : 'pagina' ?>">
+                        <input type="hidden" id="order_sort" name="sort"
+                               value="<?= htmlspecialchars((string) ($filterData['sort'] ?? 'updated'), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" id="sort_direction" name="sort_direction"
+                               value="<?= htmlspecialchars((string) ($filterData['orderDirection'] ?? 'desc'), ENT_QUOTES, 'UTF-8') ?>">
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group mb-0">
                                 <label><?= $pageTexts['caja_text_search'] ?></label>
-                                <div class="input-group mb-3">
+                                <div class="input-group">
                                     <input tabindex="7"
                                            type="text"
                                            name="search"
@@ -237,12 +244,6 @@ $dateToIso = (string) ($filterData['date_to'] ?? date('Y-m-d'));
                                     </button>
                                 </div>
                             </div>
-                            <input id="input-todos" hidden name="input_todos"
-                                   value="<?= ($filterData['input_todos']) ? 'todos' : 'pagina' ?>">
-                            <input type="hidden" id="order_sort" name="sort"
-                                   value="<?= htmlspecialchars((string) ($filterData['sort'] ?? 'updated'), ENT_QUOTES, 'UTF-8') ?>">
-                            <input type="hidden" id="sort_direction" name="sort_direction"
-                                   value="<?= htmlspecialchars((string) ($filterData['orderDirection'] ?? 'desc'), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                     </div>
                 </div>

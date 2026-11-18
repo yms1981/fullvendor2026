@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Inventory
@@ -57,8 +56,6 @@ class Inventory extends Pivot
 
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
 
     const UPDATED_AT = 'modify_date';
     protected $table = 'inventory';

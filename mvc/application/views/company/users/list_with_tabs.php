@@ -445,28 +445,12 @@ th[data-field="productimage"] {
                         <form id="form-buscar-filtro" method="get" action="<?= company_url('users') ?>">
                             <input type="hidden" name="type" value="<?= $currentType ?>">
                             <div class="row align-items-end">
-                                <!-- Buscador -->
-                                <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
-                                    <div class="form-group mb-0">
-                                        <label><?= $pageTexts['search'] ?></label>
-                                        <div class="search-input-group">
-                                            <i class="mdi mdi-magnify"></i>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   name="search" 
-                                                   id="search-input"
-                                                   placeholder="<?= $pageTexts['search_placeholder'] ?>"
-                                                   value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 <!-- Filtro de estado -->
                                 <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
                                     <div class="form-group mb-0">
                                         <label><?= $pageTexts['filter_status'] ?></label>
-                                        <select class="form-control" 
-                                                name="status" 
+                                        <select class="form-control"
+                                                name="status"
                                                 id="status-filter"
                                                 onchange="this.form.submit()">
                                             <option value="all" <?= (!isset($_GET['status']) || $_GET['status'] === 'all') ? 'selected' : '' ?>>
@@ -481,15 +465,31 @@ th[data-field="productimage"] {
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Botones de acción -->
-                                <div class="col-lg-5 col-md-12 col-sm-12 mb-3">
+                                <div class="col-lg-9 col-md-6 col-sm-12 mb-3">
                                     <div class="form-group mb-0 d-flex align-items-end gap-2">
-                                        <button type="submit" 
+                                        <button type="submit"
                                                 class="btn btn-primary btn-action">
                                             <i class="mdi mdi-filter"></i>
                                             <?= $pageTexts['search'] ?>
                                         </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="form-group mb-0">
+                                        <label><?= $pageTexts['search'] ?></label>
+                                        <div class="search-input-group">
+                                            <i class="mdi mdi-magnify"></i>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   name="search"
+                                                   id="search-input"
+                                                   placeholder="<?= $pageTexts['search_placeholder'] ?>"
+                                                   value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                                        </div>
                                     </div>
                                 </div>
                             </div>

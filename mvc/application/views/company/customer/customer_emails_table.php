@@ -88,8 +88,10 @@ window.FV_CUSTOMER_EMAILS = <?= json_encode([
         'eliminar' => (string) ($pageTexts['eliminar'] ?? ''),
         'guardar' => (string) ($pageTexts['guardar'] ?? ''),
         'cancelar' => (string) ($pageTexts['cancelar'] ?? ''),
+        'cerrar' => (string) ($pageTexts['cerrar'] ?? ''),
         'empty' => (string) ($pageTexts['emails_empty'] ?? ''),
         'confirm_delete' => (string) ($pageTexts['emails_confirm_delete'] ?? ''),
+        'cannot_delete_primary' => (string) ($pageTexts['emails_cannot_delete_primary'] ?? ''),
         'email_invalid' => (string) ($pageTexts['email_invalid_format'] ?? ''),
         'email_in_use' => (string) ($pageTexts['email_already_in_use'] ?? ''),
         'email_already_registered' => (string) ($pageTexts['emails_already_registered'] ?? ''),
@@ -102,80 +104,17 @@ window.FV_CUSTOMER_EMAILS = <?= json_encode([
         'list_title' => (string) ($pageTexts['emails_list_title'] ?? ''),
         'list_hint' => (string) ($pageTexts['emails_list_hint'] ?? ''),
         'default_badge' => (string) ($pageTexts['emails_default_badge'] ?? ''),
+        'send_catalog' => (string) ($pageTexts['emails_send_catalog'] ?? ''),
+        'col_send_catalog' => (string) ($pageTexts['emails_col_send_catalog'] ?? ''),
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 
-<div class="card fv-customer-emails-card mt-4" id="fv_customer_emails_card">
-    <div class="card-header fv-customer-emails-card__header d-flex justify-content-between align-items-center">
-        <span class="fv-customer-emails-card__title"><?= $t('emails_grid_title') ?></span>
-        <button type="button"
-                class="btn btn-primary btn-sm fv-customer-emails-card__add-btn"
-                id="fv_customer_emails_add_btn"
-                title="<?= $t('emails_add') ?>"
-                aria-label="<?= $t('emails_add') ?>"
-            <?= $customerId > 0 ? '' : ' disabled' ?>>
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-        </button>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive fv-customer-emails-table-wrap">
-            <table class="table table-striped mb-0 fv-customer-emails-table" id="fv_customer_emails_table">
-                <thead>
-                <tr>
-                    <th><?= $t('label_email') ?></th>
-                    <th><?= $t('emails_col_primary') ?></th>
-                    <th class="fv-customer-emails-table__actions-col text-center"><?= $t('acciones') ?></th>
-                </tr>
-                </thead>
-                <tbody id="fv_customer_emails_tbody">
-                <?php if ($emails === [] || count($emails) === 0) : ?>
-                    <tr class="fv-customer-emails-empty-row">
-                        <td colspan="3" class="text-muted text-center py-3"><?= $t('emails_empty', '') ?></td>
-                    </tr>
-                <?php else : ?>
-                    <?php foreach ($emails as $row) :
-                        $row = is_object($row) ? $row : (object) $row;
-                        $rowId = (int) ($row->id ?? 0);
-                        $rowEmail = htmlspecialchars(trim((string) ($row->email ?? '')), ENT_QUOTES, 'UTF-8');
-                        $isPrimary = !empty($row->is_primary);
-                        ?>
-                        <tr data-id="<?= $rowId ?>" data-email="<?= $rowEmail ?>" data-primary="<?= $isPrimary ? '1' : '0' ?>">
-                            <td><?= $rowEmail ?></td>
-                            <td>
-                                <?php if ($isPrimary) : ?>
-                                    <span class="badge badge-success"><?= $t('emails_primary_yes') ?></span>
-                                <?php else : ?>
-                                    <span class="badge badge-secondary"><?= $t('emails_primary_no') ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">
-                                <div class="fv-customer-emails-table__actions">
-                                    <?php if (! $isPrimary) : ?>
-                                        <button type="button" class="btn btn-outline-primary fv-crud-btn--row fv-ce-set-primary"
-                                                title="<?= $t('emails_set_primary') ?>">
-                                            <i class="fa-solid fa-star" aria-hidden="true"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                    <button type="button" class="btn btn-outline-secondary fv-crud-btn--row fv-ce-edit"
-                                            title="<?= $t('emails_edit') ?>">
-                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger fv-crud-btn--row fv-ce-delete"
-                                            title="<?= $t('eliminar') ?>"
-                                        <?= $isPrimary ? ' disabled' : '' ?>>
-                                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+<!-- Grilla de emails oculta: el listado se gestiona desde el lápiz del campo Email -->
+<table class="d-none" id="fv_customer_emails_table" aria-hidden="true">
+    <tbody id="fv_customer_emails_tbody"></tbody>
+</table>
+<button type="button" class="d-none" id="fv_customer_emails_add_btn" tabindex="-1" aria-hidden="true"></button>
 
 <div class="modal fade" id="fv_customer_email_modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -197,6 +136,10 @@ window.FV_CUSTOMER_EMAILS = <?= json_encode([
                 <div class="form-group form-check">
                     <input type="checkbox" class="form-check-input" id="fv_ce_is_primary">
                     <label class="form-check-label" for="fv_ce_is_primary"><?= $t('emails_mark_primary') ?></label>
+                </div>
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" id="fv_ce_send_catalog" checked>
+                    <label class="form-check-label" for="fv_ce_send_catalog"><?= $t('emails_send_catalog', 'Enviar catálogo') ?></label>
                 </div>
             </div>
             <div class="modal-footer">
@@ -236,11 +179,15 @@ window.FV_CUSTOMER_EMAILS = <?= json_encode([
                         <input type="checkbox" class="form-check-input" id="fv_ce_list_new_primary">
                         <label class="form-check-label" for="fv_ce_list_new_primary"><?= $t('emails_mark_primary') ?></label>
                     </div>
+                    <div class="form-check mt-2">
+                        <input type="checkbox" class="form-check-input" id="fv_ce_list_new_send_catalog" checked>
+                        <label class="form-check-label" for="fv_ce_list_new_send_catalog"><?= $t('emails_send_catalog', 'Enviar catálogo') ?></label>
+                    </div>
                     <small class="text-danger d-block mt-1" id="fv_ce_list_new_error" style="display:none;"></small>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= $t('cancelar') ?></button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= $t('cerrar', $t('cancelar')) ?></button>
             </div>
         </div>
     </div>

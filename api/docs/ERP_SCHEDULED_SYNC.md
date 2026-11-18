@@ -25,10 +25,18 @@ Task types:
 |-----------|--------------|
 | `sync_customers` | `GET /api/v1/external/fv-sync/customers` |
 | `sync_products` | `GET /api/v1/external/fv-sync/products` |
+| `sync_product_prices` | `GET /api/v1/external/fv-sync/products` (solo precios &gt; 0; incluye inactivos) |
 | `sync_categories` | `GET /api/v1/external/fv-sync/categories` |
 | `sync_customer_balances` | `GET /api/v1/external/fv-sync/customer-balances` |
 | `sync_product_inventories` | `GET /api/v1/external/fv-sync/product-inventories` |
 | `sync_product_images` | `GET /api/v1/external/fv-sync/products` (usa `images[]` del listado) |
+
+### Precios (`sync_products` y `sync_product_prices`)
+
+- **Nunca** se guarda `sale_price` / `fob_price` / `purchase_price` en `0` ni vacío.
+- Si el ERP manda `price=0` o no trae precio, se **conserva** el precio ya guardado en FullVendor.
+- `sync_product_prices` actualiza solo precios (`price` / `sale_price` / `fob_price` / `purchase_price` cuando son &gt; 0), **incluye productos inactivos**, y no cambia stock, status ni fotos.
+- `sync_products` sigue haciendo upsert completo, pero con la misma regla de no pisar precios con 0.
 
 Frequencies: `manual`, `every_15_min`, `every_1_hour` … `every_6_hours`, `daily` (legacy `hourly` = 1 hour).
 
@@ -90,14 +98,21 @@ MVC proxy: `GET /company/scheduledtasks/logs`
 
 Laravel registers `erp:run-scheduled-tasks` and `erp:process-image-queue` **every minute** in `routes/console.php`.
 
+**Sin un tick cada minuto las tareas NO corren solas** (aunque estén Enabled en la UI).  
+`erp:run-scheduled-tasks` ejecuta **1 tarea due por minuto** (fairness: nunca corridas primero, luego las más atrasadas) para que un sync largo (productos/fotos) no deje sin turno a inventarios/balances cuando el curl del hosting corta a ~110s.
+
+Al **activar** o **cambiar frecuencia**, `next_run_at` queda en `now()` (due en el próximo tick). Antes se programaba `now()+frecuencia` y la primera corrida podía retrasarse horas.
+
 Two ways to tick the scheduler (same idea as fullvendorERP):
 
 ### A) HTTP tick (recomendado en Linux / producción — igual que el ERP)
 
-1. En `api/.env`:
+1. En `api/.env` de **producción**:
 ```env
 SCHEDULE_TOKEN=pon_un_secreto_largo
 ```
+Si está vacío, `GET /api/cron/schedule` responde **503** y no corre nada.
+
 2. Cada minuto (crontab del servidor web):
 
 ```bash
@@ -117,15 +132,17 @@ O directo:
 * * * * * curl -fsS -G "https://web.fullvendor.com/api/cron/schedule" --data-urlencode "token=TU_SCHEDULE_TOKEN" --max-time 110 >> /var/log/fv-schedule-http.log 2>&1
 ```
 
-Eso ejecuta `schedule:run` + drena hasta 40 fotos (PHP del Apache/FPM con GD).  
-Sin este cron la cola se queda en `pending` (0 descargadas).
+Eso ejecuta `schedule:run` + drena un lote de fotos (PHP del Apache/FPM con GD).  
+Sin este cron: Last Run vacío / colas en `pending`.
 
-Probar:
+Probar en producción:
 
 ```bash
 curl -fsS -G "https://web.fullvendor.com/api/cron/schedule" --data-urlencode "token=TU_TOKEN"
-# {"ok":true,"elapsed_ms":...,"output":"...erp:process-image-queue processed=..."}
+# {"ok":true,"elapsed_ms":...,"output":"...Due tasks this tick..."}
 ```
+
+Si ves `Scheduler token not configured` → falta `SCHEDULE_TOKEN` en el `.env` del server.
 
 Log: `storage/logs/scheduler-YYYY-MM-DD.log`
 

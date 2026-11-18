@@ -18,6 +18,7 @@ use App\Models\OrderDetail;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
+use App\Services\ProductImagesZipExportService;
 use App\Services\ProductInventoryMvcService;
 use App\Services\ProductListQualityService;
 use App\Services\ProductRatingService;
@@ -135,7 +136,7 @@ class ProductController extends Controller
         path: '/api/v2/product/list-quality',
         operationId: 'productListQuality',
         summary: 'Avisos de calidad del listado de productos',
-        description: 'Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0.',
+        description: 'Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0. Si faltan unidades, asigna la unidad por defecto de la compañía.',
         security: [['bearerAuth' => []]],
         tags: ['Product'],
         parameters: [
@@ -151,6 +152,7 @@ class ProductController extends Controller
                         new OA\Property(property: 'duplicate_codes', type: 'integer', example: 1),
                         new OA\Property(property: 'zero_price', type: 'integer', example: 3),
                         new OA\Property(property: 'negative_stock_fixed', type: 'integer', example: 1),
+                        new OA\Property(property: 'units_fixed', type: 'integer', example: 4),
                     ]
                 )
             ),
@@ -184,6 +186,122 @@ class ProductController extends Controller
         }
 
         return response()->json(app(ProductListQualityService::class)->review($companyId));
+    }
+
+    /**
+     * Grupos de productos con el mismo código de barras (para corregir en modal).
+     */
+    #[OA\Get(
+        path: '/api/v2/product/duplicate-barcodes',
+        operationId: 'productDuplicateBarcodes',
+        summary: 'Productos agrupados por código de barras repetido',
+        security: [['bearerAuth' => []]],
+        tags: ['Product'],
+        parameters: [
+            new OA\Parameter(name: 'company_id', in: 'query', required: true, schema: new OA\Schema(type: 'integer', example: 1)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Grupos de barcodes duplicados'),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Sin acceso a la compañía'),
+            new OA\Response(response: 422, description: 'Compañía no indicada'),
+        ]
+    )]
+    public function duplicateBarcodes(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $companyId = (int) ($request->input('company_id') ?? $request->input('company') ?? 0);
+        if ($companyId < 1) {
+            $userCompany = $user->companiesForRole('manager')->first() ?: $user->companies()->first();
+            $companyId = (int) ($userCompany->company_id ?? 0);
+        }
+        if ($companyId < 1) {
+            return response()->json([
+                'message' => 'company_id is required',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (! $user->canAccessCompany($companyId)) {
+            return response()->json([
+                'message' => 'Forbidden',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $groups = app(ProductListQualityService::class)->duplicateBarcodeGroups($companyId);
+
+        return response()->json([
+            'groups' => $groups,
+            'group_count' => count($groups),
+            'product_count' => array_sum(array_map(static fn (array $g): int => (int) ($g['count'] ?? 0), $groups)),
+        ]);
+    }
+
+    /**
+     * Actualiza solo el código de barras de un producto de la compañía.
+     */
+    #[OA\Patch(
+        path: '/api/v2/product/{product}/barcode',
+        operationId: 'productUpdateBarcode',
+        summary: 'Actualizar código de barras de un producto',
+        security: [['bearerAuth' => []]],
+        tags: ['Product'],
+        parameters: [
+            new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['company_id', 'barcode'],
+                properties: [
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'barcode', type: 'string', example: '7501234567890'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Barcode actualizado'),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(response: 403, description: 'Sin acceso'),
+            new OA\Response(response: 404, description: 'Producto no encontrado'),
+            new OA\Response(response: 422, description: 'Validación'),
+        ]
+    )]
+    public function updateBarcode(Request $request, int $product): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $companyId = (int) ($request->input('company_id') ?? $request->input('company') ?? 0);
+        if ($companyId < 1 || ! $user->canAccessCompany($companyId)) {
+            return response()->json(['message' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        }
+
+        $barcode = trim((string) $request->input('barcode', ''));
+        $model = Product::query()
+            ->where('company_id', $companyId)
+            ->where('pro_id', $product)
+            ->first();
+
+        if (! $model) {
+            return response()->json(['message' => 'Product not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $model->barcode = $barcode;
+        $model->modified_on = now();
+        $model->save();
+
+        return response()->json([
+            'pro_id' => (int) $model->pro_id,
+            'sku' => (string) ($model->sku ?? ''),
+            'barcode' => (string) ($model->barcode ?? ''),
+            'message' => 'ok',
+        ]);
     }
 
     /**
@@ -780,6 +898,13 @@ class ProductController extends Controller
         $arrRequest['language_id'] = Company::where('company_id', $companyId)->sole()->language_id;
         $arrRequest['minimum_stock'] = $request->get('minimum_stock') ?? 0;
         $arrRequest['price_reduced'] = $request->get('price_reduced') ?? 0;
+        if ((int) ($arrRequest['unit_id'] ?? 0) < 1) {
+            $defaultUnitId = app(\App\Services\ProductListQualityService::class)
+                ->resolveDefaultUnitId($companyId);
+            if ($defaultUnitId > 0) {
+                $arrRequest['unit_id'] = $defaultUnitId;
+            }
+        }
 
         $categoryIds = $this->normalizeCategoryIds($request->input('category_id'));
         $categoryIdsCsv = $categoryIds !== [] ? implode(',', $categoryIds) : null;
@@ -1610,7 +1735,17 @@ class ProductController extends Controller
         if ($productIds->isEmpty()) {
             return 0;
         }
-        return Product::whereIn('pro_id', $productIds)->update(['status' => $newStatus]);
+
+        $updated = Product::whereIn('pro_id', $productIds)->update(['status' => $newStatus]);
+
+        // Si la empresa vende con inventario, el stock manda sobre el status manual.
+        $companyId = (int) ($request->input('company_id') ?? 0);
+        if ($companyId > 0) {
+            app(\App\Services\ProductStockStatusSyncService::class)
+                ->syncProductIds($productIds->all(), $companyId);
+        }
+
+        return $updated;
     }
 
     /**
@@ -1775,6 +1910,141 @@ class ProductController extends Controller
             "{$fileName}.{$extension}",
             $writerType
         );
+    }
+
+    #[OA\Post(
+        path: 'api/v2/product/export-images',
+        operationId: 'productExportImagesZip',
+        summary: 'Export product images as a ZIP archive',
+        description: 'Builds a ZIP with product images for the selected/filtered products. File names follow the import convention (sku.ext, sku_pic2.ext, …).',
+        security: [['bearerAuth' => []]],
+        tags: ['Product'],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(
+                        property: 'products',
+                        description: 'Array of product IDs, JSON string of IDs, or "todos" for all filtered products',
+                        oneOf: [
+                            new OA\Schema(type: 'string', example: 'todos'),
+                            new OA\Schema(type: 'array', items: new OA\Items(type: 'integer')),
+                        ]
+                    ),
+                    new OA\Property(
+                        property: 'excluded_ids',
+                        description: 'IDs to exclude when products=todos',
+                        type: 'array',
+                        items: new OA\Items(type: 'integer')
+                    ),
+                    new OA\Property(property: 'company', type: 'integer', example: 1),
+                    new OA\Property(property: 'company_id', type: 'integer', example: 1),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: Response::HTTP_OK,
+                description: 'ZIP file download',
+                content: [
+                    new OA\MediaType(
+                        mediaType: 'application/zip',
+                        schema: new OA\Schema(type: 'string', format: 'binary')
+                    ),
+                ]
+            ),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'Unauthorized'),
+            new OA\Response(
+                response: Response::HTTP_UNPROCESSABLE_ENTITY,
+                description: 'No images to export / selection too large',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string'),
+                        new OA\Property(property: 'error', type: 'string'),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function exportImages(Request $request, ProductImagesZipExportService $zipExport)
+    {
+        /** @var Builder $query */
+        $query = $this->getFilteredModelQuery($request);
+        $productsInput = $request->input('products');
+        if (is_string($productsInput) && $productsInput !== 'todos') {
+            $decoded = json_decode($productsInput, true);
+            if (is_array($decoded)) {
+                $productsInput = $decoded;
+            }
+        }
+
+        if ($productsInput === 'todos') {
+            $excluded = $request->input('excluded_ids', []);
+            if (is_string($excluded) && trim($excluded) !== '') {
+                $decodedExcluded = json_decode($excluded, true);
+                $excluded = is_array($decodedExcluded) ? $decodedExcluded : [];
+            }
+            if (is_array($excluded) && $excluded !== []) {
+                $excludedIds = array_values(array_filter(array_map('intval', $excluded), static fn ($id) => $id > 0));
+                if ($excludedIds !== []) {
+                    $query->whereNotIn('products.pro_id', $excludedIds);
+                }
+            }
+        } elseif (! empty($productsInput) && is_array($productsInput)) {
+            $ids = array_values(array_filter(array_map('intval', $productsInput), static fn ($id) => $id > 0));
+            if ($ids === []) {
+                return response()->json([
+                    'error' => 'product_images_export_no_selection',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $query->whereIn('products.pro_id', $ids);
+        } else {
+            return response()->json([
+                'error' => 'product_images_export_no_selection',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $count = (clone $query)->count();
+        if ($count > ProductImagesZipExportService::MAX_PRODUCTS) {
+            return response()->json([
+                'error' => 'product_images_export_too_many',
+                'max' => ProductImagesZipExportService::MAX_PRODUCTS,
+                'count' => $count,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        @set_time_limit(300);
+
+        $products = $query
+            ->select(['products.pro_id', 'products.sku', 'products.company_id', 'products.name'])
+            ->with([
+                'product_images' => static function ($q) {
+                    $q->orderByRaw('COALESCE(img_order, 999999) ASC')->orderBy('img_id');
+                },
+                'product_images.image',
+            ])
+            ->get();
+
+        try {
+            $zip = $zipExport->buildZip($products);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'error' => $e->getMessage() !== '' ? $e->getMessage() : 'product_images_export_too_many',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'error' => $e->getMessage() !== '' ? $e->getMessage() : 'product_images_export_failed',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $path = $zip['path'];
+        $filename = $zip['filename'];
+
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/zip',
+            'X-Images-Count' => (string) $zip['images'],
+            'X-Products-Count' => (string) $zip['products'],
+        ])->deleteFileAfterSend(true);
     }
 
     private function generateProductsPdf(Collection $products, string $fileName)

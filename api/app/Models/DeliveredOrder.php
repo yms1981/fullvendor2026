@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class DeliveredOrder
@@ -60,7 +59,6 @@ class DeliveredOrder extends Model
 
     use HasFactory;
     use Filterable;
-use SoftDeletes;
     protected $table = 'delivered_orders';
     protected $primaryKey = 'delivered_id';
 

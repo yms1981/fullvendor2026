@@ -8,7 +8,6 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use EloquentFilter\Filterable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -57,7 +56,7 @@ class MailsLog extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'mails_logs';
+    protected $table = 'mails_logs';
 
 
     protected $casts = [

@@ -91,14 +91,15 @@ final class FullVendorCatalogService
                 ->first();
 
             // Incluir soft-deleted: si se “eliminó” el default, restaurarlo en lugar de crear otro.
-            $catalog = Catalog::withTrashed()
+            $catalog = Catalog::query()
                 ->where('company_id', $companyId)
                 ->where('default_catalog', 1)
                 ->first();
 
             if ($catalog) {
-                if ($catalog->trashed()) {
-                    $catalog->restore();
+                if (($catalog->deleted_at !== null)) {
+                    $catalog->deleted_at = null;
+                $catalog->save();
                 }
                 $catalog->update([
                     'cat_id' => $catIdString,
@@ -136,16 +137,16 @@ final class FullVendorCatalogService
         $catalogId = (int) $catalog->catalog_id;
         $valid = $activeCategoryIds !== [] ? $activeCategoryIds : [0];
 
-        OrderCategory::withTrashed()
+        OrderCategory::query()
             ->where('company_id', $companyId)
             ->where('catalog_id', $catalogId)
             ->whereNotIn('category_id', $valid)
-            ->forceDelete();
+            ->delete();
 
-        CatalogCategory::withTrashed()
+        CatalogCategory::query()
             ->where('catalog_id', $catalogId)
             ->whereNotIn('category_id', $valid)
-            ->forceDelete();
+            ->delete();
     }
 
     /**
@@ -238,14 +239,14 @@ final class FullVendorCatalogService
             ->pluck('catalog_id')
             ->all();
 
-        OrderCategory::withTrashed()
+        OrderCategory::query()
             ->where('company_id', $companyId)
             ->where(function ($query) use ($validCatalogIds) {
                 $query->whereNull('catalog_id')
                     ->orWhereNull('category_id')
                     ->orWhereNotIn('catalog_id', $validCatalogIds);
             })
-            ->forceDelete();
+            ->delete();
     }
 
     /**
@@ -292,12 +293,12 @@ final class FullVendorCatalogService
 
         DB::transaction(function () use ($companyId, $catalogId, $finalOrderIds, $defaultId, $catalog) {
             // withTrashed: filas soft-deleted siguen ocupando unique_catalog_order.
-            CatalogCategory::withTrashed()->where('catalog_id', $catalogId)->forceDelete();
+            CatalogCategory::query()->where('catalog_id', $catalogId)->delete();
             // forceDelete: soft-delete + reinsert acumulaba filas y triplicaba el sidebar del catálogo público.
-            OrderCategory::withTrashed()
+            OrderCategory::query()
                 ->where('company_id', $companyId)
                 ->where('catalog_id', $catalogId)
-                ->forceDelete();
+                ->delete();
 
             $order = 1;
             foreach ($finalOrderIds as $categoryId) {
@@ -529,12 +530,12 @@ final class FullVendorCatalogService
             ->filter(static fn ($row) => isset($activeSet[(int) $row->category_id]));
 
         if ($orderRows->isEmpty()) {
-            CatalogCategory::withTrashed()->where('catalog_id', $catalogId)->forceDelete();
+            CatalogCategory::query()->where('catalog_id', $catalogId)->delete();
             return;
         }
 
         // Hard delete (incl. soft-deleted) para no chocar con unique_catalog_order.
-        CatalogCategory::withTrashed()->where('catalog_id', $catalogId)->forceDelete();
+        CatalogCategory::query()->where('catalog_id', $catalogId)->delete();
 
         $order = 1;
         foreach ($orderRows as $row) {

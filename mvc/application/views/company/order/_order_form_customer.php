@@ -74,25 +74,20 @@ $fvFormatPhone = static function ($raw, array $countryMap, array $cus): string {
 };
 
 $fvBuildAddress = static function (array $cus): string {
-    $segments = [];
-    $push = static function ($val) use (&$segments) {
-        $t = trim((string) $val);
-        if ($t !== '') {
-            $segments[] = mb_strtoupper($t);
-        }
-    };
-    foreach (['commercial_address', 'commercial_state', 'commercial_city', 'commercial_zone', 'commercial_zip_code', 'commercial_country'] as $k) {
-        $push($cus[$k] ?? '');
-    }
-    if (!$segments) {
-        foreach (['dispatch_address', 'dispatch_state', 'dispatch_city', 'dispatch_zone', 'dispatch_zip_code', 'dispatch_country'] as $k) {
-            $push($cus[$k] ?? '');
+    if (function_exists('fv_format_customer_commercial_address')) {
+        $commercial = fv_format_customer_commercial_address($cus);
+        if ($commercial !== '') {
+            return $commercial;
         }
     }
-    if (!$segments && !empty($cus['dispatch_delivery_address'])) {
-        $push($cus['dispatch_delivery_address']);
+    if (function_exists('fv_format_customer_dispatch_address')) {
+        $dispatch = fv_format_customer_dispatch_address($cus);
+        if ($dispatch !== '') {
+            return $dispatch;
+        }
     }
-    return implode(', ', $segments);
+    $fallback = trim((string) ($cus['dispatch_delivery_address'] ?? $cus['commercial_delivery_address'] ?? ''));
+    return $fallback !== '' ? mb_strtoupper($fallback) : '';
 };
 
 $fvFlagUrl = static function (array $cus, array $countryMap): string {

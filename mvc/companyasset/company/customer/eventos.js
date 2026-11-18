@@ -209,10 +209,27 @@ $(function () {
 
     /*remover categoria en grupo */
 
+    function fvCustomersBulkLang() {
+        try {
+            if (!options || !options.lang) {
+                return {};
+            }
+            var block = options.lang['cmp-clientes'] || options.lang.cmp_clientes
+                || options.lang['cmp-products'] || options.lang.cmp_products
+                || {};
+            if (block && typeof block === 'object' && block.lang && typeof block.lang === 'object') {
+                return block.lang;
+            }
+            return block || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
 //marcar todos  link-todos (igual que /company/products, con fallback lang cmp_clientes/cmp_products)
     $(document).on('click', '#link-todos', function(e) {
 
-        const lang = (options.lang && (options.lang.cmp_clientes || options.lang.cmp_products)) || {}
+        const lang = fvCustomersBulkLang();
 
         var input_todos = $('#input-todos');
         var expanding = input_todos.val() === 'pagina';
@@ -233,7 +250,9 @@ $(function () {
             }
             var totalFilteredCount = $('#expand-selection-info').data('total-filtered-items');
             $(this).text(lang.desmarcar_todos || "Don't use all records?");
-            $('#contextual-actions-container').removeClass('alert-warning').addClass('alert-primary');
+            // Mismo color siempre: solo la franja #expand-selection (amarillo).
+            $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
+            $('#expand-selection.alert').removeClass('alert-primary').addClass('alert alert-warning show').show();
             $('#expansible-info').text(totalFilteredCount + ' ' + (lang.bulk_will_be_used || 'will be used'));
             $('#contextual-actions button,#contextual-actions a').prop('disabled', false);
         } else {
@@ -242,7 +261,8 @@ $(function () {
             $rowCheckboxes.prop('checked', false);
             $headerCheckbox.attr('title', lang.toltip_paginas || 'Select all on this page');
             $(this).text(lang.marcar_todos || 'Use all records?');
-            $('#contextual-actions-container').removeClass('alert-primary').addClass('alert-warning');
+            $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
+            $('#expand-selection.alert').removeClass('alert-primary').addClass('alert alert-warning show').show();
             $('#expansible-info').text('0 ' + (lang.bulk_will_be_used || 'will be used'));
             $('#contextual-actions button,#contextual-actions a').prop('disabled', true);
         }
@@ -279,12 +299,12 @@ $(function () {
         if ($(this).is(':checked') && checkedCheckboxCount === 0 && $allRows.length > 0) {
             console.log('[customers/ckbCheckAll] change: header checked pero ningún .checkBoxClass quedó marcado (posible fallo al marcar)');
         }
-        const lang = (options.lang && (options.lang.cmp_clientes || options.lang.cmp_products)) || {}
+        const lang = fvCustomersBulkLang();
         $('#contextual-actions button,#contextual-actions a').prop('disabled', checkedCheckboxCount === 0);
         var inputTodos = $('#input-todos');
         if ($(this).is(':checked')) {
-            $('#expand-selection.alert').addClass('show').show();
-            $('#contextual-actions-container').addClass('alert alert-warning');
+            $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
+            $('#expand-selection.alert').removeClass('alert-primary').addClass('alert alert-warning show').show();
             inputTodos.val('pagina');
             $('#link-todos').text(lang.marcar_todos || 'Use all records?');
             $('#expansible-info').text(checkedCheckboxCount + ' ' + (lang.bulk_will_be_used || 'will be used'));
@@ -313,7 +333,7 @@ $(function () {
     // Igual que /company/products: al cambiar un checkbox de fila, actualizar cabecera y contador
     $(document).on('change', '.checkBoxClass', function(e) {
         if (window._linkTodosExpanding) return;
-        const lang = (options.lang && (options.lang.cmp_clientes || options.lang.cmp_products)) || {}
+        const lang = fvCustomersBulkLang();
         var checkedCheckboxesCount = $('.checkBoxClass:checked').length;
 
         $('#contextual-actions button,#contextual-actions a').prop('disabled', checkedCheckboxesCount === 0);
@@ -327,8 +347,8 @@ $(function () {
         }
         if ($('.checkBoxClass:not(:checked)').length === 0) {
             $('#ckbCheckAll').prop('checked', true);
-            $('#contextual-actions-container').addClass('alert').addClass((inputTodos.val() === 'todos') ? 'alert-primary' : 'alert-warning');
-            $('#expand-selection.alert').addClass('show').show();
+            $('#contextual-actions-container').removeClass('alert alert-warning alert-primary');
+            $('#expand-selection.alert').removeClass('alert-primary').addClass('alert alert-warning show').show();
         }
         if (checkedCheckboxesCount === 0) {
             $('#expansible-info').text('');

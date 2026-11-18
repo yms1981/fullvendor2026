@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CompanyStatusOrder
@@ -57,8 +56,6 @@ class CompanyStatusOrder extends Model
 
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
 
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';

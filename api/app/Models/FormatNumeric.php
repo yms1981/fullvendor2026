@@ -9,7 +9,6 @@ namespace App\Models;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class FormatNumeric
@@ -59,7 +58,6 @@ class FormatNumeric extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     protected $table = 'format_numeric';
     protected $primaryKey = 'format_id';

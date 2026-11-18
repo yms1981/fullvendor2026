@@ -25,12 +25,19 @@ El flag `--link` intenta enlazar `country_id`, `state_id` y `city_id` por ISO2 /
 
 ## Cascada en clientes
 
-En alta/edición de cliente: País → Estado → Ciudad → ZIP (`locationCascadeSelects.js`).
-ZIP permite valor libre (Select2 tags) si no está en la lista.
+En alta/edición de cliente el orden de campos es: **Address → Country → State → City → ZipCode → Zone**.
+
+Cascada de datos: País → Estado → Ciudad → ZIP (`locationCascadeSelects.js`).
+- El select de **State** muestra **sigla - nombre** (`ND - NORTH DAKOTA`) y se reconoce por sigla o por nombre.
+- El select de **ZIP** muestra **zipcode - city** (`58103 - FARGO`); el valor/reconocimiento es el zipcode.
+- Sin estado ni ciudad: ZIP de **todo el país**. Con estado: ZIP filtrados por ese estado.
+- Al elegir un ZIP, si estado/ciudad están vacíos se asignan desde el ZIP.
+- ZIP permite valor libre (Select2 tags) si no está en la lista.
 
 ## Dirección mostrada (listado / delivery)
 
-Orden fijo concatenado: **Address, State, City, ZipCode, Country**.
+Orden fijo concatenado: **Address, City, State, ZipCode, Country**.
+En State: **solo la sigla** si existe (`MI`); si no hay sigla, **solo el nombre**. Nunca `MI - MICHIGAN`.
 
 Si el campo `commercial_address` / `dispatch_address` trae la dirección completa (calle+ciudad+estado+zip), al guardar se **descompone** automáticamente a las columnas correspondientes y en `*_address` queda solo la calle (`CustomerAddressNormalizerService`).
 

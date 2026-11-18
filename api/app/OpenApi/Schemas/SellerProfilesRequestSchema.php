@@ -60,6 +60,11 @@ use OpenApi\Attributes as OA;
             nullable: true
         ),
         new OA\Property(
+            property: 'can_access_backend',
+            type: 'string',
+            nullable: true
+        ),
+        new OA\Property(
             property: 'created',
             type: 'string',
             format: 'date-time',

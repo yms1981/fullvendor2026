@@ -223,7 +223,7 @@ class EnsurePositiveQtyForDocumentOrdersService
                 ->get();
 
             foreach ($zeroDetails as $detail) {
-                $detail->forceDelete();
+                $detail->delete();
                 $result['zero_items_deleted']++;
                 $result['touched'] = true;
             }

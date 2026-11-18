@@ -9,7 +9,6 @@ namespace App\Models;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class StatusCart
@@ -68,7 +67,7 @@ class StatusCart extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'status_cart';
+    protected $table = 'status_cart';
     protected $primaryKey = 'id_status';
 
 

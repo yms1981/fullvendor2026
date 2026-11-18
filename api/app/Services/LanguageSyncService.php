@@ -23,7 +23,7 @@ class LanguageSyncService
     public function audit(): array
     {
         $definitions = SupportedLanguages::definitions();
-        $existing = Language::withTrashed()
+        $existing = Language::query()
             ->whereIn('language_id', SupportedLanguages::ids())
             ->get()
             ->keyBy('language_id');
@@ -40,7 +40,7 @@ class LanguageSyncService
                 continue;
             }
 
-            if ($row->trashed()) {
+            if (($row->deleted_at !== null)) {
                 $softDeleted[] = $languageId;
             }
 
@@ -59,7 +59,7 @@ class LanguageSyncService
 
         return [
             'supported' => count($definitions),
-            'existing' => $existing->filter(static fn (Language $language) => ! $language->trashed())->count(),
+            'existing' => $existing->filter(static fn (Language $language) => $language->deleted_at === null)->count(),
             'missing' => $missing,
             'outdated' => $outdated,
             'soft_deleted' => $softDeleted,
@@ -91,7 +91,7 @@ class LanguageSyncService
         foreach (SupportedLanguages::recordsForDatabase() as $record) {
             $languageId = (int) $record['language_id'];
             $definition = SupportedLanguages::definitions()[$languageId];
-            $language = Language::withTrashed()->find($languageId);
+            $language = Language::query()->find($languageId);
 
             if ($language === null) {
                 $language = new Language();
@@ -109,8 +109,9 @@ class LanguageSyncService
             }
 
             $restored = false;
-            if ($language->trashed()) {
-                $language->restore();
+            if (($language->deleted_at !== null)) {
+                $language->deleted_at = null;
+                $language->save();
                 $restored = true;
                 $result['restored'][] = $languageId;
             }

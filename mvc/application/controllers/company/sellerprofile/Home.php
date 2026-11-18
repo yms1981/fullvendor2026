@@ -99,6 +99,7 @@ class Home extends Company_Controller
                 'can_change_price' => $lang['change_price'] ?? '',
                 'can_send_catalog' => $lang['send_catalog'] ?? '',
                 'can_create_customer' => $lang['create_customer'] ?? '',
+                'can_access_backend' => $lang['access_backend'] ?? '',
                 'created' => $lang['created'] ?? '',
             ],
             'colmn_action' => $lang['actions'] ?? '',
@@ -112,6 +113,7 @@ class Home extends Company_Controller
             'can_change_price',
             'can_send_catalog',
             'can_create_customer',
+            'can_access_backend',
             'created',
         ];
     }
@@ -135,6 +137,7 @@ class Home extends Company_Controller
             'can_change_price' => 'company/sellerprofile/list/boolean_switch_field',
             'can_send_catalog' => 'company/sellerprofile/list/boolean_switch_field',
             'can_create_customer' => 'company/sellerprofile/list/boolean_switch_field',
+            'can_access_backend' => 'company/sellerprofile/list/boolean_switch_field',
             'created' => 'components/crud/created_field',
         ];
     }
@@ -164,6 +167,7 @@ class Home extends Company_Controller
                 'can_change_price',
                 'can_send_catalog',
                 'can_create_customer',
+                'can_access_backend',
                 'created',
                 'default',
                 'status',
@@ -177,6 +181,7 @@ class Home extends Company_Controller
             'can_change_price',
             'can_send_catalog',
             'can_create_customer',
+            'can_access_backend',
         ];
     }
 

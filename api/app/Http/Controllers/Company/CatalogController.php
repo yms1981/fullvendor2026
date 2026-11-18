@@ -994,9 +994,9 @@ class CatalogController extends Controller
         // soft-deleted siguen ocupando ese índice, por eso forceDelete withTrashed.
         try {
             \DB::transaction(function () use ($catalog, $syncData) {
-                CatalogCategory::withTrashed()
+                CatalogCategory::query()
                     ->where('catalog_id', (int) $catalog->catalog_id)
-                    ->forceDelete();
+                    ->delete();
                 foreach ($syncData as $categoryId => $pivot) {
                     $catalog->categories()->attach($categoryId, $pivot);
                 }
@@ -1410,7 +1410,7 @@ class CatalogController extends Controller
         $deleted = CatalogProduct::query()
             ->where('category_id', $categoryId)
             ->whereIn('product_id', $productIds)
-            ->forceDelete();
+            ->delete();
         return $deleted;
     }
 

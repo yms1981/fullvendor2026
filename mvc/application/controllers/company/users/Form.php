@@ -47,21 +47,26 @@ class Form  extends Company_Controller
     }
 
     /**
-     * Si el módulo en BD trae claves vacías, completar desde el bloque "cmp-user" en api/lang/{es-ES|en-EN}.json.
+     * Si el módulo en BD trae claves vacías, completar desde JSON (cmp-user + cmp-vendedor).
      */
     protected function fillEmptyUserFormLabels(array &$pageTexts): void
     {
-        $fileLang = $this->getLangJsonSection('cmp-user');
-        if ($fileLang === []) {
-            return;
-        }
-        foreach ($fileLang as $key => $value) {
-            if (!is_string($value) && !is_numeric($value)) {
+        $sources = [
+            $this->getLangJsonSection('cmp-vendedor'),
+            $this->getLangJsonSection('cmp-user'),
+        ];
+        foreach ($sources as $fileLang) {
+            if ($fileLang === []) {
                 continue;
             }
-            $cur = isset($pageTexts[$key]) ? trim((string) $pageTexts[$key]) : '';
-            if ($cur === '') {
-                $pageTexts[$key] = (string) $value;
+            foreach ($fileLang as $key => $value) {
+                if (! is_string($value) && ! is_numeric($value)) {
+                    continue;
+                }
+                $cur = isset($pageTexts[$key]) ? trim((string) $pageTexts[$key]) : '';
+                if ($cur === '') {
+                    $pageTexts[$key] = (string) $value;
+                }
             }
         }
         if (trim((string) ($pageTexts['ok'] ?? '')) === '') {
@@ -78,6 +83,31 @@ class Form  extends Company_Controller
         $cell = trim((string) ($pageTexts['cell_number'] ?? ''));
         if ($cell === '') {
             $pageTexts['cell_number'] = trim((string) ($pageTexts['col_cellphone'] ?? $pageTexts['cell_phone'] ?? ''));
+        }
+
+        // Claves del bloque vendedor usadas en alta/edición de usuario.
+        $sellerFallbacks = [
+            'email_on_salesman_order' => ['email_on_salesman_order'],
+            'all_customer' => ['all_customer', 'all_customers'],
+            'proforma' => ['proforma'],
+            'profile' => ['profile', 'colmn_profile', 'user_confirm_label_profile'],
+            'phone_number' => ['phone_number', 'telefono', 'col_phone'],
+            'dato_vendedor' => ['dato_vendedor', 'user_confirm_label_seller', 'tab_seller'],
+            'fax' => ['fax'],
+            'select_profile' => ['select_profile'],
+            'no_profile_found' => ['no_profile_found'],
+        ];
+        foreach ($sellerFallbacks as $target => $candidates) {
+            if (trim((string) ($pageTexts[$target] ?? '')) !== '') {
+                continue;
+            }
+            foreach ($candidates as $candidate) {
+                $v = trim((string) ($pageTexts[$candidate] ?? ''));
+                if ($v !== '') {
+                    $pageTexts[$target] = $v;
+                    break;
+                }
+            }
         }
     }
 

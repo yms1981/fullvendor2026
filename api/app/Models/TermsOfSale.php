@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class TermsOfSale
@@ -68,7 +67,7 @@ class TermsOfSale extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'terms_of_sales';
+    protected $table = 'terms_of_sales';
     protected $primaryKey = 'term_id';
 
 

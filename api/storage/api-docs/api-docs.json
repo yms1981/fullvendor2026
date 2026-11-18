@@ -29217,7 +29217,7 @@
                     "Product"
                 ],
                 "summary": "Avisos de calidad del listado de productos",
-                "description": "Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0.",
+                "description": "Cuenta productos con código de barras repetido y con precio de venta 0. Si hay stock negativo, lo deja en 0. Si faltan unidades, asigna la unidad por defecto de la compañía.",
                 "operationId": "productListQuality",
                 "security": [
                     {
@@ -29258,6 +29258,10 @@
                                         "negative_stock_fixed": {
                                             "type": "integer",
                                             "example": 1
+                                        },
+                                        "units_fixed": {
+                                            "type": "integer",
+                                            "example": 4
                                         }
                                     }
                                 }
@@ -41834,6 +41838,11 @@
                                     "customer_id": {
                                         "type": "integer",
                                         "example": 608
+                                    },
+                                    "months": {
+                                        "description": "Opcional. Si > 0, solo órdenes de los últimos N meses",
+                                        "type": "integer",
+                                        "example": 12
                                     }
                                 },
                                 "type": "object"
@@ -41977,6 +41986,21 @@
                                     "company_id": {
                                         "type": "integer",
                                         "example": 1
+                                    },
+                                    "page": {
+                                        "description": "Página (activa paginación)",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "per_page": {
+                                        "description": "Filas por página (máx. 1000)",
+                                        "type": "integer",
+                                        "example": 500
+                                    },
+                                    "paginate": {
+                                        "description": "Forzar paginación",
+                                        "type": "boolean",
+                                        "example": true
                                     }
                                 },
                                 "type": "object"
@@ -41998,6 +42022,22 @@
                                         "company_id": {
                                             "type": "integer",
                                             "example": 1
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "example": 12
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 5800
                                         },
                                         "requested": {
                                             "type": "array",
@@ -44431,6 +44471,1031 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/v2/customer/assignUser/{customer}": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Asignar un usuario al cliente",
+                "operationId": "customerAssignUser",
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "customer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Usuario asignado"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                }
+            }
+        },
+        "/api/v2/customer/unassignUser/{customer}": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Quitar un usuario asociado del cliente",
+                "operationId": "customerUnassignUser",
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "customer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Usuario desasignado"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                }
+            }
+        },
+        "/api/v2/customer/{customer}/portal-password": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Cambiar contraseña del usuario portal (email del cliente)",
+                "operationId": "customerUpdatePortalPassword",
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "customer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contraseña actualizada"
+                    },
+                    "422": {
+                        "description": "Validación o sin usuario portal"
+                    }
+                }
+            }
+        },
+        "/api/v2/customer/{customer}/send-portal-credentials": {
+            "post": {
+                "tags": [
+                    "Customer"
+                ],
+                "summary": "Enviar credenciales y links del portal (email, SMS o WhatsApp)",
+                "operationId": "customerSendPortalCredentials",
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "customer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 42
+                                    },
+                                    "channel": {
+                                        "type": "string",
+                                        "enum": [
+                                            "email",
+                                            "sms",
+                                            "whatsapp"
+                                        ],
+                                        "example": "email"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Credenciales enviadas"
+                    },
+                    "422": {
+                        "description": "Validación o error de envío"
+                    }
+                }
+            }
+        },
+        "api/v2/catalogcart/company/{companyId}/customer/{customerId}/recent": {
+            "get": {
+                "tags": [
+                    "Catalogcart"
+                ],
+                "summary": "Ultimos catalogos enviados al cliente",
+                "operationId": "catalogcartCustomerRecent",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "companyId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "customerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 5
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "api/v2/catalogcart/company/{companyId}/cart/{cartId}/expire": {
+            "post": {
+                "tags": [
+                    "Catalogcart"
+                ],
+                "summary": "Expirar link de catalogo",
+                "operationId": "catalogcartExpire",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "companyId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "cartId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "api/v2/erp/products/sync": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Sync masivo de productos desde el ERP",
+                "description": "Recibe productos con precios (fob_price / purchase_price), company_id y links de imágenes. Si el producto no tiene fotos, el MVC descarga los links y las configura. Si ya tiene fotos y el ERP trae file_mtime más reciente, descarga y reemplaza; si no, solo informa.",
+                "operationId": "509071b3e07eb10c2f8c36661bc0a06d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "products"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "products": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "sku": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "fob_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "purchase_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "sale_price": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "stock": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "company_id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                },
+                                                "images": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": "string"
+                                                            },
+                                                            "is_default": {
+                                                                "type": "boolean",
+                                                                "nullable": true
+                                                            },
+                                                            "file_mtime": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "sort_order": {
+                                                                "type": "integer",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resumen del sync"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/images/from-urls": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Actualizar imágenes de productos desde URLs del ERP",
+                "description": "Recibe un listado de productos activos con URLs de imágenes. El MVC descarga cada URL y las guarda (o reemplaza si el ERP trae file_mtime más reciente).",
+                "operationId": "c13e5c224d0ad4601d8887239937f292",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "sku",
+                                                "images"
+                                            ],
+                                            "properties": {
+                                                "sku": {
+                                                    "type": "string"
+                                                },
+                                                "company_id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                },
+                                                "images": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": "string"
+                                                            },
+                                                            "is_default": {
+                                                                "type": "boolean",
+                                                                "nullable": true
+                                                            },
+                                                            "file_mtime": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "sort_order": {
+                                                                "type": "integer",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resumen de descarga/comparación"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/images/attach-url": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Adjuntar una imagen de producto desde URL del ERP",
+                "description": "Recibe company_id, sku, url e is_default. El MVC descarga la URL y la guarda con la misma política que el alta de fotos del backend (Image::putContent / slots SKU).",
+                "operationId": "05f0ac3454003981ff7eacb648e34a9c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "sku",
+                                    "url"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "sku": {
+                                        "type": "string",
+                                        "example": "ABC-001"
+                                    },
+                                    "url": {
+                                        "type": "string",
+                                        "example": "https://erp.example/storage/products/1/a.jpg"
+                                    },
+                                    "image_url": {
+                                        "description": "Alias de url",
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_default": {
+                                        "type": "boolean",
+                                        "example": true,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Imagen adjunta"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/erp/products/images/attach-urls": {
+            "post": {
+                "tags": [
+                    "Erp"
+                ],
+                "summary": "Adjuntar imágenes de productos desde URLs del ERP (lote)",
+                "description": "Recibe company_id + items[{sku,url,is_default}]. Descarga cada URL y guarda igual que el alta manual / multipart (slots {SKU} / {SKU}_PICN).",
+                "operationId": "3acc547f31b365f285c4749208de115b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "sku",
+                                                "url"
+                                            ],
+                                            "properties": {
+                                                "sku": {
+                                                    "type": "string"
+                                                },
+                                                "url": {
+                                                    "type": "string"
+                                                },
+                                                "image_url": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "is_default": {
+                                                    "type": "boolean",
+                                                    "nullable": true
+                                                },
+                                                "company_id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resumen de adjuntos"
+                    },
+                    "401": {
+                        "description": "X-Api-Key inválida"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                },
+                "security": [
+                    {
+                        "erpApiKey": []
+                    }
+                ]
+            }
+        },
+        "api/v2/app-salesman/orderListSeller": {
+            "post": {
+                "tags": [
+                    "AppSalesman"
+                ],
+                "summary": "Listar órdenes del vendedor logueado",
+                "description": "Filtra orders.seller_id del usuario (sellers.user_id) + company_id (tipo_d=D). Sin days = mes actual; con days = últimos N días.",
+                "operationId": "appSalesmanOrderListSeller",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "language_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "user_id": {
+                                        "description": "users.id del vendedor logueado",
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "seller_id": {
+                                        "description": "Opcional: sellers.id directo",
+                                        "type": "integer",
+                                        "example": 42
+                                    },
+                                    "days": {
+                                        "description": "Opcional: últimos N días (ej. 60, 90, 120, 180). Sin days = mes actual.",
+                                        "type": "integer",
+                                        "example": 90
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Éxito (status=1) o error de negocio/validación (status=0). Siempre HTTP 200.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "1"
+                                        },
+                                        "language_id": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "user_id": {
+                                            "type": "integer",
+                                            "example": 15
+                                        },
+                                        "seller_id": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "order_list": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "No Order found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "api/v2/app-salesman/requestedSummary": {
+            "post": {
+                "tags": [
+                    "AppSalesman"
+                ],
+                "summary": "Resumen requested por customer + SKU",
+                "description": "Agrupa SUM(ABS(qty)) por company_id, customer_id y sku. Menos filas que /requested. Público (sin token). Ideal sync background app salesman.",
+                "operationId": "appSalesmanRequestedSummary",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "customer_id": {
+                                        "description": "Opcional: solo ese cliente (recomendado en app)",
+                                        "type": "integer",
+                                        "example": 608
+                                    },
+                                    "page": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "per_page": {
+                                        "type": "integer",
+                                        "example": 500
+                                    },
+                                    "paginate": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Éxito (status=1) o vacío/error (status=0).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "1"
+                                        },
+                                        "mode": {
+                                            "type": "string",
+                                            "example": "summary"
+                                        },
+                                        "company_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "last_page": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "example": 500
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 2100
+                                        },
+                                        "requested": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "company_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "customer_id": {
+                                                        "type": "integer",
+                                                        "example": 608
+                                                    },
+                                                    "sku": {
+                                                        "type": "string",
+                                                        "example": "SKU-1"
+                                                    },
+                                                    "product_id": {
+                                                        "type": "integer",
+                                                        "example": 5098
+                                                    },
+                                                    "qty": {
+                                                        "type": "number",
+                                                        "example": 12.5
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "api/v2/app-salesman/companyFormats": {
+            "post": {
+                "tags": [
+                    "AppSalesman"
+                ],
+                "summary": "Formatos de moneda y fecha de la compañía",
+                "description": "Devuelve símbolo/código de moneda, separadores de miles/decimales y format_php de fecha según el perfil de la compañía. Público (sin token).",
+                "operationId": "appSalesmanCompanyFormats",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "language_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 15
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Éxito (status=1) o error (status=0).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "1"
+                                        },
+                                        "company_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "currency": {
+                                            "type": "object"
+                                        },
+                                        "numeric": {
+                                            "type": "object"
+                                        },
+                                        "date": {
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "api/v2/product/duplicate-barcodes": {
+            "get": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Productos agrupados por código de barras repetido",
+                "operationId": "productDuplicateBarcodes",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Grupos de barcodes duplicados"
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Sin acceso a la compañía"
+                    },
+                    "422": {
+                        "description": "Compañía no indicada"
+                    }
+                }
+            }
+        },
+        "api/v2/product/{product}/barcode": {
+            "patch": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Actualizar código de barras de un producto",
+                "operationId": "productUpdateBarcode",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company_id",
+                                    "barcode"
+                                ],
+                                "properties": {
+                                    "company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "barcode": {
+                                        "type": "string",
+                                        "example": "7501234567890"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Barcode actualizado"
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "403": {
+                        "description": "Sin acceso"
+                    },
+                    "404": {
+                        "description": "Producto no encontrado"
+                    },
+                    "422": {
+                        "description": "Validación"
+                    }
+                }
+            }
+        },
+        "api/v2/product/export-images": {
+            "post": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Export product images as a ZIP archive",
+                "description": "Builds a ZIP with product images for the selected/filtered products. File names follow the import convention (sku.ext, sku_pic2.ext, …).",
+                "operationId": "productExportImagesZip",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "products": {
+                                        "description": "Array of product IDs, JSON string of IDs, or \"todos\""
+                                    },
+                                    "excluded_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "company": {
+                                        "type": "integer"
+                                    },
+                                    "company_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ZIP file download",
+                        "content": {
+                            "application/zip": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "422": {
+                        "description": "No images to export / selection too large"
+                    }
+                }
             }
         }
     },
@@ -52861,6 +53926,10 @@
                         "type": "string",
                         "nullable": true
                     },
+                    "can_access_backend": {
+                        "type": "string",
+                        "nullable": true
+                    },
                     "created": {
                         "type": "string",
                         "format": "date-time",
@@ -52924,6 +53993,10 @@
                         "nullable": true
                     },
                     "can_create_customer": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "can_access_backend": {
                         "type": "string",
                         "nullable": true
                     },

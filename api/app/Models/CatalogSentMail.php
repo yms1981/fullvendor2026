@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CatalogSentMail
@@ -75,7 +74,7 @@ class CatalogSentMail extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'catalog_sent_mail';
+    protected $table = 'catalog_sent_mail';
     protected $primaryKey = 'catalog_sent_id';
 
 

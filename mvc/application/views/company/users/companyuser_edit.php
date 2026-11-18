@@ -28,7 +28,8 @@ if (trim((string) ($pt['role'] ?? '')) === '') {
     }
 }
 $t = function (string $key, string $fallback = '') use ($pt): string {
-    return htmlspecialchars((string) ($pt[$key] ?? $fallback), ENT_QUOTES, 'UTF-8');
+    $v = trim((string) ($pt[$key] ?? ''));
+    return htmlspecialchars($v !== '' ? $v : $fallback, ENT_QUOTES, 'UTF-8');
 };
 $eu = $editingUser;
 $seller = $sellerRecord ?? ($eu->seller ?? null);
@@ -48,7 +49,9 @@ $isDefaultSeller = $sellerId > 0 && (
 $hasOtherDefaultSeller = $companyDefaultSellerId > 0 && $companyDefaultSellerId !== $sellerId
     ? $companyDefaultSellerId
     : null;
-$phoneRowColClass = 'col-lg-3 col-md-6';
+$embeddedInModal = ! empty($embeddedInModal);
+$phoneRowColClass = $embeddedInModal ? 'col-md-6' : 'col-lg-4 col-md-6';
+$roleColClass = $embeddedInModal ? 'col-12' : 'col-lg-4 col-md-6';
 $rolePlaceholder = $t('select_role', $pt['label_select'] ?? '');
 $searchPh = $t('role_search_placeholder', $pt['search'] ?? '');
 $sellerPhone = is_object($seller) ? (string) ($seller->phone_number ?? '') : '';
@@ -66,7 +69,6 @@ if ($sellerFax === '') {
 $emailOnOrder = is_object($seller) && !empty($seller->email_on_salesman_order);
 $formAction = $formAction ?? company_url('users/update/' . (int) ($eu->id ?? 0));
 $pageTitleKey = $pageTitleKey ?? 'edit_user';
-$embeddedInModal = ! empty($embeddedInModal);
 ?>
 <script>
     window.hasDefaultSeller = <?= json_encode($hasOtherDefaultSeller) ?>;
@@ -124,6 +126,7 @@ $miClose = static function () use ($embeddedInModal): void {
                     <form class="forms-sample" id="form_edit"
                           action="<?= htmlspecialchars((string) $formAction, ENT_QUOTES, 'UTF-8') ?>" method="post"
                           enctype="multipart/form-data"
+                          data-user-edit="1"
                           data-upload-image-url="<?= htmlspecialchars(company_url('users/upload_image'), ENT_QUOTES, 'UTF-8') ?>"
                           data-embedded-modal="<?= $embeddedInModal ? '1' : '0' ?>">
                         <div class="row">
@@ -308,7 +311,7 @@ $miClose = static function () use ($embeddedInModal): void {
                             <div class="modal-section-divider" aria-hidden="true"></div>
                         <?php endif; ?>
                         <div class="row align-items-end<?= $embeddedInModal ? ' modal-user-phones-row' : '' ?>">
-                            <div class="<?= htmlspecialchars($phoneRowColClass, ENT_QUOTES, 'UTF-8') ?> mb-3" id="role-select-wrap">
+                            <div class="<?= htmlspecialchars($roleColClass, ENT_QUOTES, 'UTF-8') ?> mb-3" id="role-select-wrap">
                                 <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>">
                                     <label for="role"><?= $t('role', '') ?><?= $embeddedInModal ? '' : ':' ?></label>
                                     <?php $miOpen('mdi-badge-account-outline'); ?>
@@ -374,18 +377,7 @@ $miClose = static function () use ($embeddedInModal): void {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="companyuser-phone-col <?= htmlspecialchars($phoneRowColClass, ENT_QUOTES, 'UTF-8') ?> mb-3">
-                                    <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>">
-                                        <label for="fax"><?= $t('fax', '') ?><?= $embeddedInModal ? '' : ':' ?></label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text px-2 companyuser-tel-prefix" style="min-width: 5.5rem;"></span>
-                                            </div>
-                                            <input type="text" class="form-control companyuser-tel-input" name="fax" id="fax" autocomplete="off"
-                                                   value="<?= htmlspecialchars((string) ($eu->fax ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                        </div>
-                                    </div>
-                                </div>
+                                <input type="hidden" name="fax" id="fax" value="<?= htmlspecialchars((string) ($eu->fax ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                             <?php endif; ?>
                         </div>
 
@@ -396,7 +388,7 @@ $miClose = static function () use ($embeddedInModal): void {
                                         <label><strong><?= htmlspecialchars(function_exists('mb_strtoupper') ? mb_strtoupper((string) $pt['dato_vendedor'], 'UTF-8') : strtoupper((string) $pt['dato_vendedor']), ENT_QUOTES, 'UTF-8') ?></strong></label>
                                     </div>
                                 <?php endif; ?>
-                                <div class="col-md-6 col-lg-4">
+                                <div class="col-md-6">
                                     <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>">
                                         <label for="mobile"><?= $t('phone_number', $pt['telefono'] ?? '') ?></label>
                                         <div class="input-group">
@@ -408,7 +400,7 @@ $miClose = static function () use ($embeddedInModal): void {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-lg-4">
+                                <div class="col-md-6">
                                     <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>">
                                         <label for="cellNumber"><?= $t('cell_number', '') ?></label>
                                         <div class="input-group">
@@ -420,34 +412,34 @@ $miClose = static function () use ($embeddedInModal): void {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>">
-                                        <label for="seller_fax"><?= $t('fax', '') ?></label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text px-2 companyuser-tel-prefix" style="min-width: 5.5rem;"></span>
-                                            </div>
-                                            <input type="text" class="form-control companyuser-tel-input" name="seller_fax" id="seller_fax"
-                                                   value="<?= htmlspecialchars($sellerFax, ENT_QUOTES, 'UTF-8') ?>">
-                                        </div>
-                                    </div>
-                                </div>
+                                <input type="hidden" name="seller_fax" id="seller_fax" value="<?= htmlspecialchars($sellerFax, ENT_QUOTES, 'UTF-8') ?>">
                             </div>
 
                             <div class="row">
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="form-group d-flex align-items-center justify-content-between flex-wrap<?= $embeddedInModal ? ' seller-email-switch-row' : '' ?>">
-                                        <span class="mb-0 mr-2<?= $embeddedInModal ? ' seller-email-switch-label' : '' ?>"><?= $t('email_on_salesman_order', '') ?></span>
-                                        <div class="custom-control custom-switch mb-0">
-                                            <input type="checkbox" class="custom-control-input" id="email_on_salesman_order_switch"
-                                                   data-seller-email-order-flag="1"
-                                                   aria-label="<?= $t('email_on_salesman_order', '') ?>"
-                                                   <?= $emailOnOrder ? 'checked' : '' ?>>
-                                            <label class="custom-control-label" for="email_on_salesman_order_switch"></label>
-                                        </div>
+                                <div class="<?= $embeddedInModal ? 'col-12' : 'col-md-6 col-lg-4' ?>">
+                                    <div class="form-group<?= $embeddedInModal ? ' mb-2 seller-email-switch-row' : ' d-flex align-items-center justify-content-between flex-wrap' ?>">
+                                        <?php if ($embeddedInModal) : ?>
+                                            <div class="custom-control custom-switch flex-shrink-0 mb-0">
+                                                <input type="checkbox" class="custom-control-input" id="email_on_salesman_order_switch"
+                                                       data-seller-email-order-flag="1"
+                                                       aria-label="<?= $t('email_on_salesman_order', '') ?>"
+                                                       <?= $emailOnOrder ? 'checked' : '' ?>>
+                                                <label class="custom-control-label" for="email_on_salesman_order_switch"></label>
+                                            </div>
+                                            <span class="seller-email-switch-label"><?= $t('email_on_salesman_order', '') ?></span>
+                                        <?php else : ?>
+                                            <span class="mb-0 mr-2"><?= $t('email_on_salesman_order', '') ?></span>
+                                            <div class="custom-control custom-switch mb-0">
+                                                <input type="checkbox" class="custom-control-input" id="email_on_salesman_order_switch"
+                                                       data-seller-email-order-flag="1"
+                                                       aria-label="<?= $t('email_on_salesman_order', '') ?>"
+                                                       <?= $emailOnOrder ? 'checked' : '' ?>>
+                                                <label class="custom-control-label" for="email_on_salesman_order_switch"></label>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-lg-4">
+                                <div class="<?= $embeddedInModal ? 'col-12' : 'col-md-6 col-lg-4' ?>">
                                     <div class="form-group<?= $embeddedInModal ? ' mb-2' : '' ?>" id="seller-select">
                                         <label for="profile_seller"><?= $t('profile', '') ?></label>
                                         <?php $miOpen('mdi-card-account-details-outline'); ?>
@@ -486,7 +478,7 @@ $miClose = static function () use ($embeddedInModal): void {
                                             <div class="custom-control custom-checkbox mb-0">
                                                 <input type="checkbox" class="custom-control-input" name="checkBoxDefault" id="seller-default"
                                                        value="1"<?= $isDefaultSeller ? ' checked' : '' ?><?= $isDefaultSeller ? ' disabled' : '' ?>>
-                                                <label class="custom-control-label" for="seller-default"><?= $t('default', '') ?></label>
+                                                <label class="custom-control-label" for="seller-default"><?= $t('default', $t('defecto', '')) ?></label>
                                             </div>
                                             <div class="custom-control custom-checkbox mb-0">
                                                 <input type="checkbox" class="custom-control-input" name="proforma" id="seller-proforma"

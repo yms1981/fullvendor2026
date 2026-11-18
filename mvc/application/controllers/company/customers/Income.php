@@ -65,15 +65,220 @@ class Income extends Company_Controller
             }
         }
 
+        $incomeTotals = $this->buildIncomeTotals($customerId);
+
         $this->showContent('company/customer/customer_income', [
             'pageTexts' => $this->getPageTexts(),
             'customerData' => $customerData,
-            'totalordersval' => [],
+            'monthlyRows' => $incomeTotals['monthlyRows'],
+            'totorderquantity' => $incomeTotals['totorderquantity'],
+            'avgsaleprice' => $incomeTotals['avgsaleprice'],
+            'avgvaluepermonth' => $incomeTotals['avgvaluepermonth'],
+            'totorderpricevalue' => $incomeTotals['totorderpricevalue'],
+        ]);
+    }
+
+    /**
+     * @return array{
+     *   monthlyRows: array<int, array{month: string, value: float|int, quantity: float|int}>,
+     *   totorderquantity: float|int,
+     *   avgsaleprice: float|int,
+     *   avgvaluepermonth: float|int,
+     *   totorderpricevalue: float|int
+     * }
+     */
+    private function buildIncomeTotals(?int $customerId): array
+    {
+        $empty = [
+            'monthlyRows' => $this->buildEmptyMonthlyRows(),
             'totorderquantity' => 0,
             'avgsaleprice' => 0,
             'avgvaluepermonth' => 0,
             'totorderpricevalue' => 0,
+        ];
+
+        if ($customerId === null || $customerId <= 0) {
+            return $empty;
+        }
+
+        $companyId = (int) $this->getCompanyId();
+        $ordersRaw = $this->getObjectFromApi("order/customer/{$customerId}/payed", [
+            'company_id' => $companyId,
         ]);
+
+        $orders = $this->normalizeOrdersList($ordersRaw);
+        if ($orders === []) {
+            return $empty;
+        }
+
+        $totQty = 0.0;
+        $totValue = 0.0;
+        $orderCount = 0;
+        $monthlyValue = [];
+        $monthlyQty = [];
+
+        foreach ($orders as $orderObj) {
+            $tipoD = strtoupper(trim((string) ($orderObj->tipo_d ?? 'D')));
+            if ($tipoD === 'I') {
+                continue;
+            }
+
+            $statusCod = null;
+            if (isset($orderObj->status_order->cod_status)) {
+                $statusCod = (int) $orderObj->status_order->cod_status;
+            } elseif (isset($orderObj->statusOrder->cod_status)) {
+                $statusCod = (int) $orderObj->statusOrder->cod_status;
+            }
+            if ($statusCod === -1) {
+                continue;
+            }
+
+            $details = $orderObj->order_details ?? $orderObj->orderDetails ?? [];
+            if (!is_array($details) && !is_object($details)) {
+                $details = [];
+            }
+
+            $orderQty = 0.0;
+            $orderLineValue = 0.0;
+            foreach ((array) $details as $detail) {
+                if (!is_object($detail) && !is_array($detail)) {
+                    continue;
+                }
+                $detailObj = is_array($detail) ? (object) $detail : $detail;
+                $qty = (float) ($detailObj->qty ?? 0);
+                $salePrice = (float) ($detailObj->sale_price ?? 0);
+                if ($tipoD === 'D' && $qty < 0) {
+                    $qty = abs($qty);
+                }
+                $orderQty += $qty;
+                $orderLineValue += $qty * $salePrice;
+            }
+
+            // Preferir total de la orden (incluye descuentos) si viene en la API.
+            $orderTotal = null;
+            if (isset($orderObj->total) && is_numeric($orderObj->total)) {
+                $orderTotal = (float) $orderObj->total;
+            } elseif (isset($orderObj->total_amount) && is_numeric($orderObj->total_amount)) {
+                $orderTotal = (float) $orderObj->total_amount;
+            }
+            if ($orderTotal === null) {
+                $orderTotal = $orderLineValue;
+            }
+            if ($tipoD === 'D' && $orderTotal < 0) {
+                $orderTotal = abs($orderTotal);
+            }
+
+            $createdRaw = (string) ($orderObj->created ?? '');
+            $monthKey = '';
+            if ($createdRaw !== '') {
+                $ts = strtotime($createdRaw);
+                if ($ts !== false) {
+                    $monthKey = date('m-Y', $ts);
+                }
+            }
+
+            $orderCount++;
+            $totQty += $orderQty;
+            $totValue += $orderTotal;
+
+            if ($monthKey !== '') {
+                if (!isset($monthlyValue[$monthKey])) {
+                    $monthlyValue[$monthKey] = 0.0;
+                    $monthlyQty[$monthKey] = 0.0;
+                }
+                $monthlyValue[$monthKey] += $orderTotal;
+                $monthlyQty[$monthKey] += $orderQty;
+            }
+        }
+
+        $avgsaleprice = ($orderCount > 0) ? round($totValue / $orderCount) : 0;
+        $monthCountWithSales = count(array_filter($monthlyValue, static fn ($v) => (float) $v != 0.0));
+        $avgvaluepermonth = $monthCountWithSales > 0
+            ? round($totValue / $monthCountWithSales)
+            : 0;
+
+        return [
+            'monthlyRows' => $this->buildMonthlyRows($monthlyValue, $monthlyQty),
+            'totorderquantity' => round($totQty),
+            'avgsaleprice' => $avgsaleprice,
+            'avgvaluepermonth' => $avgvaluepermonth,
+            'totorderpricevalue' => round($totValue),
+        ];
+    }
+
+    /**
+     * @param mixed $ordersRaw
+     * @return list<object>
+     */
+    private function normalizeOrdersList($ordersRaw): array
+    {
+        if (is_array($ordersRaw) && isset($ordersRaw['error'])) {
+            return [];
+        }
+        if (is_object($ordersRaw) && isset($ordersRaw->error)) {
+            return [];
+        }
+
+        if (is_object($ordersRaw) && isset($ordersRaw->data) && (is_array($ordersRaw->data) || is_object($ordersRaw->data))) {
+            $ordersRaw = $ordersRaw->data;
+        } elseif (is_array($ordersRaw) && isset($ordersRaw['data']) && is_array($ordersRaw['data'])) {
+            $ordersRaw = $ordersRaw['data'];
+        }
+
+        if (!is_array($ordersRaw) && !is_object($ordersRaw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ((array) $ordersRaw as $key => $order) {
+            // Evitar meta/links de respuestas paginadas.
+            if (is_string($key) && !is_numeric($key)) {
+                continue;
+            }
+            if (!is_object($order) && !is_array($order)) {
+                continue;
+            }
+            $orderObj = is_array($order) ? (object) $order : $order;
+            if (!isset($orderObj->order_id) && !isset($orderObj->order_details) && !isset($orderObj->orderDetails)) {
+                continue;
+            }
+            $out[] = $orderObj;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, float> $monthlyValue
+     * @param array<string, float> $monthlyQty
+     * @return list<array{month: string, value: float|int, quantity: float|int}>
+     */
+    private function buildMonthlyRows(array $monthlyValue, array $monthlyQty): array
+    {
+        $months = [];
+        for ($j = 0; $j < 6; $j++) {
+            $months[] = date('m-Y', strtotime('-' . $j . ' month'));
+        }
+        sort($months);
+
+        $rows = [];
+        foreach ($months as $monthKey) {
+            $rows[] = [
+                'month' => str_replace('-', '/', $monthKey),
+                'value' => round((float) ($monthlyValue[$monthKey] ?? 0)),
+                'quantity' => round((float) ($monthlyQty[$monthKey] ?? 0)),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array{month: string, value: int, quantity: int}>
+     */
+    private function buildEmptyMonthlyRows(): array
+    {
+        return $this->buildMonthlyRows([], []);
     }
 
     protected function getPageTexts(): array
@@ -108,60 +313,4 @@ class Income extends Company_Controller
             'income_status_disabled' => $langEnabled['option_disable'] ?? '',
         ];
     }
-
-    //OLD CUSTOMER INCOME
-//    public function income($customer_id = false)
-//    {
-//        $compId = $this->session->userdata('compId');
-//        if ($customer_id == false)
-//        {
-//            show_404();
-//        } elseif ($this->mymodel->count('customers', ['customer_id'=>$customer_id]) != 1)
-//        {
-//            show_404();
-//        } else {
-//
-//            $data = array(
-//                'title' => 'View Customer Income Details',
-//                'page' => 'customer',
-//                'subpage' => 'customerlist'
-//            );
-//
-//            $data['data'] =$customerInfo= $this->mymodel->get('customers', true, 'customer_id', $customer_id);
-//            $totalorders=$this->mymodel->fetch("SELECT * FROM orders AS ord JOIN order_details AS od ON ord.order_id=od.order_id  WHERE ord.customer_id='$customer_id' AND ord.company_id='$compId' AND ord.payment_status='1'");
-//            $totvalue=0;
-//            $totqty=0;
-//            foreach ($totalorders as $totorders) {
-//                $totqty+=$totorders->qty;
-//                $totvalue+=$totorders->qty * $totorders->sale_price;
-//
-//            }
-//            $data['totorderpricevalue']=round($totvalue);
-//            if($totvalue !=0){
-//                $avgsaleprice=round($totvalue/count($totalorders));
-//                $data['avgsaleprice']= $avgsaleprice;
-//            }else{
-//                $data['avgsaleprice']= 0;
-//            }
-//
-//            $data['totorderquantity']=$totqty;
-//            $pricepermonth=$this->mymodel->fetch("SELECT year(od.created), month(od.created), sum(ord.sale_price*ord.qty) as total FROM order_details AS ord JOIN orders AS od ON ord.order_id=od.order_id WHERE od.customer_id='$customer_id' AND od.payment_status='1' group by year(od.created), month(od.created)");
-//            if(count($pricepermonth) !=0){
-//                $pprice=0;
-//                foreach ($pricepermonth as $pmonth) {
-//                    $pprice+=($pmonth->total)/count($pricepermonth);
-//
-//                }
-//                $data['avgvaluepermonth']=round($pprice);
-//            }else{
-//                $data['avgvaluepermonth']=0;
-//            }
-//
-//            $langId = $this->session->userdata('language_id');
-//            $data['langdef'] = $this->langmodel->getMdl('comp-login-head', $langId);
-//            $this->load->view('company/header', $data);
-//            $this->load->view('company/customer_income');
-//            $this->load->view('company/footer');
-//        }
-//    }
 }

@@ -21,7 +21,7 @@ class CustomerDeleteService
         //     return "El cliente id: {$customer->customer_id} tiene devoluciones asociadas";
         // }
 
-        $customer->forceDelete();
+        $customer->delete();
 
         return null;
     }

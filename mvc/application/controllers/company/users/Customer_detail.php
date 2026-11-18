@@ -69,10 +69,20 @@ class Customer_detail extends Company_Controller
             $flags |= JSON_INVALID_UTF8_SUBSTITUTE;
         }
 
+        $formSeed = [
+            'address' => (string) ($cardVars['form_address'] ?? ''),
+            'city' => (string) ($cardVars['form_city'] ?? ''),
+            'state' => (string) ($cardVars['form_state'] ?? ''),
+            'zip_code' => (string) ($cardVars['form_zip'] ?? ''),
+            'phone' => (string) ($cardVars['phone_raw'] ?? ''),
+            'cellphone' => (string) ($cardVars['cell_raw'] ?? ''),
+        ];
+
         $payload = [
             'card_html' => $html,
             'html' => $html,
             'data' => $dataForClient,
+            'form_seed' => $formSeed,
         ];
         $json = json_encode($payload, $flags);
         if ($json === false) {
@@ -86,6 +96,7 @@ class Customer_detail extends Company_Controller
                 'card_html' => $html,
                 'html' => $html,
                 'data' => ['customer_id' => $cidFallback],
+                'form_seed' => $formSeed,
             ];
             $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
         }
@@ -126,6 +137,27 @@ class Customer_detail extends Company_Controller
             }
         }
 
+        // Fallback: columnas denormalizadas en customers.
+        if ($street === '') {
+            $street = trim((string) ($c->commercial_address ?? ''));
+        }
+        if ($state === '') {
+            $state = trim((string) ($c->commercial_state ?? ''));
+        }
+        if ($city === '') {
+            $city = trim((string) ($c->commercial_city ?? ''));
+        }
+        if ($zip === '') {
+            $zip = trim((string) ($c->commercial_zip_code ?? ''));
+        }
+        if ($zone === '') {
+            $zone = trim((string) ($c->commercial_zone ?? ''));
+        }
+        if ($countryName === '' && trim((string) ($c->commercial_country ?? '')) !== '') {
+            $countryName = trim((string) $c->commercial_country);
+            $countryData['name'] = $countryName;
+        }
+
         $cid = 0;
         if ($addr !== null) {
             $co = $this->addrProp($addr, 'country');
@@ -147,23 +179,15 @@ class Customer_detail extends Company_Controller
             }
         }
 
-        $fnUpper = static function (string $s): string {
-            $s = trim($s);
-            if ($s === '') {
-                return '';
-            }
-
-            return function_exists('mb_strtoupper') ? mb_strtoupper($s, 'UTF-8') : strtoupper($s);
-        };
-
-        $segments = [];
-        foreach ([$street, $state, $city, $zone, $zip, $countryName] as $segment) {
-            $t = trim((string) $segment);
-            if ($t !== '') {
-                $segments[] = $fnUpper($t);
-            }
-        }
-        $addressFull = implode(', ', $segments);
+        $addressFull = function_exists('fv_format_customer_address')
+            ? fv_format_customer_address([
+                'address' => $street,
+                'city' => $city,
+                'state' => $state,
+                'zip' => $zip,
+                'country' => $countryName,
+            ])
+            : '';
 
         $phoneRaw = trim((string) ($c->phone ?? ''));
         $cellRaw = trim((string) ($c->cell_phone ?? $c->cellphone ?? ''));
@@ -181,6 +205,10 @@ class Customer_detail extends Company_Controller
             'address_full' => $addressFull,
             'phone_raw' => $phoneRaw,
             'cell_raw' => $cellRaw,
+            'form_address' => $street,
+            'form_city' => $city,
+            'form_state' => $state,
+            'form_zip' => $zip,
             'countryData' => $countryData,
             'flagsBaseUrl' => $flagsBaseUrl,
         ];

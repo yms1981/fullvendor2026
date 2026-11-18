@@ -1,6 +1,6 @@
 <?php
 /**
- * Modal para editar credenciales de un usuario asociado (p. ej. operador de depósito).
+ * Modal para editar credenciales de un usuario asociado (portal / depósito).
  *
  * @var array $pageTexts
  */
@@ -23,27 +23,67 @@ $t = static function (string $key, string $fallback = '') use ($pt): string {
                     <input type="hidden" id="edit_assigned_user_id" name="user_id" value="">
 
                     <div class="form-group">
-                        <label for="edit_assigned_user_email"><?= $t('email', '') ?></label>
-                        <input type="email" class="form-control" id="edit_assigned_user_email" name="email" readonly>
+                        <label for="edit_assigned_user_name"><?= $t('nombre', $t('name', '')) ?></label>
+                        <input type="text" class="form-control" id="edit_assigned_user_name" name="name" autocomplete="off">
                     </div>
 
                     <div class="form-group">
-                        <div class="passwodeye">
-                            <label for="edit_assigned_user_password"><?= $t('contraseña', $t('password', '')) ?></label>
-                            <input type="password" class="form-control" id="edit_assigned_user_password" name="password" autocomplete="new-password">
-                            <span toggle="#edit_assigned_user_password" class="fa fa-fw fa-eye field_icon toggle-password" style="top: 30px;"></span>
+                        <label for="edit_assigned_user_email"><?= $t('email', '') ?></label>
+                        <input type="email" class="form-control" id="edit_assigned_user_email" name="email" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_assigned_user_password_current"><?= $t('password', '') ?></label>
+                        <div class="input-group">
+                            <input type="password"
+                                   class="form-control bg-light"
+                                   id="edit_assigned_user_password_current"
+                                   readonly
+                                   autocomplete="off">
+                            <div class="input-group-append">
+                                <button type="button"
+                                        class="btn btn-outline-secondary js-edit-assigned-pwd-eye"
+                                        data-target="#edit_assigned_user_password_current"
+                                        tabindex="-1"
+                                        title="<?= $t('portal_password_show', '') ?>"
+                                        aria-label="<?= $t('portal_password_show', '') ?>">
+                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_assigned_user_password"><?= $t('portal_password_new', $t('password', '')) ?></label>
+                        <div class="input-group">
+                            <input type="password"
+                                   class="form-control"
+                                   id="edit_assigned_user_password"
+                                   name="password"
+                                   autocomplete="new-password"
+                                   placeholder="<?= $t('portal_password_new', '') ?>">
+                            <div class="input-group-append">
+                                <button type="button"
+                                        class="btn btn-outline-secondary js-edit-assigned-pwd-eye"
+                                        data-target="#edit_assigned_user_password"
+                                        tabindex="-1"
+                                        title="<?= $t('portal_password_show', '') ?>"
+                                        aria-label="<?= $t('portal_password_show', '') ?>">
+                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
                         </div>
                         <small class="form-text text-muted"><?= $t('operator_password_hint', '') ?></small>
                     </div>
 
-                    <div class="form-group">
-                        <label for="edit_assigned_user_phone"><?= $t('phone_number', '') ?></label>
+                    <div class="form-group mb-0">
+                        <label for="edit_assigned_user_phone"><?= $t('phone_number', $t('phone', '')) ?></label>
                         <input type="text" class="form-control" id="edit_assigned_user_phone" name="phone" autocomplete="off">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= $t('cancelar', '') ?></button>
-                    <button type="submit" class="btn btn-success"><?= $t('update', $t('save', '')) ?></button>
+                    <button type="submit" class="btn btn-success"><?= $t('update', $t('guardar', $t('save', ''))) ?></button>
                 </div>
             </form>
         </div>

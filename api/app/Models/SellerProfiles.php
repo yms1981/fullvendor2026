@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class SellerProfiles
@@ -26,6 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $can_change_price
  * @property int $can_send_catalog
  * @property int $can_create_customer
+ * @property int $can_access_backend
  * @property Carbon|null $created
  * @property int|null $status
  * @property int|null $default
@@ -74,7 +74,6 @@ class SellerProfiles extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     protected $table = 'seller_profiles';
@@ -88,6 +87,7 @@ class SellerProfiles extends Model
         'can_change_price' => 'int',
         'can_send_catalog' => 'int',
         'can_create_customer' => 'int',
+        'can_access_backend' => 'int',
         'created' => 'datetime',
         'status' => 'int',
         'default' => 'int'
@@ -103,6 +103,7 @@ class SellerProfiles extends Model
         'can_change_price',
         'can_send_catalog',
         'can_create_customer',
+        'can_access_backend',
         'created',
         'status',
         'default'

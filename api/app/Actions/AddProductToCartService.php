@@ -24,11 +24,12 @@ class AddProductToCartService
 
         $this->validateStock($product, $quantity);
 
-        $orderDetail = $order->order_details()->withTrashed()->where('product_id', $productId)->first();
+        $orderDetail = $order->order_details()->where('product_id', $productId)->first();
 
         if ($orderDetail) {
-            if ($orderDetail->trashed()) {
-                $orderDetail->restore();
+            if (($orderDetail->deleted_at !== null)) {
+                $orderDetail->deleted_at = null;
+                $orderDetail->save();
                 $orderDetail->qty = 0;
             }
             $orderDetail->qty += $quantity;

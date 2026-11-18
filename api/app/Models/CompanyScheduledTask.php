@@ -11,6 +11,8 @@ class CompanyScheduledTask extends Model
 
     public const TYPE_SYNC_PRODUCTS = 'sync_products';
 
+    public const TYPE_SYNC_PRODUCT_PRICES = 'sync_product_prices';
+
     public const TYPE_SYNC_CATEGORIES = 'sync_categories';
 
     public const TYPE_SYNC_CUSTOMER_BALANCES = 'sync_customer_balances';
@@ -48,6 +50,7 @@ class CompanyScheduledTask extends Model
         return [
             self::TYPE_SYNC_CUSTOMERS,
             self::TYPE_SYNC_PRODUCTS,
+            self::TYPE_SYNC_PRODUCT_PRICES,
             self::TYPE_SYNC_CATEGORIES,
             self::TYPE_SYNC_CUSTOMER_BALANCES,
             self::TYPE_SYNC_PRODUCT_INVENTORIES,

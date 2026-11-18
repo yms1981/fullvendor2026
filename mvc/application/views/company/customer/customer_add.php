@@ -81,7 +81,8 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
       data-plan-limit-blocked="<?= $planLimitBlocked ? '1' : '0' ?>"
       data-plan-limit-message="<?= htmlspecialchars((string) ($planLimitBlock['message'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
       data-msg-email-invalid="<?= htmlspecialchars((string) ($pageTexts['customer_add_validation_email_invalid'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-      data-msg-email-required="<?= htmlspecialchars((string) ($pageTexts['customer_add_validation_email_required'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+      data-msg-email-required="<?= htmlspecialchars((string) ($pageTexts['customer_add_validation_email_required'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+      data-msg-password-required="<?= htmlspecialchars((string) ($pageTexts['portal_password_required_with_email'] ?? $pageTexts['portal_password_required'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
     <div class="container-fluid page-body-wrapper pt-3">
         <div class="main-panel">
@@ -156,17 +157,46 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
 
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
-                                    <label><?= $pageTexts['label_email'] ?? '' ?>: <span class="color-red">*</span></label>
+                                    <label for="customer_email"><?= $pageTexts['label_email'] ?? '' ?>:</label>
                                     <input type="email"
                                            class="form-control"
                                            name="email"
-                                           required
+                                           id="customer_email"
                                            autocomplete="email"
                                            inputmode="email"
                                            maxlength="255"
                                            pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                                            title="<?= htmlspecialchars((string) ($pageTexts['customer_add_validation_email_invalid'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                            value="<?= htmlspecialchars((string) set_value('email')) ?>">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 col-lg-4" id="fv_customer_password_wrap">
+                                <div class="form-group">
+                                    <label for="customer_portal_password">
+                                        <?= htmlspecialchars((string) ($pageTexts['password'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:
+                                        <span class="color-red fv-password-required-mark" style="display:none;">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password"
+                                               class="form-control"
+                                               name="portal_password"
+                                               id="customer_portal_password"
+                                               autocomplete="new-password"
+                                               maxlength="255"
+                                               value="<?= htmlspecialchars((string) set_value('portal_password')) ?>"
+                                               placeholder="<?= htmlspecialchars((string) ($pageTexts['password'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                        <div class="input-group-append">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    id="fv_customer_password_toggle"
+                                                    title="<?= htmlspecialchars((string) ($pageTexts['portal_password_show'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                    aria-label="<?= htmlspecialchars((string) ($pageTexts['portal_password_show'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                                <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted"><?= htmlspecialchars((string) ($pageTexts['portal_password_add_hint'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
                                 </div>
                             </div>
 
@@ -264,11 +294,20 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 <div class="form-group">
                                     <label><?= $pageTexts['group'] ?>: <span class="color-red">*</span></label>
                                     <select class="form-control notranslate fv-form-select" name="group_id" id="customer_group_id">
-                                        <option selected disabled value=""><?= $pageTexts['label_select'] ?? '' ?></option>
+                                        <?php
+                                        $hasDefaultGroupAdd = false;
+                                        foreach ($customerGroups as $_gAdd) {
+                                            if (! empty($_gAdd->isDefault)) {
+                                                $hasDefaultGroupAdd = true;
+                                                break;
+                                            }
+                                        }
+                                        ?>
+                                        <option value="" disabled<?= $hasDefaultGroupAdd ? '' : ' selected' ?>><?= $pageTexts['label_select'] ?? '' ?></option>
                                         <?php foreach ($customerGroups as $group) : ?>
                                             <?php $groupLabelAdd = isset($group->name) ? (function_exists('mb_strtoupper') ? mb_strtoupper($group->name, 'UTF-8') : strtoupper($group->name)) : ''; ?>
                                             <option value="<?= $group->group_id ?>"
-                                                <?= $group->isDefault ? 'selected' : '' ?>>
+                                                <?= ! empty($group->isDefault) ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($groupLabelAdd) ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -281,18 +320,9 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 <label><strong><?= strtoupper($pageTexts['dato_comercial'] ?? '') ?></strong></label>
                             </div>
 
-                            <!-- Dirección Comercial -->
-                            <div class="col-md-6 col-lg-4">
-                                <div class="form-group">
-                                    <label><?= $pageTexts['commercial_address'] ?>:</label>
-                                    <input type="text" class="form-control cust-address-upper" id="commercial_address" name="commercial_address"
-                                           value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_address'))) ?>">
-                                </div>
-                            </div>
-
-                            <!-- Dirección Comercial de Entrega (completa, solo lectura) -->
-                            <div class="col-md-6 col-lg-4">
-                                <div class="form-group">
+                            <!-- Delivery completo (solo lectura) -->
+                            <div class="col-12 mb-2">
+                                <div class="form-group mb-0">
                                     <label><?= $pageTexts['commercial_delivery_address'] ?>:</label>
                                     <input type="text" class="form-control cust-address-upper bg-light" id="commercial_delivery_address" name="commercial_delivery_address"
                                            value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_delivery_address'))) ?>"
@@ -302,7 +332,15 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- País Comercial -->
+                            <!-- Orden: Address, Country, State, City, ZipCode, Zone -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= $pageTexts['commercial_address'] ?>:</label>
+                                    <input type="text" class="form-control cust-address-upper" id="commercial_address" name="commercial_address"
+                                           value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_address'))) ?>">
+                                </div>
+                            </div>
+
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_country'] ?>:</label>
@@ -322,7 +360,6 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- Estado Comercial -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_state'] ?>:</label>
@@ -333,33 +370,28 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- Código Postal y Ciudad (ZIP antes que ciudad) -->
                             <div class="col-md-6 col-lg-4">
-                                <div class="row">
-                                    <div class="col-5">
-                                        <div class="form-group">
-                                            <label><?= $pageTexts['commercial_zip_code'] ?>:</label>
-                                            <select class="form-control fv-geo-select" id="commercial_zip_code" name="commercial_zip_code" autocomplete="off">
-                                                <option value=""></option>
-                                                <?php if (set_value('commercial_zip_code')): ?>
-                                                    <option value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_zip_code'))) ?>" selected><?= htmlspecialchars($fnUpperVal(set_value('commercial_zip_code'))) ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-7">
-                                        <div class="form-group">
-                                            <label><?= $pageTexts['commercial_city'] ?>:</label>
-                                            <select class="form-control fv-geo-select" id="commercial_city_id" name="commercial_city_id" autocomplete="off">
-                                                <option value=""></option>
-                                            </select>
-                                            <input type="hidden" id="commercial_city" name="commercial_city" value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_city'))) ?>">
-                                        </div>
-                                    </div>
+                                <div class="form-group">
+                                    <label><?= $pageTexts['commercial_city'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="commercial_city_id" name="commercial_city_id" autocomplete="off">
+                                        <option value=""></option>
+                                    </select>
+                                    <input type="hidden" id="commercial_city" name="commercial_city" value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_city'))) ?>">
                                 </div>
                             </div>
 
-                            <!-- Zona Comercial -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= $pageTexts['commercial_zip_code'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="commercial_zip_code" name="commercial_zip_code" autocomplete="off">
+                                        <option value=""></option>
+                                        <?php if (set_value('commercial_zip_code')): ?>
+                                            <option value="<?= htmlspecialchars($fnUpperVal(set_value('commercial_zip_code'))) ?>" selected><?= htmlspecialchars($fnUpperVal(set_value('commercial_zip_code'))) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_zone'] ?>:</label>
@@ -371,7 +403,7 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                             <div class="col-12 mt-2 mb-2">
                                 <input id="asignar_datos" type="checkbox" value="1">
                                 <label for="asignar_datos" class="mb-0">
-                                    <u><?= $pageTexts['asignar_datos'] ?>:</u>
+                                    <u><?= htmlspecialchars((string) ($pageTexts['asignar_datos'] ?? ''), ENT_QUOTES, 'UTF-8') ?></u>
                                 </label>
                             </div>
 
@@ -380,10 +412,10 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 <label><strong><?= strtoupper($pageTexts['dato_entrega'] ?? '') ?></strong></label>
                             </div>
 
-                            <!-- Dirección de entrega completa (primera línea, solo lectura) -->
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label><?= $pageTexts['delivery_address_full'] ?? '' ?>:</label>
+                            <!-- Delivery completo (solo lectura; misma lógica que comercial) -->
+                            <div class="col-12 mb-2">
+                                <div class="form-group mb-0">
+                                    <label><?= htmlspecialchars((string) ($pageTexts['delivery_address_full'] ?? $pageTexts['dispatch_delivery_address'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
                                     <input type="text" class="form-control cust-address-upper bg-light" name="dispatch_delivery_address" id="dispatch_delivery_address"
                                            value="<?= htmlspecialchars($fnUpperVal(set_value('dispatch_delivery_address'))) ?>"
                                            placeholder="<?= isset($pageTexts['placeholder_address_auto']) ? htmlspecialchars($pageTexts['placeholder_address_auto']) : '' ?>"
@@ -392,16 +424,15 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- Dirección Entrega (calle) -->
+                            <!-- Orden: Address, Country, State, City, ZipCode, Zone (igual que comercial) -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
-                                    <label><?= $pageTexts['dispatch_delivery_address'] ?>:</label>
+                                    <label><?= htmlspecialchars((string) ($pageTexts['dispatch_address'] ?? $pageTexts['commercial_address'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
                                     <input type="text" class="form-control cust-address-upper" name="dispatch_address" id="dispatch_address"
                                            value="<?= htmlspecialchars($fnUpperVal(set_value('dispatch_address'))) ?>">
                                 </div>
                             </div>
 
-                            <!-- País Entrega -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_country'] ?>:</label>
@@ -420,7 +451,6 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- Estado Entrega -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_state'] ?>:</label>
@@ -431,7 +461,16 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                 </div>
                             </div>
 
-                            <!-- Código Postal Entrega (antes que ciudad) -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= $pageTexts['dispatch_city'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="dispatch_city_id" name="dispatch_city_id" autocomplete="off">
+                                        <option value=""></option>
+                                    </select>
+                                    <input type="hidden" id="dispatch_city" name="dispatch_city" value="<?= htmlspecialchars($fnUpperVal(set_value('dispatch_city'))) ?>">
+                                </div>
+                            </div>
+
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_zipcode'] ?>:</label>
@@ -441,17 +480,6 @@ $planLimitBlocked = empty($planLimitBlock['can_create']);
                                             <option value="<?= htmlspecialchars($fnUpperVal(set_value('dispatch_zip_code'))) ?>" selected><?= htmlspecialchars($fnUpperVal(set_value('dispatch_zip_code'))) ?></option>
                                         <?php endif; ?>
                                     </select>
-                                </div>
-                            </div>
-
-                            <!-- Ciudad Entrega -->
-                            <div class="col-md-6 col-lg-4">
-                                <div class="form-group">
-                                    <label><?= $pageTexts['dispatch_city'] ?>:</label>
-                                    <select class="form-control fv-geo-select" id="dispatch_city_id" name="dispatch_city_id" autocomplete="off">
-                                        <option value=""></option>
-                                    </select>
-                                    <input type="hidden" id="dispatch_city" name="dispatch_city" value="<?= htmlspecialchars($fnUpperVal(set_value('dispatch_city'))) ?>">
                                 </div>
                             </div>
 
@@ -752,19 +780,69 @@ $(document).ready(function() {
         return '';
     }
 
+    var usStateAbbrByName = {
+        'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR',
+        'CALIFORNIA': 'CA', 'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE',
+        'FLORIDA': 'FL', 'GEORGIA': 'GA', 'HAWAII': 'HI', 'IDAHO': 'ID',
+        'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA', 'KANSAS': 'KS',
+        'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+        'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS',
+        'MISSOURI': 'MO', 'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV',
+        'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ', 'NEW MEXICO': 'NM', 'NEW YORK': 'NY',
+        'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH', 'OKLAHOMA': 'OK',
+        'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+        'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT',
+        'VERMONT': 'VT', 'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV',
+        'WISCONSIN': 'WI', 'WYOMING': 'WY', 'DISTRICT OF COLUMBIA': 'DC'
+    };
+
+    /**
+     * Para concatenar: solo sigla si existe; si no, solo el nombre (nunca "MI - MICHIGAN").
+     */
+    function normalizeStateForConcat(raw) {
+        var s = $.trim(raw || '').toUpperCase();
+        if (!s) {
+            return '';
+        }
+        var m = s.match(/^([A-Z0-9]{1,5})\s*[-–—]\s+(.+)$/);
+        if (m) {
+            return m[1];
+        }
+        if (/^[A-Z]{2}$/.test(s)) {
+            return s;
+        }
+        if (usStateAbbrByName[s]) {
+            return usStateAbbrByName[s];
+        }
+        return s;
+    }
+
+    function getStateForDelivery(prefix) {
+        var $sel = $('#' + prefix + '_state_id');
+        var $opt = $sel.find('option:selected');
+        var code = $.trim($opt.attr('data-code') || '').toUpperCase();
+        if (code) {
+            return normalizeStateForConcat(code);
+        }
+        var full = $.trim($opt.attr('data-full-name') || '').toUpperCase();
+        var fromHidden = $.trim($('#' + prefix + '_state').val() || '');
+        var fromText = $.trim($opt.text() || '');
+        return normalizeStateForConcat(code || fromHidden || full || fromText);
+    }
+
     function buildDeliveryAddress(prefix) {
-        // Orden fijo: Address, State, City, ZipCode, Country
+        // Orden fijo: Address, City, State(solo sigla o solo nombre), ZipCode, Country
         var address = (prefix === 'commercial') ? $.trim($('#commercial_address').val() || '') : $.trim($('#dispatch_address').val() || '');
-        var state = $.trim($('#' + prefix + '_state').val() || '');
         var city = $.trim($('#' + prefix + '_city').val() || '');
+        var state = getStateForDelivery(prefix);
         var country = getCountryText($('#' + prefix + '_country_id'));
         if (country === phCountry) country = '';
         var zip = (prefix === 'commercial') ? $.trim($('#commercial_zip_code').val() || '') : $.trim($('#dispatch_zip_code').val() || '');
 
         var parts = [];
         if (address) parts.push(address.toUpperCase());
-        if (state) parts.push(state.toUpperCase());
         if (city) parts.push(city.toUpperCase());
+        if (state) parts.push(state.toUpperCase());
         if (zip) parts.push(zip.toUpperCase());
         if (country) parts.push(country.toUpperCase());
         return parts.join(', ');
@@ -959,8 +1037,47 @@ $(document).ready(function() {
         unlockEditableAddressFields();
     }, 0);
 
-    $('#form_add').on('submit', function() {
+    function syncCustomerPasswordRequirement() {
+        var email = String($('#customer_email').val() || '').trim();
+        var hasEmail = email !== '';
+        var $pwd = $('#customer_portal_password');
+        var $mark = $('.fv-password-required-mark');
+        $mark.toggle(hasEmail);
+        $pwd.prop('required', hasEmail);
+        if (!hasEmail) {
+            $pwd.val('');
+        }
+    }
+
+    $(document).on('input change blur', '#customer_email', syncCustomerPasswordRequirement);
+    syncCustomerPasswordRequirement();
+
+    $('#fv_customer_password_toggle').on('click', function () {
+        var $input = $('#customer_portal_password');
+        var show = $input.attr('type') === 'password';
+        $input.attr('type', show ? 'text' : 'password');
+        $(this).find('i').removeClass('mdi-eye mdi-eye-off').addClass(show ? 'mdi-eye-off' : 'mdi-eye');
+        var showLabel = <?= json_encode((string) ($pageTexts['portal_password_show'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+        var hideLabel = <?= json_encode((string) ($pageTexts['portal_password_hide'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+        $(this).attr('title', show ? hideLabel : showLabel).attr('aria-label', show ? hideLabel : showLabel);
+    });
+
+    $('#form_add').on('submit', function(e) {
         $('.cust-address-upper').each(function() { forceAddressUpper(this); });
+        syncCustomerPasswordRequirement();
+        var email = String($('#customer_email').val() || '').trim();
+        var pwd = String($('#customer_portal_password').val() || '').trim();
+        if (email !== '' && pwd === '') {
+            e.preventDefault();
+            var msg = String($('#form_add').data('msg-password-required') || '');
+            if (msg && typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'warning', text: msg });
+            } else if (msg) {
+                alert(msg);
+            }
+            $('#customer_portal_password').trigger('focus');
+            return false;
+        }
     });
 
     function unlockDispatchAddressFields() {
@@ -970,6 +1087,10 @@ $(document).ready(function() {
     $('#asignar_datos').on('change', function() {
         unlockDispatchAddressFields();
         if (!$(this).is(':checked')) {
+            return;
+        }
+        if (typeof window.fvCopyCommercialAddressToDispatch === 'function') {
+            window.fvCopyCommercialAddressToDispatch();
             return;
         }
         $('input[name="dispatch_address"]').val($('input[name="commercial_address"]').val());

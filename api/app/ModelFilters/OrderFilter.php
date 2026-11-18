@@ -168,6 +168,21 @@ class OrderFilter extends ModelFilter
         return $this->where('catalog_id', $catalog);
     }
 
+    public function customerId($customerId): OrderFilter
+    {
+        $id = (int) $customerId;
+        if ($id < 1) {
+            return $this;
+        }
+
+        return $this->where('customer_id', $id);
+    }
+
+    public function customer($customerId): OrderFilter
+    {
+        return $this->customerId($customerId);
+    }
+
     public function search($search): OrderFilter
     {
         if ($search === '' || $search === null) {

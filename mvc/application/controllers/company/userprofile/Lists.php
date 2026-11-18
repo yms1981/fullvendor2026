@@ -79,6 +79,7 @@ class Lists extends Company_Controller
                 'can_change_price' => $lang['change_price'] ?? '',
                 'can_send_catalog' => $lang['send_catalog'] ?? '',
                 'can_create_customer' => $lang['create_customer'] ?? '',
+                'can_access_backend' => $lang['access_backend'] ?? '',
                 'status' => $lang['status'] ?? '',
                 'default' => $lang['default'] ?? '',
                 'created' => $lang['created'] ?? '',
@@ -101,6 +102,7 @@ class Lists extends Company_Controller
             'can_change_price' => 'can_change_price',
             'can_send_catalog' => 'can_send_catalog',
             'can_create_customer' => 'can_create_customer',
+            'can_access_backend' => 'can_access_backend',
             'status' => 'status',
         ];
     }
@@ -111,6 +113,7 @@ class Lists extends Company_Controller
             'can_change_price' => 'company/userprofile/list/boolean_field',
             'can_send_catalog' => 'company/userprofile/list/boolean_field',
             'can_create_customer' => 'company/userprofile/list/boolean_field',
+            'can_access_backend' => 'company/userprofile/list/boolean_field',
         ];
     }
 }

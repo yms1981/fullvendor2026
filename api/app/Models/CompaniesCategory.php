@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CompaniesCategory
@@ -55,7 +54,6 @@ class CompaniesCategory extends Model
 
     use HasFactory;
     use Filterable;
-use SoftDeletes;
 
     const CREATED_AT = 'category_created_at';
     protected $table = 'companies_categories';

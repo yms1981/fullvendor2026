@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -62,7 +61,6 @@ class ProductInventoryMvcService
         $categoryIds = $this->normalizeCategoryIds($filters['category_ids'] ?? []);
 
         $query = Product::query()
-            ->withoutGlobalScope(SoftDeletingScope::class)
             ->from('products as p')
             ->leftJoin('inventory as i', static function ($join) {
                 $join->on('i.company_id', '=', 'p.company_id')

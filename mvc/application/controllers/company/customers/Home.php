@@ -228,21 +228,25 @@ class Home extends Company_Controller
             $langProducts,
             $this->langArr,
             [
-                'company_total_items_label' => $this->langArr['total_customers'] ?? 'Total customers',
-                'cantidad_productos' => $this->langArr['total_customers_found'] ?? 'Total customers found',
+                'company_total_items_label' => $this->langArr['total_customers_found']
+                    ?? $this->langArr['total_customers']
+                    ?? 'Total customers found',
+                'cantidad_productos' => $this->langArr['total_customers_filtered']
+                    ?? $this->langArr['total_clientes_filtrados']
+                    ?? 'Total customers Filtered',
                 'entityNamePlural' => $this->langArr['customers'] ?? 'Customers',
                 'entityName' => $this->langArr['customer'] ?? 'Customer',
                 'fields' => [
                     'customer_id' => 'Id',
                     'cust_id_kor' => $this->langArr['field_cust_id_kor'] ?? 'ERP Id',
                     'business_name_extended' => $this->langArr['field_business_name_extended'] ?? 'Business Name',
-                    'email' => 'Email',
                     'customer_group' => $this->langArr['field_customer_group'] ?? 'Customer Group',
                     'sellers' => $this->langArr['field_sellers'] ?? 'Assigned Seller',
                     'catalog_emails' => $this->langArr['field_catalog_emails'] ?? 'Send Catalog'
                 ],
                 'colmn_status' => $this->langArr['colmn_status'] ?? 'Enable/Disable',
                 'colmn_action' => $this->langArr['colmn_action'] ?? 'Actions',
+                'actions' => $this->langArr['colmn_action'] ?? 'Actions',
                 'option_enable' => $langToggleStatusButton['option_enable'],
                 'option_disable' => $langToggleStatusButton['option_disable'],
                 'loader-enable' => $langToggleStatusButton['loader-enabling'],
@@ -259,8 +263,7 @@ class Home extends Company_Controller
     {
         return [
             'cust_id_kor',
-            'business_name_extended',      
-            'email',
+            'business_name_extended',
             'customer_group',
             'sellers',
             'catalog_emails'
@@ -281,7 +284,6 @@ class Home extends Company_Controller
             'sellers' => 'company/customer/list/sellers_field',
             'catalog_emails' => 'company/customer/list/send-catalog_button',
             'business_name_extended' => 'company/customer/list/business_name_field',
-            'email' => 'company/customer/list/email_field',
         ];
     }
 
@@ -347,12 +349,28 @@ class Home extends Company_Controller
 
         $pageTexts = $this->getPageTexts($paginatedList) + $paginationTexts;
 
+        $companyTotalItemsCount = 0;
+        try {
+            // Total de la empresa (sin filtrar por estado); el filtrado va en totalItemsCount.
+            $countResponse = $this->getDataFromApi(
+                'company/' . $this->getCompanyId() . '/customers/count',
+                ['only_active' => '0', 'enabled' => '0']
+            );
+            $companyTotalItemsCount = (is_array($countResponse) && isset($countResponse['error']))
+                ? 0
+                : (int) $countResponse;
+        } catch (\Throwable $e) {
+            log_message('error', 'customers companyTotalItemsCount: ' . $e->getMessage());
+            $companyTotalItemsCount = 0;
+        }
+
         $listData = [
             'pageTitle' => $pageTexts['pageTitle'] ?? $this->entityPath,
             'addItem' => [
                 'label' => $this->langArr['btn_new'] ?? 'New',
                 'link' => $this->getAddLink(),
             ],
+            'companyTotalItemsCount' => $companyTotalItemsCount,
             'totalItemsCount' => $paginatedList->total,
             'page' => $paginatedList,
             'buttonBar' => isset($this->listButtonBar) ? $this->listButtonBar->getButtons() : [],
@@ -378,6 +396,7 @@ class Home extends Company_Controller
             'apiToken' => $this->getUserToken(),
             'apiBaseUrl' => '/api',
             'showRowIndexColumn' => false,
+            'useActionsDropdown' => true,
         ];
 
         return $listData;

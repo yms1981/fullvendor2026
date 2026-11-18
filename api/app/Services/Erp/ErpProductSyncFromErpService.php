@@ -230,9 +230,6 @@ class ErpProductSyncFromErpService
 
         foreach ([
             'name' => 'name',
-            'sale_price' => 'sale_price',
-            'fob_price' => 'fob_price',
-            'purchase_price' => 'purchase_price',
             'stock' => 'stock',
             'status' => 'status',
             'barcode' => 'barcode',
@@ -245,13 +242,34 @@ class ErpProductSyncFromErpService
             }
         }
 
+        // Todo producto debe tener unidad; si ERP no manda o viene vacía, usar la default de la compañía.
+        $unitId = (int) ($product->unit_id ?? 0);
+        if ($unitId < 1) {
+            $defaultUnitId = app(\App\Services\ProductListQualityService::class)
+                ->resolveDefaultUnitId($itemCompany);
+            if ($defaultUnitId > 0) {
+                $product->unit_id = $defaultUnitId;
+            }
+        }
+
+        // Nunca pisar precios existentes con 0/vacío (ERP a veces manda price=0).
+        $this->applyPositivePrice($product, 'sale_price', $this->resolvePositiveMoney(
+            $row['sale_price'] ?? $row['price'] ?? $row['precio'] ?? $row['precio_venta'] ?? null
+        ));
+        $this->applyPositivePrice($product, 'fob_price', $this->resolvePositiveMoney($row['fob_price'] ?? null));
+        $this->applyPositivePrice($product, 'purchase_price', $this->resolvePositiveMoney($row['purchase_price'] ?? null));
+
+        $resolvedCats = [];
+        $hasCategoryPayload = $this->rowHasCategoryPayload($row);
         try {
-            $resolvedCats = $this->resolveCategoryIds($itemCompany, $row);
-            if ($resolvedCats !== []) {
-                $joined = implode(',', array_map(static fn (int $id): string => (string) $id, $resolvedCats));
-                $product->cats_id = $joined;
-                $product->cat_id = (string) $resolvedCats[0];
-                $product->category_id = (string) $resolvedCats[0];
+            if ($hasCategoryPayload) {
+                $resolvedCats = $this->resolveCategoryIds($itemCompany, $row);
+                if ($resolvedCats !== []) {
+                    $joined = implode(',', array_map(static fn (int $id): string => (string) $id, $resolvedCats));
+                    $product->cats_id = $joined;
+                    $product->cat_id = (string) $resolvedCats[0];
+                    $product->category_id = (string) $resolvedCats[0];
+                }
             }
         } catch (Throwable $e) {
             // Categorías no deben tumbar el upsert del producto (p. ej. SoftDeletes sin columna).
@@ -260,6 +278,8 @@ class ErpProductSyncFromErpService
                 'sku' => $sku,
                 'error' => $e->getMessage(),
             ]);
+            $resolvedCats = [];
+            $hasCategoryPayload = false;
         }
 
         if (array_key_exists('stock', $row) && ! array_key_exists('status', $row)) {
@@ -268,6 +288,20 @@ class ErpProductSyncFromErpService
 
         $product->modified_on = now();
         $product->save();
+
+        // La UI lee category_product (pivot). Sin sync, las categorías se “mezclan”/quedan viejas.
+        // Solo sincronizar si resolvimos IDs; sync([]) vaciaría categorías por un payload mal formado.
+        if ($hasCategoryPayload && $resolvedCats !== []) {
+            try {
+                $product->categories()->sync($resolvedCats);
+            } catch (Throwable $e) {
+                Log::warning('erp.products.sync.category_pivot_failed', [
+                    'company_id' => $itemCompany,
+                    'sku' => $sku,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         $images = $row['images'] ?? [];
         if (! is_array($images)) {
@@ -600,28 +634,88 @@ class ErpProductSyncFromErpService
 
     /**
      * @param  array<string, mixed>  $row
-     * @return list<int>
      */
-    private function resolveCategoryIds(int $companyId, array $row): array
+    private function rowHasCategoryPayload(array $row): bool
+    {
+        foreach (['category_name', 'category_names', 'categories', 'category'] as $key) {
+            if (! array_key_exists($key, $row) || $row[$key] === null) {
+                continue;
+            }
+            if (is_string($row[$key]) && trim($row[$key]) !== '') {
+                return true;
+            }
+            if (is_array($row[$key]) && $row[$key] !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extrae nombres de categoría del payload ERP sin contaminar entre filas.
+     *
+     * @param  array<string, mixed>  $row
+     * @return list<string>
+     */
+    private function extractCategoryNames(array $row): array
     {
         $names = [];
-        $raw = $row['category_names'] ?? $row['category_name'] ?? null;
-        if (is_array($raw)) {
-            foreach ($raw as $item) {
-                $name = trim((string) $item);
-                if ($name !== '') {
-                    $names[] = $name;
-                }
+        $push = static function (mixed $value) use (&$names): void {
+            if (is_array($value)) {
+                $name = trim((string) (
+                    $value['name']
+                    ?? $value['category_name']
+                    ?? $value['category']
+                    ?? ''
+                ));
+            } else {
+                $name = trim((string) $value);
             }
-        } elseif (is_string($raw) && trim($raw) !== '') {
-            foreach (preg_split('/[,;|]+/', $raw) ?: [] as $piece) {
-                $name = trim((string) $piece);
-                if ($name !== '') {
-                    $names[] = $name;
+            if ($name === '' || strcasecmp($name, 'Array') === 0) {
+                return;
+            }
+            $names[] = $name;
+        };
+
+        foreach (['category_names', 'category_name', 'category', 'categories'] as $key) {
+            if (! array_key_exists($key, $row) || $row[$key] === null) {
+                continue;
+            }
+            $raw = $row[$key];
+            if (is_array($raw)) {
+                foreach ($raw as $item) {
+                    if (is_string($item) || is_numeric($item)) {
+                        foreach (preg_split('/[,;|]+/', (string) $item) ?: [] as $piece) {
+                            $push($piece);
+                        }
+                    } elseif (is_array($item) || is_object($item)) {
+                        $push((array) $item);
+                    }
+                }
+            } elseif (is_string($raw) || is_numeric($raw)) {
+                foreach (preg_split('/[,;|]+/', (string) $raw) ?: [] as $piece) {
+                    $push($piece);
                 }
             }
         }
 
+        $unique = [];
+        foreach ($names as $name) {
+            $key = mb_strtolower($name, 'UTF-8');
+            $unique[$key] = $name;
+        }
+
+        return array_values($unique);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return list<int>
+     */
+    private function resolveCategoryIds(int $companyId, array $row): array
+    {
+        $names = $this->extractCategoryNames($row);
         if ($names === []) {
             return [];
         }
@@ -637,7 +731,7 @@ class ErpProductSyncFromErpService
             return Category::query();
         };
 
-        foreach (array_values(array_unique($names)) as $name) {
+        foreach ($names as $name) {
             $category = $categoryQuery()
                 ->where('company_id', $companyId)
                 ->whereRaw('LOWER(TRIM(`'.$nameColumn.'`)) = ?', [mb_strtolower($name, 'UTF-8')])
@@ -677,5 +771,119 @@ class ErpProductSyncFromErpService
             str_contains($contentType, 'gif') => 'gif',
             default => 'jpg',
         };
+    }
+
+    /**
+     * Solo precios &gt; 0. Null/0/vacío no se aplican (se conserva el precio actual).
+     */
+    public function resolvePositiveMoney(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], ['.', ''], trim($value));
+            if ($value === '' || ! is_numeric($value)) {
+                return null;
+            }
+        }
+        if (! is_numeric($value)) {
+            return null;
+        }
+        $amount = round((float) $value, 4);
+
+        return $amount > 0 ? $amount : null;
+    }
+
+    public function applyPositivePrice(Product $product, string $column, ?float $amount): bool
+    {
+        if ($amount === null || $amount <= 0) {
+            return false;
+        }
+        $product->{$column} = $amount;
+
+        return true;
+    }
+
+    /**
+     * Actualiza solo precios (&gt; 0) por SKU, incluyendo productos inactivos.
+     * No toca stock, status ni imágenes.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{
+     *     total: int,
+     *     updated: int,
+     *     unchanged: int,
+     *     skipped: int,
+     *     not_found: int
+     * }
+     */
+    public function syncPricesOnly(int $companyId, array $rows): array
+    {
+        $summary = [
+            'total' => count($rows),
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0,
+            'not_found' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                $summary['skipped']++;
+
+                continue;
+            }
+
+            $sku = trim((string) ($row['sku'] ?? ''));
+            $sale = $this->resolvePositiveMoney(
+                $row['sale_price'] ?? $row['price'] ?? $row['precio'] ?? $row['precio_venta'] ?? null
+            );
+            $fob = $this->resolvePositiveMoney($row['fob_price'] ?? null);
+            $purchase = $this->resolvePositiveMoney($row['purchase_price'] ?? null);
+
+            if ($sku === '' || ($sale === null && $fob === null && $purchase === null)) {
+                $summary['skipped']++;
+
+                continue;
+            }
+
+            $product = Product::query()
+                ->where('company_id', $companyId)
+                ->whereRaw('UPPER(TRIM(sku)) = ?', [mb_strtoupper($sku, 'UTF-8')])
+                ->first();
+
+            if (! $product) {
+                $summary['not_found']++;
+
+                continue;
+            }
+
+            $changed = false;
+            if ($sale !== null && abs((float) ($product->sale_price ?? 0) - $sale) > 0.0001) {
+                $product->sale_price = $sale;
+                $changed = true;
+            }
+            if ($fob !== null && abs((float) ($product->fob_price ?? 0) - $fob) > 0.0001) {
+                $product->fob_price = $fob;
+                $changed = true;
+            }
+            if ($purchase !== null && abs((float) ($product->purchase_price ?? 0) - $purchase) > 0.0001) {
+                $product->purchase_price = $purchase;
+                $changed = true;
+            }
+
+            if (! $changed) {
+                $summary['unchanged']++;
+
+                continue;
+            }
+
+            $product->modified_on = now();
+            $product->save();
+            $summary['updated']++;
+        }
+
+        return $summary;
     }
 }

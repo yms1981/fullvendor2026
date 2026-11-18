@@ -83,6 +83,9 @@ class CompanyScheduledTaskController extends Controller
             ->where('task_type', $taskType)
             ->firstOrFail();
 
+        $wasEnabled = (bool) $task->enabled;
+        $previousFrequency = (string) $task->frequency;
+
         if (array_key_exists('enabled', $data)) {
             $task->enabled = (bool) $data['enabled'];
         }
@@ -91,9 +94,14 @@ class CompanyScheduledTaskController extends Controller
         }
 
         if ($task->enabled && $task->frequency !== CompanyScheduledTask::FREQUENCY_MANUAL) {
-            $task->next_run_at = $task->next_run_at ?? $task->computeNextRunAt(now());
-            if ($task->next_run_at === null) {
-                $task->next_run_at = $task->computeNextRunAt(now());
+            $justEnabled = array_key_exists('enabled', $data) && $task->enabled && ! $wasEnabled;
+            $frequencyChanged = array_key_exists('frequency', $data)
+                && (string) $task->frequency !== $previousFrequency;
+
+            // Primera vez / cambio de frecuencia: due YA (el cron del minuto siguiente la toma).
+            // Antes se usaba computeNextRunAt(now()) y la primera corrida esperaba 1–4 h.
+            if ($justEnabled || $frequencyChanged || $task->next_run_at === null) {
+                $task->next_run_at = now();
             }
         } else {
             $task->next_run_at = null;

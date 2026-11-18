@@ -49,22 +49,27 @@ $groupsNone = (string) ($pageTexts['category_groups_none'] ?? '');
 ?>
 
 <div class="fv-product-list-product">
+    <?php
+    $barcodeRaw = trim((string) ($listItem->barcode ?? ''));
+    $barcodeLabel = (string) ($pageTexts['f_barcode'] ?? $pageTexts['barcode'] ?? 'Barcode');
+    ?>
     <?php if ($sku !== '') : ?>
         <div class="fv-product-list-product__sku">
             <a href="<?= $editUrl ?>" title="Edit"><strong><?= $highlightedSku ?></strong></a>
-            <?php if ($listItem->barcode != null && $listItem->barcode != '') : ?>
-                <a title="Barcode: <?= htmlspecialchars((string) $listItem->barcode, ENT_QUOTES, 'UTF-8') ?>">
-                    <img src="<?= base_url('images/codbarra.png') ?>"
-                         alt="<?= htmlspecialchars((string) $listItem->barcode, ENT_QUOTES, 'UTF-8') ?>"
-                         class="img-fluid img-thumbnail"
-                         style="width: 20px; height: 20px;">
-                </a>
-            <?php endif; ?>
         </div>
     <?php endif; ?>
     <div class="fv-product-list-product__name">
         <a href="<?= $editUrl ?>" title="Edit"><?= $highlightedName ?></a>
     </div>
+    <?php if ($barcodeRaw !== '') : ?>
+        <div class="fv-product-list-product__barcode text-muted small mt-1" title="<?= htmlspecialchars($barcodeLabel, ENT_QUOTES, 'UTF-8') ?>">
+            <img src="<?= base_url('images/codbarra.png') ?>"
+                 alt=""
+                 class="img-fluid"
+                 style="width: 16px; height: 16px; vertical-align: -2px; margin-right: 4px;">
+            <span class="notranslate"><?= htmlspecialchars($barcodeRaw, ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
+    <?php endif; ?>
     <?php
     $rating = function_exists('company_product_rating_value')
         ? company_product_rating_value($listItem)

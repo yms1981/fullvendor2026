@@ -7,7 +7,9 @@ class Home extends Company_Controller
     protected $forceAppChange = 'company';
     protected function hasAccess(): bool
     {
-        return $this->getRole() == 'manager' /* || $this->getRole() == 'company'*/ ;
+        $role = $this->getRole();
+
+        return $role === 'manager' || $role === 'seller';
     }
 
     function index()

@@ -1074,7 +1074,7 @@ class OrderController extends Controller
         try {
             DB::transaction(function () use ($order, $detalleEliminar, $detalle) {
                 if (!empty($detalleEliminar)) {
-                    $order->order_details()->whereIn('detail_id', $detalleEliminar)->forceDelete();
+                    $order->order_details()->whereIn('detail_id', $detalleEliminar)->delete();
                 }
                 foreach ($detalle as $item) {
                     $detailId = isset($item['id']) && $item['id'] !== '' && $item['id'] !== null
@@ -1931,11 +1931,32 @@ class OrderController extends Controller
     )]
     public function payedOfCustomer($customerId)
     {
-        return $this->getBuilder()
-            ->with('order_details')
+        $customerId = (int) $customerId;
+        $companyId = (int) (request()->input('company_id') ?: request()->input('company') ?: 0);
+
+        $base = Order::query()
+            ->with(['order_details', 'statusOrder:id_status,cod_status'])
             ->where('customer_id', $customerId)
-            ->where('payment_status', '1')
-            ->get();
+            ->when($companyId > 0, static function ($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
+            ->where(static function ($q) {
+                $q->whereNull('tipo_d')
+                    ->orWhereRaw("UPPER(TRIM(COALESCE(tipo_d, ''))) <> 'I'");
+            })
+            ->where(static function ($q) {
+                $q->whereDoesntHave('statusOrder', static function ($status) {
+                    $status->where('cod_status', OrderStatusCodes::SHOPPING->value);
+                })->orWhereNull('status_id');
+            });
+
+        $paid = (clone $base)->where('payment_status', 1)->get();
+        if ($paid->isNotEmpty()) {
+            return $paid;
+        }
+
+        // Sin órdenes marcadas como pagadas: ventas reales (no carrito / no inventario).
+        return $base->get();
     }
 
     #[OA\Get(

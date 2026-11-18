@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Participante de una conversación empresarial.
@@ -20,7 +19,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class CompanyConversationParticipant extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'company_conversation_participants';
 

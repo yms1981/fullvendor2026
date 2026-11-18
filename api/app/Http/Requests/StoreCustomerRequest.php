@@ -67,6 +67,13 @@ class StoreCustomerRequest extends FormRequest
             'tax_id' => ['nullable', 'string', 'max:255'],
             'discount' => ['nullable', 'numeric', 'between:0,100'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
+            'portal_password' => [
+                Rule::requiredIf(fn () => filled($this->input('email'))),
+                'nullable',
+                'string',
+                'min:6',
+                'max:255',
+            ],
             'phone' => ['nullable', 'string', 'max:20'],
             'cell_phone' => ['nullable', 'string', 'max:20'],
             'catalog_emails' => ['nullable', 'boolean'],

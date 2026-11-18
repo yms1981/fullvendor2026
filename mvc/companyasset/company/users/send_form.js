@@ -9,6 +9,21 @@ $(function () {
         return form && form.getAttribute('data-user-create') === '1';
     }
 
+    function isUserEditForm(form) {
+        if (!form) {
+            return false;
+        }
+        if (form.getAttribute('data-user-edit') === '1') {
+            return true;
+        }
+        // Formularios de cliente/otros también usan #form_edit; no interceptarlos.
+        if (form.getAttribute('data-user-create') === '1') {
+            return false;
+        }
+        // Heurística: edición de usuario trae role o profile_seller.
+        return !!(form.querySelector('[name="role"]') || form.querySelector('#profile_seller') || form.querySelector('[name="profile_id"]'));
+    }
+
     function escapeHtml(s) {
         return String(s)
             .replace(/&/g, '&amp;')
@@ -409,6 +424,7 @@ $(function () {
 
     $(document).on('submit', '#form_add', function (e) {
         const formCandidate = e.currentTarget;
+        // Solo formularios de alta de usuario (no clientes u otros #form_add).
         if (!isUserCreateForm(formCandidate)) {
             return;
         }
@@ -518,8 +534,13 @@ $(function () {
     }
 
     $(document).on('submit', '#form_edit', function (e) {
+        const formCandidate = e.currentTarget || document.getElementById('form_edit');
+        if (!isUserEditForm(formCandidate)) {
+            return;
+        }
         e.preventDefault();
-        const form = document.getElementById('form_edit');
+        e.stopImmediatePropagation();
+        const form = formCandidate;
         if (!form) {
             return;
         }

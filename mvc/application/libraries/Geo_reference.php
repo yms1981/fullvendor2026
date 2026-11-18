@@ -32,7 +32,7 @@ class Geo_reference
     private $pdo;
 
     /**
-     * @return array<int, array{id:int, name:string, country_id:int}>
+     * @return array<int, array{id:int, name:string, code:string, full_name:string, country_id:int}>
      */
     public function searchStates(int $countryId, string $term = ''): array
     {
@@ -46,24 +46,79 @@ class Geo_reference
 
         $sql = 'SELECT id, name, country_id FROM states WHERE deleted_at IS NULL AND country_id = ?';
         $binds = [$countryId];
-        $term = trim($term);
-        if ($term !== '') {
-            $sql .= ' AND UPPER(name) LIKE ?';
-            $binds[] = strtoupper($term) . '%';
-        }
         $sql .= ' ORDER BY name ASC LIMIT 500';
+
+        $abbrByName = $this->stateAbbrMapForCountry($pdo, $countryId);
+        $termUpper = strtoupper(trim($term));
 
         $rows = $this->rows($pdo, $sql, $binds);
         $out = [];
         foreach ($rows as $row) {
+            $fullName = trim((string) $row['name']);
+            $fullUpper = strtoupper($fullName);
+            $code = $abbrByName[$fullUpper] ?? (self::$usStateAbbr[$fullUpper] ?? '');
+            $code = strtoupper(trim((string) $code));
+            // Select: "ND - NORTH DAKOTA" (reconocible por sigla o nombre).
+            $label = $code !== ''
+                ? ($code . ' - ' . $fullUpper)
+                : $fullUpper;
+
+            if ($termUpper !== '') {
+                $hay = $label . ' ' . $code . ' ' . $fullUpper;
+                if (strpos($hay, $termUpper) === false) {
+                    continue;
+                }
+            }
+
             $out[] = [
                 'id' => (int) $row['id'],
-                'name' => (string) $row['name'],
+                'name' => $label,
+                'code' => $code,
+                'full_name' => $fullUpper,
                 'country_id' => (int) $row['country_id'],
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Mapa nombre de estado → sigla (admin_code1) desde postal_codes + mapa US.
+     *
+     * @return array<string, string> key = UPPER(admin_name1|state.name)
+     */
+    private function stateAbbrMapForCountry(PDO $pdo, int $countryId): array
+    {
+        $map = self::$usStateAbbr;
+        if (!$this->tableExists($pdo, 'postal_codes')) {
+            return $map;
+        }
+
+        $country = $this->one($pdo, 'SELECT sortname FROM countries WHERE id = ?', [$countryId]);
+        $iso2 = $country ? strtoupper(substr(trim((string) $country['sortname']), 0, 2)) : '';
+        if ($iso2 === '') {
+            return $map;
+        }
+
+        $rows = $this->rows(
+            $pdo,
+            'SELECT DISTINCT admin_name1, admin_code1
+             FROM postal_codes
+             WHERE country_iso2 = ?
+               AND admin_name1 IS NOT NULL AND TRIM(admin_name1) <> \'\'
+               AND admin_code1 IS NOT NULL AND TRIM(admin_code1) <> \'\'
+             LIMIT 1000',
+            [$iso2]
+        );
+        foreach ($rows as $row) {
+            $name = strtoupper(trim((string) ($row['admin_name1'] ?? '')));
+            $code = strtoupper(trim((string) ($row['admin_code1'] ?? '')));
+            if ($name !== '' && $code !== '' && !isset($map[$name])) {
+                $map[$name] = $code;
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -114,7 +169,10 @@ class Geo_reference
     }
 
     /**
-     * @return array<int, array{id:string, name:string, postal_code:string, place_name:string}>
+     * ZIP: si hay estado → filtra por estado; si no → todos del país.
+     * Cada ítem incluye ciudad/estado para poder asignarlos al elegir el ZIP.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function searchZips(int $stateId, int $cityId, int $countryId, string $term = ''): array
     {
@@ -157,11 +215,35 @@ class Geo_reference
             }
         }
 
-        if ($stateId <= 0 && $cityId <= 0 && $term === '') {
+        // Sin país/estado/ciudad/término no hay filtro útil.
+        if ($stateId <= 0 && $cityId <= 0 && $countryId <= 0 && $iso2 === '') {
             return [];
         }
 
-        $sql = 'SELECT postal_code, place_name FROM postal_codes WHERE 1=1';
+        // Con estado: filtrar por estado. Sin estado: todo el país.
+        $limit = ($stateId > 0) ? 200 : 150;
+        $rows = $this->queryZips($pdo, $iso2, $countryId, $stateId, $stateName, $stateAbbr, 0, '', $term, $limit);
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function queryZips(
+        PDO $pdo,
+        string $iso2,
+        int $countryId,
+        int $stateId,
+        string $stateName,
+        string $stateAbbr,
+        int $cityId,
+        string $cityName,
+        string $term,
+        int $limit = 200
+    ): array {
+        $sql = 'SELECT postal_code, place_name, admin_name1, admin_code1, state_id, city_id
+                FROM postal_codes WHERE 1=1';
         $binds = [];
 
         if ($iso2 !== '') {
@@ -193,28 +275,42 @@ class Geo_reference
         }
 
         if ($term !== '') {
-            $sql .= ' AND postal_code LIKE ?';
+            // Reconocer por ZIP (preferente) o por ciudad.
+            $sql .= ' AND (postal_code LIKE ? OR UPPER(place_name) LIKE ?)';
             $binds[] = $term . '%';
+            $binds[] = strtoupper($term) . '%';
         }
 
-        $sql .= ' ORDER BY postal_code ASC LIMIT 80';
+        $limit = max(1, min(500, $limit));
+        $sql .= ' ORDER BY postal_code ASC LIMIT ' . $limit;
 
         $rows = $this->rows($pdo, $sql, $binds);
         $out = [];
         $seen = [];
         foreach ($rows as $row) {
             $code = trim((string) ($row['postal_code'] ?? ''));
-            $place = trim((string) ($row['place_name'] ?? ''));
-            $key = $code . '|' . strtoupper($place);
+            $place = strtoupper(trim((string) ($row['place_name'] ?? '')));
+            $adminName = strtoupper(trim((string) ($row['admin_name1'] ?? '')));
+            $adminCode = strtoupper(trim((string) ($row['admin_code1'] ?? '')));
+            if ($adminCode === '' && $adminName !== '' && isset(self::$usStateAbbr[$adminName])) {
+                $adminCode = self::$usStateAbbr[$adminName];
+            }
+            $key = $code;
             if ($code === '' || isset($seen[$key])) {
                 continue;
             }
             $seen[$key] = true;
+            $label = $place !== '' ? ($code . ' - ' . $place) : $code;
             $out[] = [
                 'id' => $code,
-                'name' => $code,
+                'name' => $label,
                 'postal_code' => $code,
                 'place_name' => $place,
+                'city_name' => $place,
+                'city_id' => (int) ($row['city_id'] ?? 0),
+                'state_id' => (int) ($row['state_id'] ?? 0),
+                'state_code' => $adminCode,
+                'state_name' => $adminName,
             ];
         }
 

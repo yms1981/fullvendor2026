@@ -65,6 +65,15 @@
                 </select>
             </div>
         </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="form-group">
+                <label><?= htmlspecialchars((string) ($lang_vendor['access_backend'] ?? $lang_userprofile['access_backend'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: </label>
+                <select class="form-control notranslate" name="can_access_backend">
+                    <option value="1"><?= $lang_userprofile['si'] ?></option>
+                    <option value="0" selected><?= $lang_userprofile['no'] ?></option>
+                </select>
+            </div>
+        </div>
     </div>
     <div class="form-group text-right">
         <button type="submit" class="btn btn-success mr-2"><?= $lang_vendor['save'] ?></button>

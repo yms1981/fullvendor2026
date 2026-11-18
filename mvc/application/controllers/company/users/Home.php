@@ -467,7 +467,6 @@ class Home extends Form
     {
         $companyId = $this->getCompany();
         $filterData = [
-            'withTrashed' => true,
             'props' => ['id', 'name', 'email', 'image', 'created_at', 'deleted_at'],
             'relations' => ['companyUsers'],
         ];

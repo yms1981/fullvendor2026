@@ -12,7 +12,7 @@ RewriteRule ^ /mvc/%1 [R=302,L,QSA]
         Header set Service-Worker-Allowed "/"
         Header set Cache-Control "no-cache"
     </FilesMatch>
-    <FilesMatch "^(manifest\.json)$">
+    <FilesMatch "^(manifest\.json|pwa-manifest\.php)$">
         Header set Cache-Control "no-cache"
     </FilesMatch>
 </IfModule>

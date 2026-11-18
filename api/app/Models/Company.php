@@ -12,7 +12,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Company
@@ -236,7 +235,6 @@ class Company extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     protected $table = 'companies';
@@ -304,6 +302,7 @@ class Company extends Model
         'default_unit_id' => 'int',
         'default_term_id' => 'int',
         'erp_enabled' => 'bool',
+        'ecommerce_enabled' => 'bool',
 	];
 
     protected $hidden = [
@@ -381,6 +380,8 @@ class Company extends Model
         'erp_company_code',
         'erp_url',
         'erp_company_token',
+        'ecommerce_enabled',
+        'ecommerce_url',
 	];
 
     public function addresses()

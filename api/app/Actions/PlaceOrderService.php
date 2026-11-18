@@ -14,6 +14,7 @@ use App\Models\StatusOrder;
 use App\Services\CompanyPlanLimitService;
 use App\Services\CompanySendTemplateService;
 use App\Services\OpenCartOrderSyncService;
+use App\Services\ProductStockStatusSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -133,6 +134,7 @@ class PlaceOrderService
                 ]);
             }
 
+            $touchedProductIds = [];
             foreach ($order->order_details as $detail) {
                 $product = $detail->product;
                 $qty = $detail->qty;
@@ -147,7 +149,15 @@ class PlaceOrderService
                             'quantity' => "Stock insuficiente para el producto {$product->name} al momento de confirmar."
                         ]);
                     }
+                    $touchedProductIds[] = (int) ($product->pro_id ?? $product->getKey());
                 }
+            }
+
+            if ($touchedProductIds !== [] && $order->company->sell_with_inventory) {
+                app(ProductStockStatusSyncService::class)->syncProductIds(
+                    $touchedProductIds,
+                    (int) $order->company_id
+                );
             }
         });
     }

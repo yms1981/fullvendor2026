@@ -95,12 +95,12 @@ class User extends Authenticatable
     use HasFactory;
     use Filterable;
 
-
     protected $table = 'users';
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'two_factor_confirmed_at' => 'datetime'
+        'two_factor_confirmed_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     protected $hidden = [
@@ -124,8 +124,15 @@ class User extends Authenticatable
         'city',
         'state',
         'zip_code',
-        'remember_token'
+        'remember_token',
+        'deleted_at',
     ];
+
+    /** Activo = deleted_at null (flag de UI, sin SoftDeletes). */
+    public function isDisabled(): bool
+    {
+        return $this->deleted_at !== null;
+    }
 
     /**
      * Determines if the user is a fullvendor administrator
@@ -319,7 +326,8 @@ class User extends Authenticatable
         $roleAbilities = [
             'admin' => ['manage_users', 'edit_settings', 'view_logs'],
             'manager' => ['manage_users', 'edit_settings'],
-            'seller' => ['create_orders', 'view_reports'],
+            // Sellers entran al backend company con las mismas capacidades de panel que manager.
+            'seller' => ['create_orders', 'view_reports', 'access_backend', 'manage_users', 'edit_settings'],
             'customer' => ['view_products'],
             'warehouse' => ['manage_inventory'],
         ];
@@ -349,6 +357,29 @@ class User extends Authenticatable
     public function warehouseByCompany(int $companyId)
     {
         return $this->warehouses()->where('warehouses.company_id', $companyId)->first();
+    }
+
+    /**
+     * Compañías donde el usuario es seller (acceso al panel company / backend).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function companiesForSellerBackendAccess()
+    {
+        return $this->companiesForRole(CompanyUserTypes::Seller->value);
+    }
+
+    /**
+     * ¿Puede entrar al panel company (backend) siendo seller?
+     */
+    public function canAccessCompanyAsSeller(?int $companyId = null): bool
+    {
+        $query = $this->companiesForSellerBackendAccess();
+        if ($companyId !== null && $companyId > 0) {
+            return $query->where('companies.company_id', $companyId)->exists();
+        }
+
+        return $query->exists();
     }
 
     /**

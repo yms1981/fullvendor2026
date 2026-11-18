@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class OrderCategory
@@ -60,7 +59,7 @@ class OrderCategory extends Model
     use HasFactory;
     use Filterable;
 
-    use SoftDeletes;protected $table = 'order_categories';
+    protected $table = 'order_categories';
     protected $primaryKey = 'order_category_id';
 
 

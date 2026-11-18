@@ -33,14 +33,13 @@ class LoginSuccessJsonResponse
     {
         $warehouseKey = $warehouseKeyTypo ? 'wharehouse' : 'warehouse';
 
+        $companyPanelCompanies = self::resolveCompanyPanelCompanies($user);
+
         $appAccess = [
             'admin' => ['access' => $user->isAdmin()],
             'company' => [
-                'access' => $user->isManager(),
-                'companies' => self::mapCompanies(
-                    $user,
-                    $user->companiesForRole('manager')->select(self::COMPANY_SELECT)->get()
-                ),
+                'access' => $companyPanelCompanies->isNotEmpty(),
+                'companies' => self::mapCompanies($user, $companyPanelCompanies),
             ],
             'marketplace' => [
                 'access' => $user->isCustomer(),
@@ -78,6 +77,34 @@ class LoginSuccessJsonResponse
                 $user->companies()->select(self::COMPANY_SELECT)->get()
             ),
         ];
+    }
+
+    /**
+     * Panel MVC /company: todos los managers y todos los sellers.
+     * Si el mismo user tiene ambos roles en una compañía, prevalece manager.
+     *
+     * @return Collection<int, \App\Models\Company>
+     */
+    private static function resolveCompanyPanelCompanies(User $user): Collection
+    {
+        $companies = $user->companies()
+            ->wherePivotIn('type', ['manager', 'seller'])
+            ->select(self::COMPANY_SELECT)
+            ->get();
+
+        $byId = [];
+        foreach ($companies as $company) {
+            $id = (int) $company->company_id;
+            if ($id < 1) {
+                continue;
+            }
+            $type = strtolower(trim((string) ($company->pivot->type ?? '')));
+            if (! isset($byId[$id]) || $type === 'manager') {
+                $byId[$id] = $company;
+            }
+        }
+
+        return collect(array_values($byId));
     }
 
     /**

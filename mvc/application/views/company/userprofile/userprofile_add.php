@@ -124,6 +124,18 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input type="checkbox"
+                                           name="can_access_backend"
+                                           class="form-check-input"
+                                           value="1"
+                                           id="can_access_backend">
+                                    <label class="form-check-label" for="can_access_backend">
+                                        <?= htmlspecialchars((string) ($pageTexts['access_backend'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-group row">

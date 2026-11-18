@@ -12,7 +12,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class CustomerGroup
@@ -69,7 +68,6 @@ class CustomerGroup extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     protected $table = 'customer_groups';
     protected $primaryKey = 'group_id';

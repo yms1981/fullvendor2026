@@ -70,6 +70,15 @@
                 </select>
             </div>
         </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="form-group">
+                <label><?= htmlspecialchars((string) ($lang_vendor['access_backend'] ?? $lang_userprofile['access_backend'] ?? ''), ENT_QUOTES, 'UTF-8') ?>: </label>
+                <select class="form-control notranslate" name="can_access_backend">
+                    <option value="1"<?= (string) (@$data->can_access_backend ?? '0') === '1' ? 'selected' : '' ?>><?= $lang_vendor['si'] ?></option>
+                    <option value="0"<?= (string) (@$data->can_access_backend ?? '0') !== '1' ? 'selected' : '' ?>><?= htmlspecialchars((string) ($lang_vendor['no'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
+                </select>
+            </div>
+        </div>
     </div>
     <div class="form-group text-right">
         <button type="submit" class="btn btn-success mr-2"><?= $lang_vendor['guardar'] ?? $lang_vendor['save'] ?? $lang_vendor['update'] ?? '' ?></button>

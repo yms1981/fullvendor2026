@@ -172,7 +172,7 @@ class Order extends Model
     use HasFactory;
     use Filterable;
 
-    //use SoftDeletes;
+    //
 
     const CREATED_AT = 'created';
     const UPDATED_AT = 'updated';

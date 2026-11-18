@@ -167,13 +167,14 @@ class TermsOfSaleController extends Controller
      {
          $validated = $request->validated();
 
-         $existing = TermsOfSale::withTrashed()
+         $existing = TermsOfSale::query()
              ->where('company_id', $validated['company_id'])
              ->where('name', $validated['name'])
              ->first();
 
-         if ($existing && $existing->trashed()) {
-             $existing->restore();
+         if ($existing && $existing->deleted_at !== null) {
+             $existing->deleted_at = null;
+             $existing->save();
              if ((int) $existing->term_status !== 1) {
                  $existing->update(['term_status' => 1]);
              }

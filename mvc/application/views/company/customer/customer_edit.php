@@ -192,6 +192,7 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
 <form id="form_edit" class="forms-sample"
       action="<?= company_url('customers/update/'.$customer->customer_id) ?>"
       method="post"
+      data-customer-edit="1"
       novalidate>
 
     <input type="hidden" name="customer_id" value="<?= $customer->customer_id ?>">
@@ -326,6 +327,77 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
+                            <?php
+                            $portalPasswordValue = '';
+                            $hasPortalUser = false;
+                            $portalUsersRaw = $customer->users ?? [];
+                            if (is_object($portalUsersRaw)) {
+                                $portalUsersRaw = (array) $portalUsersRaw;
+                            }
+                            $customerEmailLower = function_exists('mb_strtolower')
+                                ? mb_strtolower(trim((string) ($customer->email ?? '')), 'UTF-8')
+                                : strtolower(trim((string) ($customer->email ?? '')));
+                            if (is_array($portalUsersRaw) && $portalUsersRaw !== [] && $customerEmailLower !== '') {
+                                foreach ($portalUsersRaw as $portalUserRow) {
+                                    $portalUserRow = is_object($portalUserRow) ? $portalUserRow : (object) $portalUserRow;
+                                    $portalUserEmail = function_exists('mb_strtolower')
+                                        ? mb_strtolower(trim((string) ($portalUserRow->email ?? '')), 'UTF-8')
+                                        : strtolower(trim((string) ($portalUserRow->email ?? '')));
+                                    if ($portalUserEmail === $customerEmailLower) {
+                                        $hasPortalUser = true;
+                                        $portalPasswordValue = trim((string) ($portalUserRow->password_plain ?? ''));
+                                        break;
+                                    }
+                                }
+                            }
+                            $tPortalPwd = static function (string $key, string $fallback = '') use ($pageTexts): string {
+                                $value = $pageTexts[$key] ?? '';
+                                if (! is_string($value) || trim($value) === '') {
+                                    $value = $fallback;
+                                }
+
+                                return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                            };
+                            $canManagePortalPassword = $customerEmailLower !== '' && (int) ($customer->customer_id ?? 0) > 0;
+                            ?>
+                            <!-- Password del usuario portal (mismo email en users) — solo lectura -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label for="customer_portal_password"><?= $tPortalPwd('password', 'Password') ?>:</label>
+                                    <div class="input-group fv-portal-password-group">
+                                        <input type="password"
+                                               class="form-control bg-light"
+                                               id="customer_portal_password"
+                                               value="<?= htmlspecialchars($portalPasswordValue, ENT_QUOTES, 'UTF-8') ?>"
+                                               readonly
+                                               autocomplete="off"
+                                               placeholder="<?= $tPortalPwd('password', 'Password') ?>"
+                                            <?= $canManagePortalPassword ? '' : 'disabled' ?>>
+                                        <div class="input-group-append">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    id="fv_portal_password_toggle"
+                                                    title="<?= $tPortalPwd('portal_password_show', 'Show') ?>"
+                                                    aria-label="<?= $tPortalPwd('portal_password_show', 'Show') ?>"
+                                                <?= ($canManagePortalPassword && $portalPasswordValue !== '') ? '' : 'disabled' ?>>
+                                                <i class="fa fa-eye" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-outline-primary"
+                                                    id="fv_portal_password_change_btn"
+                                                    title="<?= $tPortalPwd('portal_password_change', 'Change password') ?>"
+                                                    aria-label="<?= $tPortalPwd('portal_password_change', 'Change password') ?>"
+                                                <?= $canManagePortalPassword ? '' : 'disabled' ?>>
+                                                <i class="fa-solid fa-key" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <?php if ($canManagePortalPassword && ! $hasPortalUser) : ?>
+                                        <small class="form-text text-muted"><?= $tPortalPwd('portal_password_no_user', '') ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
                             <!-- Teléfono (prefijo según país comercial o país de la compañía) -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
@@ -351,17 +423,6 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                         <input type="text" class="form-control" name="cell_phone" id="customer_cell_phone"
                                                value="<?= htmlspecialchars($customer->cell_phone ?? '') ?>">
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Enviar catálogo -->
-                            <div class="col-md-6 col-lg-4">
-                                <div class="form-group">
-                                    <label><?= htmlspecialchars((string) ($pageTexts['catalogue_emails'] ?? $pageTexts['enviar_catalogo'] ?? $pageTexts['field_catalog_emails'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
-                                    <select class="form-control notranslate fv-form-select" name="catalog_emails" id="customer_catalog_emails">
-                                        <option value="1" <?= $customer->catalog_emails ? 'selected' : '' ?>><?= htmlspecialchars((string) ($pageTexts['si'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
-                                        <option value="0" <?= !$customer->catalog_emails ? 'selected' : '' ?>><?= htmlspecialchars((string) ($pageTexts['label_no'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
-                                    </select>
                                 </div>
                             </div>
 
@@ -405,7 +466,7 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 <div class="form-group">
                                     <label><?= $pageTexts['termino_pago'] ?>:</label>
                                     <select class="form-control notranslate fv-form-select" name="term_id" id="customer_term_id">
-                                        <option selected disabled value=""><?= $pageTexts['label_select'] ?? '' ?></option>
+                                        <option value="" disabled<?= empty($customer->term_id) ? ' selected' : '' ?>><?= $pageTexts['label_select'] ?? '' ?></option>
                                         <?php foreach ($termsOfSales as $tsale) : ?>
                                             <?php $termLabel = isset($tsale->name) ? (function_exists('mb_strtoupper') ? mb_strtoupper($tsale->name, 'UTF-8') : strtoupper($tsale->name)) : ''; ?>
                                             <option value="<?= $tsale->term_id ?>"
@@ -421,7 +482,7 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 <div class="form-group">
                                     <label><?= $pageTexts['group'] ?>: <span class="color-red">*</span></label>
                                     <select class="form-control notranslate fv-form-select" name="group_id" id="customer_group_id">
-                                        <option selected disabled value=""><?= $pageTexts['label_select'] ?? '' ?></option>
+                                        <option value="" disabled<?= empty($customer->group_id) ? ' selected' : '' ?>><?= $pageTexts['label_select'] ?? '' ?></option>
                                         <?php foreach ($customerGroups as $group) : ?>
                                             <?php $groupLabel = isset($group->name) ? (function_exists('mb_strtoupper') ? mb_strtoupper($group->name, 'UTF-8') : strtoupper($group->name)) : ''; ?>
                                             <option value="<?= $group->group_id ?>"
@@ -429,6 +490,17 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                                 <?= htmlspecialchars($groupLabel) ?>
                                             </option>
                                         <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Enviar catálogo (debajo de Assign catalog order to) -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= htmlspecialchars((string) ($pageTexts['catalogue_emails'] ?? $pageTexts['enviar_catalogo'] ?? $pageTexts['field_catalog_emails'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
+                                    <select class="form-control notranslate fv-form-select" name="catalog_emails" id="customer_catalog_emails">
+                                        <option value="1" <?= $customer->catalog_emails ? 'selected' : '' ?>><?= htmlspecialchars((string) ($pageTexts['si'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
+                                        <option value="0" <?= !$customer->catalog_emails ? 'selected' : '' ?>><?= htmlspecialchars((string) ($pageTexts['label_no'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
                                     </select>
                                 </div>
                             </div>
@@ -452,7 +524,7 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Dirección Comercial -->
+                            <!-- Orden: Address, Country, State, City, ZipCode, Zone -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_address'] ?>:</label>
@@ -461,7 +533,6 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- País Comercial -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_country'] ?>:</label>
@@ -492,7 +563,6 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Estado Comercial -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_state'] ?>:</label>
@@ -506,36 +576,31 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Código Postal y Ciudad (ZIP antes que ciudad) -->
                             <div class="col-md-6 col-lg-4">
-                                <div class="row">
-                                    <div class="col-5">
-                                        <div class="form-group">
-                                            <label><?= $pageTexts['commercial_zip_code'] ?>:</label>
-                                            <select class="form-control fv-geo-select" id="commercial_zip_code" name="commercial_zip_code" autocomplete="off">
-                                                <option value=""></option>
-                                                <?php if ($commercialZipVal !== ''): ?>
-                                                    <option value="<?= htmlspecialchars($fnUpperVal($commercialZipVal)) ?>" selected><?= htmlspecialchars($fnUpperVal($commercialZipVal)) ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-7">
-                                        <div class="form-group">
-                                            <label><?= $pageTexts['commercial_city'] ?>:</label>
-                                            <select class="form-control fv-geo-select" id="commercial_city_id" name="commercial_city_id" autocomplete="off">
-                                                <option value=""></option>
-                                                <?php if (!empty($commercial->city_id) && $commercialCityVal !== ''): ?>
-                                                    <option value="<?= (int) $commercial->city_id ?>" selected><?= htmlspecialchars($fnUpperVal($commercialCityVal)) ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                            <input type="hidden" id="commercial_city" name="commercial_city" value="<?= htmlspecialchars($fnUpperVal($commercialCityVal)) ?>">
-                                        </div>
-                                    </div>
+                                <div class="form-group">
+                                    <label><?= $pageTexts['commercial_city'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="commercial_city_id" name="commercial_city_id" autocomplete="off">
+                                        <option value=""></option>
+                                        <?php if (!empty($commercial->city_id) && $commercialCityVal !== ''): ?>
+                                            <option value="<?= (int) $commercial->city_id ?>" selected><?= htmlspecialchars($fnUpperVal($commercialCityVal)) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <input type="hidden" id="commercial_city" name="commercial_city" value="<?= htmlspecialchars($fnUpperVal($commercialCityVal)) ?>">
                                 </div>
                             </div>
 
-                            <!-- Zona Comercial -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= $pageTexts['commercial_zip_code'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="commercial_zip_code" name="commercial_zip_code" autocomplete="off">
+                                        <option value=""></option>
+                                        <?php if ($commercialZipVal !== ''): ?>
+                                            <option value="<?= htmlspecialchars($fnUpperVal($commercialZipVal)) ?>" selected><?= htmlspecialchars($fnUpperVal($commercialZipVal)) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['commercial_zone'] ?>:</label>
@@ -547,7 +612,7 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                             <div class="col-12 mt-2 mb-2">
                                 <input id="asignar_datos" type="checkbox" value="1">
                                 <label for="asignar_datos" class="mb-0">
-                                    <u><?= $pageTexts['asignar_datos'] ?>:</u>
+                                    <u><?= htmlspecialchars((string) ($pageTexts['asignar_datos'] ?? ''), ENT_QUOTES, 'UTF-8') ?></u>
                                 </label>
                             </div>
 
@@ -558,10 +623,10 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
 
                             <input type="hidden" name="dispatch_address_id" value="<?= $dispatch ? $dispatch->id : '' ?>">
 
-                            <!-- Delivery address (full): solo lectura; se arma desde los campos -->
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label><?= $pageTexts['delivery_address_full'] ?? '' ?>:</label>
+                            <!-- Delivery completo (solo lectura; misma lógica que comercial) -->
+                            <div class="col-12 mb-2">
+                                <div class="form-group mb-0">
+                                    <label><?= htmlspecialchars((string) ($pageTexts['delivery_address_full'] ?? $pageTexts['dispatch_delivery_address'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
                                     <input type="text" class="form-control cust-address-upper bg-light" name="dispatch_delivery_address" id="dispatch_delivery_address"
                                            value="<?= htmlspecialchars($fnUpperVal($customer->dispatch_delivery_address ?? '')) ?>"
                                            placeholder="<?= isset($pageTexts['placeholder_address_auto']) ? htmlspecialchars($pageTexts['placeholder_address_auto']) : '' ?>"
@@ -570,16 +635,15 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Dirección Entrega (calle) -->
+                            <!-- Orden: Address, Country, State, City, ZipCode, Zone (igual que comercial) -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
-                                    <label><?= $pageTexts['dispatch_delivery_address'] ?>:</label>
+                                    <label><?= htmlspecialchars((string) ($pageTexts['dispatch_address'] ?? $pageTexts['commercial_address'] ?? ''), ENT_QUOTES, 'UTF-8') ?>:</label>
                                     <input type="text" class="form-control cust-address-upper" name="dispatch_address" id="dispatch_address"
                                            value="<?= htmlspecialchars($fnUpperVal($dispatchStreetVal)) ?>">
                                 </div>
                             </div>
 
-                            <!-- País Entrega -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_country'] ?>:</label>
@@ -607,7 +671,6 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Estado Entrega -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_state'] ?>:</label>
@@ -621,20 +684,6 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Código Postal Entrega (antes que ciudad) -->
-                            <div class="col-md-6 col-lg-4">
-                                <div class="form-group">
-                                    <label><?= $pageTexts['dispatch_zipcode'] ?>:</label>
-                                    <select class="form-control fv-geo-select" id="dispatch_zip_code" name="dispatch_zip_code" autocomplete="off">
-                                        <option value=""></option>
-                                        <?php if ($dispatchZipVal !== ''): ?>
-                                            <option value="<?= htmlspecialchars($fnUpperVal($dispatchZipVal)) ?>" selected><?= htmlspecialchars($fnUpperVal($dispatchZipVal)) ?></option>
-                                        <?php endif; ?>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Ciudad Entrega -->
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_city'] ?>:</label>
@@ -648,7 +697,18 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
                                 </div>
                             </div>
 
-                            <!-- Zona Entrega -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="form-group">
+                                    <label><?= $pageTexts['dispatch_zipcode'] ?>:</label>
+                                    <select class="form-control fv-geo-select" id="dispatch_zip_code" name="dispatch_zip_code" autocomplete="off">
+                                        <option value=""></option>
+                                        <?php if ($dispatchZipVal !== ''): ?>
+                                            <option value="<?= htmlspecialchars($fnUpperVal($dispatchZipVal)) ?>" selected><?= htmlspecialchars($fnUpperVal($dispatchZipVal)) ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="col-md-6 col-lg-4">
                                 <div class="form-group">
                                     <label><?= $pageTexts['dispatch_zone'] ?>:</label>
@@ -659,10 +719,34 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
 
                             <!-- Notas -->
                             <div class="col-12">
-                                <div class="form-group">
+                                <div class="form-group mb-2">
                                     <label><?= $pageTexts['notes'] ?>:</label>
                                     <textarea class="form-control" rows="5" name="dispatch_shipping_notes"><?= htmlspecialchars((string) $dispatchNotesVal) ?></textarea>
                                 </div>
+                            </div>
+
+                            <div class="col-12">
+                                <hr class="fv-portal-users-sep my-2">
+                                <?php $this->load->view('company/assigned_table', [
+                                    'entity' => $customer,
+                                    'entityType' => 'customer',
+                                    'pageTexts' => $pageTexts ?? [],
+                                    'countries' => $countries ?? [],
+                                    'companyPhoneCountryMeta' => $companyPhoneCountryMeta ?? [],
+                                    'companyDefaultCountryId' => $companyDefaultCountryId ?? null,
+                                ]); ?>
+                            </div>
+
+                            <div class="col-12">
+                                <?php $this->load->view('company/customer/customer_last_activity', [
+                                    'pageTexts' => $pageTexts ?? [],
+                                    'customerLastCatalogs' => $customerLastCatalogs ?? [],
+                                    'customerLastOrders' => $customerLastOrders ?? [],
+                                    'customerLastOrdersCurrency' => $customerLastOrdersCurrency ?? '',
+                                    'company' => $company ?? null,
+                                    'apiToken' => $apiToken ?? '',
+                                    'apiBaseUrl' => $apiBaseUrl ?? '/api',
+                                ]); ?>
                             </div>
 
                         </div>
@@ -679,16 +763,132 @@ $customerFormCountryFlagsUrl = rtrim((string) base_url(), '/') . '/images/flags/
     'cancelLabel' => (string) ($pageTexts['cancelar'] ?? ''),
     'cancelUrl' => company_url('customers'),
 ]); ?>
-<?php $this->load->view('company/assigned_table', [
-    'entity' => $customer,
-    'entityType' => 'customer',
-]); ?>
 <?php $this->load->view('company/customer/customer_emails_table', [
     'customer' => $customer,
     'pageTexts' => $pageTexts,
     'apiToken' => $apiToken ?? '',
     'apiBaseUrl' => $apiBaseUrl ?? '/api',
 ]); ?>
+
+<?php
+$fvPortalPwdLangId = function_exists('fv_resolve_company_language_id') ? (int) fv_resolve_company_language_id() : 2;
+$fvPortalPwdLocaleMap = [1 => 'en', 2 => 'es', 3 => 'pt', 4 => 'it', 5 => 'ru', 6 => 'de', 7 => 'zh'];
+$fvPortalPwdLocale = $fvPortalPwdLocaleMap[$fvPortalPwdLangId] ?? 'en';
+?>
+<div class="modal fade" id="fv_portal_password_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><?= htmlspecialchars((string) ($pageTexts['portal_password_change'] ?? $pageTexts['password'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="<?= htmlspecialchars((string) ($pageTexts['cerrar'] ?? 'Close'), ENT_QUOTES, 'UTF-8') ?>">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="fv_portal_password_new"><?= htmlspecialchars((string) ($pageTexts['portal_password_new'] ?? ''), ENT_QUOTES, 'UTF-8') ?></label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="fv_portal_password_new" autocomplete="new-password">
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary js-fv-portal-pwd-eye" data-target="#fv_portal_password_new" tabindex="-1">
+                                <i class="fa fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group mb-0">
+                    <label for="fv_portal_password_confirm"><?= htmlspecialchars((string) ($pageTexts['portal_password_confirm'] ?? $pageTexts['confirm_password'] ?? ''), ENT_QUOTES, 'UTF-8') ?></label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="fv_portal_password_confirm" autocomplete="new-password">
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary js-fv-portal-pwd-eye" data-target="#fv_portal_password_confirm" tabindex="-1">
+                                <i class="fa fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-danger d-none" id="fv_portal_password_error"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= htmlspecialchars((string) ($pageTexts['cancelar'] ?? ''), ENT_QUOTES, 'UTF-8') ?></button>
+                <button type="button" class="btn btn-primary" id="fv_portal_password_save_btn"><?= htmlspecialchars((string) ($pageTexts['guardar'] ?? ''), ENT_QUOTES, 'UTF-8') ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+<?php
+$fvPortalDefaultPhonecode = (int) ($companyPhoneCountryMeta['phonecode'] ?? 0);
+if ($fvPortalDefaultPhonecode < 1 && !empty($companyDefaultCountryId) && !empty($countries)) {
+    foreach ($countries as $fvPcCountry) {
+        $fvPcCountry = is_object($fvPcCountry) ? $fvPcCountry : (object) $fvPcCountry;
+        if ((int) ($fvPcCountry->id ?? 0) === (int) $companyDefaultCountryId) {
+            $fvPortalDefaultPhonecode = (int) ($fvPcCountry->phonecode ?? 0);
+            break;
+        }
+    }
+}
+?>
+window.FV_PORTAL_PASSWORD = <?= json_encode([
+    'customerId' => (int) ($customer->customer_id ?? 0),
+    'apiToken' => (string) ($apiToken ?? ''),
+    'apiBaseUrl' => rtrim((string) ($apiBaseUrl ?? '/api'), '/'),
+    'appLocale' => $fvPortalPwdLocale,
+    'defaultPhonecode' => $fvPortalDefaultPhonecode > 0 ? (string) $fvPortalDefaultPhonecode : '',
+    'i18n' => [
+        'show' => (string) ($pageTexts['portal_password_show'] ?? ''),
+        'hide' => (string) ($pageTexts['portal_password_hide'] ?? ''),
+        'change' => (string) ($pageTexts['portal_password_change'] ?? ''),
+        'mismatch' => (string) ($pageTexts['error_password_not_match'] ?? ''),
+        'required' => (string) ($pageTexts['portal_password_required'] ?? ''),
+        'updated' => (string) ($pageTexts['portal_password_updated'] ?? ''),
+        'no_user' => (string) ($pageTexts['portal_password_no_user'] ?? ''),
+        'error' => (string) ($pageTexts['error_occurred'] ?? ''),
+        'cancel' => (string) ($pageTexts['cancelar'] ?? ''),
+        'portal_credentials_send' => (string) ($pageTexts['portal_credentials_send'] ?? ''),
+        'portal_credentials_send_sms' => (string) ($pageTexts['portal_credentials_send_sms'] ?? ''),
+        'portal_credentials_send_whatsapp' => (string) ($pageTexts['portal_credentials_send_whatsapp'] ?? ''),
+        'portal_credentials_confirm' => (string) ($pageTexts['portal_credentials_confirm'] ?? ''),
+        'portal_credentials_confirm_sms' => (string) ($pageTexts['portal_credentials_confirm_sms'] ?? ''),
+        'portal_credentials_confirm_whatsapp' => (string) ($pageTexts['portal_credentials_confirm_whatsapp'] ?? ''),
+        'portal_credentials_sent' => (string) ($pageTexts['portal_credentials_sent'] ?? ''),
+        'portal_credentials_sent_sms' => (string) ($pageTexts['portal_credentials_sent_sms'] ?? ''),
+        'portal_credentials_sent_whatsapp' => (string) ($pageTexts['portal_credentials_sent_whatsapp'] ?? ''),
+        'portal_credentials_send_failed' => (string) ($pageTexts['portal_credentials_send_failed'] ?? ''),
+        'portal_credentials_sending' => (string) ($pageTexts['portal_credentials_sending'] ?? ''),
+        'portal_credentials_sending_sms' => (string) ($pageTexts['portal_credentials_sending_sms'] ?? ''),
+        'portal_credentials_sending_whatsapp' => (string) ($pageTexts['portal_credentials_sending_whatsapp'] ?? ''),
+        'portal_credentials_no_phone' => (string) ($pageTexts['portal_credentials_no_phone'] ?? ''),
+        'portal_credentials_no_phonecode' => (string) ($pageTexts['portal_credentials_no_phonecode'] ?? ''),
+        'btn_accept' => (string) ($pageTexts['btn_accept'] ?? $pageTexts['aceptar'] ?? ''),
+    ],
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+</script>
+<script src="<?= dated_file_url('companyasset/company/customer/portal-password.js') ?>"></script>
+<script src="<?= dated_file_url('companyasset/company/customer/send-portal-credentials.js') ?>"></script>
+
+<?php
+$userModalPageTexts = is_array($userModalPageTexts ?? null) ? $userModalPageTexts : [];
+$userModalPageTexts = array_merge(is_array($pageTexts ?? null) ? $pageTexts : [], $userModalPageTexts);
+$this->load->view('company/users/_modal_add_user', [
+    'pageTexts' => $userModalPageTexts,
+    'currentType' => 'customer',
+    'company' => $company ?? null,
+    'sellerProfiles' => $userModalSellerProfiles ?? [],
+    'userModalCustomers' => $userModalCustomers ?? [],
+    'userModalWarehouses' => [],
+    'companyPhoneCountryMeta' => $companyPhoneCountryMeta ?? [],
+    'companyUserCountryFlagsUrl' => $companyUserCountryFlagsUrl ?? (rtrim((string) base_url(), '/') . '/images/flags/'),
+    'userTypes' => ['customer'],
+    'userModalCustomerLabels' => $userModalCustomerLabels ?? [],
+    'userModalListReloadUrl' => $userModalListReloadUrl ?? company_url('customers/edit/' . (int) ($customer->customer_id ?? 0)),
+    'planLimitBlock' => $planLimitBlock ?? ['can_create' => true],
+    'preselectedCustomerId' => (int) ($customer->customer_id ?? 0),
+]);
+$this->load->view('company/users/_modal_edit_user', [
+    'pageTexts' => $userModalPageTexts,
+]);
+?>
 
 <script>
 $(document).ready(function() {
@@ -899,19 +1099,70 @@ $(document).ready(function() {
         return '';
     }
 
+    var usStateAbbrByName = {
+        'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR',
+        'CALIFORNIA': 'CA', 'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE',
+        'FLORIDA': 'FL', 'GEORGIA': 'GA', 'HAWAII': 'HI', 'IDAHO': 'ID',
+        'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA', 'KANSAS': 'KS',
+        'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+        'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS',
+        'MISSOURI': 'MO', 'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV',
+        'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ', 'NEW MEXICO': 'NM', 'NEW YORK': 'NY',
+        'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH', 'OKLAHOMA': 'OK',
+        'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+        'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT',
+        'VERMONT': 'VT', 'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV',
+        'WISCONSIN': 'WI', 'WYOMING': 'WY', 'DISTRICT OF COLUMBIA': 'DC'
+    };
+
+    /**
+     * Para concatenar: solo sigla si existe; si no, solo el nombre (nunca "MI - MICHIGAN").
+     */
+    function normalizeStateForConcat(raw) {
+        var s = $.trim(raw || '').toUpperCase();
+        if (!s) {
+            return '';
+        }
+        // "MI - MICHIGAN" / "MI — MICHIGAN" → MI
+        var m = s.match(/^([A-Z0-9]{1,5})\s*[-–—]\s+(.+)$/);
+        if (m) {
+            return m[1];
+        }
+        if (/^[A-Z]{2}$/.test(s)) {
+            return s;
+        }
+        if (usStateAbbrByName[s]) {
+            return usStateAbbrByName[s];
+        }
+        return s;
+    }
+
+    function getStateForDelivery(prefix) {
+        var $sel = $('#' + prefix + '_state_id');
+        var $opt = $sel.find('option:selected');
+        var code = $.trim($opt.attr('data-code') || '').toUpperCase();
+        if (code) {
+            return normalizeStateForConcat(code);
+        }
+        var full = $.trim($opt.attr('data-full-name') || '').toUpperCase();
+        var fromHidden = $.trim($('#' + prefix + '_state').val() || '');
+        var fromText = $.trim($opt.text() || '');
+        return normalizeStateForConcat(code || fromHidden || full || fromText);
+    }
+
     function buildDeliveryAddress(prefix) {
-        // Orden fijo: Address, State, City, ZipCode, Country
+        // Orden fijo: Address, City, State(solo sigla o solo nombre), ZipCode, Country
         var address = (prefix === 'commercial') ? $.trim($('#commercial_address').val() || '') : $.trim($('#dispatch_address').val() || '');
-        var state = $.trim($('#' + prefix + '_state').val() || '');
         var city = $.trim($('#' + prefix + '_city').val() || '');
+        var state = getStateForDelivery(prefix);
         var country = getCountryText($('#' + prefix + '_country_id'));
         if (country === phCountry) country = '';
         var zip = (prefix === 'commercial') ? $.trim($('#commercial_zip_code').val() || '') : $.trim($('#dispatch_zip_code').val() || '');
 
         var parts = [];
         if (address) parts.push(address.toUpperCase());
-        if (state) parts.push(state.toUpperCase());
         if (city) parts.push(city.toUpperCase());
+        if (state) parts.push(state.toUpperCase());
         if (zip) parts.push(zip.toUpperCase());
         if (country) parts.push(country.toUpperCase());
         return parts.join(', ');
@@ -1116,6 +1367,10 @@ $(document).ready(function() {
     $('#asignar_datos').on('change', function() {
         unlockEditableAddressFields();
         if (!$(this).is(':checked')) {
+            return;
+        }
+        if (typeof window.fvCopyCommercialAddressToDispatch === 'function') {
+            window.fvCopyCommercialAddressToDispatch();
             return;
         }
         $('input[name="dispatch_address"]').val($('input[name="commercial_address"]').val());

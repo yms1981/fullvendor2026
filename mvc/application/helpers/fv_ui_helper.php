@@ -1455,3 +1455,139 @@ if (! function_exists('fv_product_list_taxonomy_payload')) {
         ];
     }
 }
+
+if (! function_exists('fv_state_for_address_concat')) {
+    /**
+     * Estado para concatenar direcciones: solo sigla si existe; si no, solo el nombre.
+     * Nunca "MI - MICHIGAN".
+     */
+    function fv_state_for_address_concat(?string $state): string
+    {
+        static $nameToAbbr = [
+            'ALABAMA' => 'AL', 'ALASKA' => 'AK', 'ARIZONA' => 'AZ', 'ARKANSAS' => 'AR',
+            'CALIFORNIA' => 'CA', 'COLORADO' => 'CO', 'CONNECTICUT' => 'CT', 'DELAWARE' => 'DE',
+            'FLORIDA' => 'FL', 'GEORGIA' => 'GA', 'HAWAII' => 'HI', 'IDAHO' => 'ID',
+            'ILLINOIS' => 'IL', 'INDIANA' => 'IN', 'IOWA' => 'IA', 'KANSAS' => 'KS',
+            'KENTUCKY' => 'KY', 'LOUISIANA' => 'LA', 'MAINE' => 'ME', 'MARYLAND' => 'MD',
+            'MASSACHUSETTS' => 'MA', 'MICHIGAN' => 'MI', 'MINNESOTA' => 'MN', 'MISSISSIPPI' => 'MS',
+            'MISSOURI' => 'MO', 'MONTANA' => 'MT', 'NEBRASKA' => 'NE', 'NEVADA' => 'NV',
+            'NEW HAMPSHIRE' => 'NH', 'NEW JERSEY' => 'NJ', 'NEW MEXICO' => 'NM', 'NEW YORK' => 'NY',
+            'NORTH CAROLINA' => 'NC', 'NORTH DAKOTA' => 'ND', 'OHIO' => 'OH', 'OKLAHOMA' => 'OK',
+            'OREGON' => 'OR', 'PENNSYLVANIA' => 'PA', 'RHODE ISLAND' => 'RI', 'SOUTH CAROLINA' => 'SC',
+            'SOUTH DAKOTA' => 'SD', 'TENNESSEE' => 'TN', 'TEXAS' => 'TX', 'UTAH' => 'UT',
+            'VERMONT' => 'VT', 'VIRGINIA' => 'VA', 'WASHINGTON' => 'WA', 'WEST VIRGINIA' => 'WV',
+            'WISCONSIN' => 'WI', 'WYOMING' => 'WY', 'DISTRICT OF COLUMBIA' => 'DC',
+        ];
+
+        $s = trim((string) $state);
+        if ($s === '') {
+            return '';
+        }
+        $s = function_exists('mb_strtoupper') ? mb_strtoupper($s, 'UTF-8') : strtoupper($s);
+
+        if (preg_match('/^([A-Z0-9]{1,5})\s*[-–—]\s+(.+)$/u', $s, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/^[A-Z]{2}$/', $s)) {
+            return $s;
+        }
+        if (isset($nameToAbbr[$s])) {
+            return $nameToAbbr[$s];
+        }
+
+        return $s;
+    }
+}
+
+if (! function_exists('fv_format_customer_address')) {
+    /**
+     * Concatena dirección con reglas del panel:
+     * Address, City, State(solo sigla o solo nombre), ZipCode, Country.
+     *
+     * @param array{
+     *   address?: string|null,
+     *   city?: string|null,
+     *   state?: string|null,
+     *   zip?: string|null,
+     *   country?: string|null,
+     *   zone?: string|null
+     * }|object $parts
+     */
+    function fv_format_customer_address($parts, bool $includeZone = false): string
+    {
+        if (is_object($parts)) {
+            $parts = (array) $parts;
+        }
+        if (! is_array($parts)) {
+            return '';
+        }
+
+        $upper = static function ($v): string {
+            $t = trim((string) $v);
+            if ($t === '') {
+                return '';
+            }
+
+            return function_exists('mb_strtoupper') ? mb_strtoupper($t, 'UTF-8') : strtoupper($t);
+        };
+
+        $address = $upper($parts['address'] ?? $parts['street'] ?? '');
+        $city = $upper($parts['city'] ?? '');
+        $state = fv_state_for_address_concat((string) ($parts['state'] ?? ''));
+        $zip = $upper($parts['zip'] ?? $parts['zip_code'] ?? '');
+        $country = $upper($parts['country'] ?? '');
+        $zone = $includeZone ? $upper($parts['zone'] ?? '') : '';
+
+        $segments = [];
+        foreach ([$address, $city, $state, $zip, $country] as $seg) {
+            if ($seg !== '') {
+                $segments[] = $seg;
+            }
+        }
+        if ($includeZone && $zone !== '') {
+            // Zona no entra en el orden fijo de delivery; se omite en listados.
+        }
+
+        return implode(', ', $segments);
+    }
+}
+
+if (! function_exists('fv_format_customer_commercial_address')) {
+    /**
+     * Dirección comercial desde un customer (objeto/array del listado o API).
+     *
+     * @param object|array $customer
+     */
+    function fv_format_customer_commercial_address($customer): string
+    {
+        $c = is_object($customer) ? $customer : (object) (is_array($customer) ? $customer : []);
+
+        return fv_format_customer_address([
+            'address' => $c->commercial_address ?? '',
+            'city' => $c->commercial_city ?? '',
+            'state' => $c->commercial_state ?? '',
+            'zip' => $c->commercial_zip_code ?? '',
+            'country' => $c->commercial_country ?? '',
+        ]);
+    }
+}
+
+if (! function_exists('fv_format_customer_dispatch_address')) {
+    /**
+     * Dirección de entrega/despacho desde un customer.
+     *
+     * @param object|array $customer
+     */
+    function fv_format_customer_dispatch_address($customer): string
+    {
+        $c = is_object($customer) ? $customer : (object) (is_array($customer) ? $customer : []);
+
+        return fv_format_customer_address([
+            'address' => $c->dispatch_address ?? '',
+            'city' => $c->dispatch_city ?? '',
+            'state' => $c->dispatch_state ?? '',
+            'zip' => $c->dispatch_zip_code ?? '',
+            'country' => $c->dispatch_country ?? '',
+        ]);
+    }
+}

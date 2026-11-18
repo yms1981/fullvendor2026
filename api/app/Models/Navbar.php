@@ -11,7 +11,6 @@ use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Navbar
@@ -69,8 +68,6 @@ class Navbar extends Model
 
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
 
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';protected $table = 'navbars';

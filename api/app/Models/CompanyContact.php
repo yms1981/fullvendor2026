@@ -9,7 +9,6 @@ namespace App\Models;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 
 /**
@@ -60,7 +59,7 @@ class CompanyContact extends Model
 {
 
     use HasFactory;
-    use SoftDeletes;use Filterable;
+    use Filterable;
     protected $table = 'company_contacts';
     protected $primaryKey = 'c_id';
 

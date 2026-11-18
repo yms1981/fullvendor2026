@@ -9,7 +9,6 @@ namespace App\Models;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Banner
@@ -53,7 +52,6 @@ class Banner extends Model
 
     use HasFactory;
     use Filterable;
-use SoftDeletes;
     protected $table = 'banner';
     protected $primaryKey = 'bannerId';
 

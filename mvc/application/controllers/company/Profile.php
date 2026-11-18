@@ -371,6 +371,8 @@ class Profile extends Company_Controller {
 			'erp_enabled' => $this->input->post('erp_enabled') ? 1 : 0,
 			'erp_company_code' => $this->testInput($this->input->post('erp_company_code')),
 			'erp_url' => $this->testInput($this->input->post('erp_url')),
+			'ecommerce_enabled' => $this->input->post('ecommerce_enabled') ? 1 : 0,
+			'ecommerce_url' => $this->testInput($this->input->post('ecommerce_url')),
 		];
 
 		$erpToken = trim((string) $this->input->post('erp_company_token'));

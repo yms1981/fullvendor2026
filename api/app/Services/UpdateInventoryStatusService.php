@@ -133,7 +133,7 @@ class UpdateInventoryStatusService
                 DeliveredOrder::query()
                     ->where('order_id', $order->order_id)
                     ->where('product_id', $productId)
-                    ->forceDelete();
+                    ->delete();
 
                 DeliveredOrder::query()->create([
                     'order_id' => $order->order_id,

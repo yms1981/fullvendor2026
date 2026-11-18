@@ -11,7 +11,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class OrderDetail
@@ -123,8 +122,6 @@ class OrderDetail extends Model
 
     use HasFactory;
     use Filterable;
-
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     const UPDATED_AT = 'modify_date';

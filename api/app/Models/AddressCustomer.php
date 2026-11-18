@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 
@@ -34,7 +33,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class AddressCustomer extends Pivot
 {
-    use SoftDeletes;
 
     protected $table = 'address_customer';
 

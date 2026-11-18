@@ -12,10 +12,10 @@
               class="col-sm-12 pt-2"
               action="<?= company_url('countries/lists') ?>">
             <div class="row">
-                <div class="col-12 col-sm-8 col-md-6 col-lg-5">
+                <div class="col-12">
                     <div class="form-group mb-0">
                         <label class="mb-1 small"><?= $pageTexts['search'] ?? 'Search' ?></label>
-                        <div class="input-group input-group-sm mb-0">
+                        <div class="input-group mb-0">
                             <input type="text" name="prsearch" id="search-countries"
                                    class="form-control"
                                    placeholder="<?= $pageTexts['search_placeholder'] ?? 'Search by name or code' ?>"

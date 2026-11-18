@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class WarehouseUser
@@ -52,7 +51,6 @@ class WarehouseUser extends Model
 
     use HasFactory;
     use Filterable;
-    use SoftDeletes;
 
     const CREATED_AT = 'created';
     protected $table = 'warehouse_users';

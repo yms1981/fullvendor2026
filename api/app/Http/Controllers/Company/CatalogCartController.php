@@ -583,6 +583,57 @@ class CatalogCartController extends Controller
         );
     }
 
+    #[OA\Get(
+        path: 'api/v2/catalogcart/company/{companyId}/customer/{customerId}/recent',
+        operationId: 'catalogcartCustomerRecent',
+        summary: 'Últimos catálogos enviados al cliente',
+        security: [['bearerAuth' => []]],
+        tags: ['Catalogcart'],
+        parameters: [
+            new OA\Parameter(name: 'companyId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'customerId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'limit', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 5)),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Successful operation'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'Unauthorized'),
+        ]
+    )]
+    public function recentCustomerCatalogs($companyId, $customerId, Request $request, CustomerCatalogCartService $service): \Illuminate\Http\JsonResponse
+    {
+        $limit = (int) $request->input('limit', 5);
+
+        return response()->json([
+            'data' => $service->recentCatalogs((int) $companyId, (int) $customerId, $limit),
+        ]);
+    }
+
+    #[OA\Post(
+        path: 'api/v2/catalogcart/company/{companyId}/cart/{cartId}/expire',
+        operationId: 'catalogcartExpire',
+        summary: 'Expirar link de catálogo',
+        security: [['bearerAuth' => []]],
+        tags: ['Catalogcart'],
+        parameters: [
+            new OA\Parameter(name: 'companyId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'cartId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Successful operation'),
+            new OA\Response(response: Response::HTTP_NOT_FOUND, description: 'Not found'),
+            new OA\Response(response: Response::HTTP_UNAUTHORIZED, description: 'Unauthorized'),
+        ]
+    )]
+    public function expireCart($companyId, $cartId, CustomerCatalogCartService $service): \Illuminate\Http\JsonResponse
+    {
+        $result = $service->expireCart((int) $companyId, (int) $cartId);
+        if (empty($result['success'])) {
+            return response()->json(['success' => false, 'message' => 'Resource not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function sendCatalogCount($companyId, Request $request, CompanyDashboardCatalogStatsService $service): \Illuminate\Http\JsonResponse
     {
         return response()->json(

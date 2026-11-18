@@ -33,4 +33,14 @@ class WarehouseFilter extends ModelFilter
 
         return $this->where('name', 'like', '%'.$name.'%');
     }
+
+    public function search($term)
+    {
+        $term = trim((string) $term);
+        if ($term === '') {
+            return $this;
+        }
+
+        return $this->where('name', 'like', '%'.$term.'%');
+    }
 }

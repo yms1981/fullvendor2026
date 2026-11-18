@@ -139,7 +139,9 @@ class TelecomMessagingClient
         }
 
         $url = $base . $path;
+        $verifySsl = (bool) config('telecom.verify_ssl', true);
         $request = Http::timeout((int) config('telecom.timeout', 30))
+            ->withOptions(['verify' => $verifySsl])
             ->acceptJson()
             ->asJson();
 
@@ -151,7 +153,20 @@ class TelecomMessagingClient
             ]);
         }
 
-        $response = $request->post($url, $payload);
+        try {
+            $response = $request->post($url, $payload);
+        } catch (\Throwable $e) {
+            Log::error('TelecomMessagingClient connection failed', [
+                'url' => $url,
+                'verify_ssl' => $verifySsl,
+                'error' => $e->getMessage(),
+            ]);
+            throw new RuntimeException(
+                'Telecom API connection error: ' . mb_substr($e->getMessage(), 0, 300),
+                0,
+                $e
+            );
+        }
 
         if ($response->successful()) {
             return;

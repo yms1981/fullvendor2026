@@ -15,15 +15,15 @@ $unitsFilterFrom = (string) $this->input->get('from');
         <?php if ($unitsFilterFrom !== '') : ?>
             <input type="hidden" name="from" value="<?= htmlspecialchars($unitsFilterFrom, ENT_QUOTES, 'UTF-8') ?>">
         <?php endif; ?>
-        <div class="row align-items-center justify-content-end">
-            <div class="col-sm-6">
-                <div class="dataTables_filter text-sm-right">
-                    <label class="mb-0">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <div class="dataTables_filter">
+                    <label class="mb-0 d-block w-100">
                         <?= htmlspecialchars($searchLabel) ?>:
                         <input type="search"
                                name="prsearch"
                                id="search-units"
-                               class="form-control form-control-sm d-inline-block w-auto ml-1"
+                               class="form-control form-control-sm d-block w-100 mt-1"
                                value="<?= htmlspecialchars($searchValue) ?>"
                                placeholder="<?= htmlspecialchars($searchPlaceholder) ?>"
                                aria-controls="infoTable">

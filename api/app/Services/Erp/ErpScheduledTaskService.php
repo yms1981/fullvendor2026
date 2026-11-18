@@ -50,6 +50,7 @@ class ErpScheduledTaskService
             $summary = match ($task->task_type) {
                 CompanyScheduledTask::TYPE_SYNC_CUSTOMERS => $this->syncCustomers($company, $client),
                 CompanyScheduledTask::TYPE_SYNC_PRODUCTS => $this->syncProducts($company, $client),
+                CompanyScheduledTask::TYPE_SYNC_PRODUCT_PRICES => $this->syncProductPrices($company, $client),
                 CompanyScheduledTask::TYPE_SYNC_CATEGORIES => $this->syncCategories($company, $client),
                 CompanyScheduledTask::TYPE_SYNC_CUSTOMER_BALANCES => $this->syncCustomerBalances($company, $client),
                 CompanyScheduledTask::TYPE_SYNC_PRODUCT_INVENTORIES => $this->syncProductInventories($company, $client),
@@ -148,21 +149,43 @@ class ErpScheduledTaskService
     private function syncProducts(Company $company, ErpSyncClient $client): array
     {
         $rows = $client->fetchAll('/external/fv-sync/products');
+        $sync = new ErpProductSyncFromErpService;
         $mapped = [];
         foreach ($rows as $row) {
+            // Solo pasar precio si es > 0; si ERP manda 0/vacío no se incluye y se conserva el actual.
+            $salePrice = $sync->resolvePositiveMoney(
+                $row['sale_price'] ?? $row['price'] ?? $row['precio'] ?? $row['precio_venta'] ?? null
+            );
             $mapped[] = [
                 'sku' => $row['sku'] ?? '',
                 'name' => $row['name'] ?? '',
-                'sale_price' => $row['price'] ?? null,
+                'sale_price' => $salePrice,
+                'fob_price' => $sync->resolvePositiveMoney($row['fob_price'] ?? null),
+                'purchase_price' => $sync->resolvePositiveMoney($row['purchase_price'] ?? null),
                 'stock' => $row['stock'] ?? ($row['existencia'] ?? null),
                 'barcode' => $row['barcode'] ?? null,
                 'descriptions' => $row['description'] ?? null,
                 'images' => $row['images'] ?? [],
+                // Categoría plana del ERP + listados opcionales (no mezclar entre productos).
+                'category_name' => $row['category_name'] ?? $row['category'] ?? null,
+                'category_names' => $row['category_names'] ?? null,
                 'categories' => $row['categories'] ?? [],
             ];
         }
 
-        return (new ErpProductSyncFromErpService)->sync((int) $company->company_id, $mapped);
+        return $sync->sync((int) $company->company_id, $mapped);
+    }
+
+    /**
+     * Solo precios (sale/fob/purchase &gt; 0). Incluye productos inactivos. No toca stock/status/fotos.
+     *
+     * @return array<string, mixed>
+     */
+    private function syncProductPrices(Company $company, ErpSyncClient $client): array
+    {
+        $rows = $client->fetchAll('/external/fv-sync/products');
+
+        return (new ErpProductSyncFromErpService)->syncPricesOnly((int) $company->company_id, $rows);
     }
 
     /**
@@ -349,7 +372,7 @@ class ErpScheduledTaskService
     {
         $parts = [];
         foreach ([
-            'total', 'needing_photo', 'created', 'updated', 'synced', 'skipped', 'failed',
+            'total', 'needing_photo', 'created', 'updated', 'unchanged', 'synced', 'skipped', 'failed', 'not_found',
             'products_with_images', 'products_failed', 'invalid_urls', 'pruned_pending',
             'images_downloaded', 'queued', 'already_queued', 'processed', 'downloaded', 'remaining_pending',
         ] as $key) {

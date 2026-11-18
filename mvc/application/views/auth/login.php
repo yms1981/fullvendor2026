@@ -63,6 +63,12 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
   <title><?= $e($t('title', 'Login Panel')) ?> | <?= $e(SITENAME) ?></title>
   <link rel="icon" type="image/png" sizes="16x16" href="<?= base_url('uploads/logos/isologo.png') ?>">
   <link rel="shortcut icon" href="<?= base_url('backend/images/favicon.png') ?>" />
+  <link rel="manifest" href="<?= base_url('pwa-manifest.php?v=' . $assetV) ?>">
+  <meta name="theme-color" content="#e60000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="FullVendor">
+  <link rel="apple-touch-icon" href="<?= base_url('companyasset/images/pwa/icon-192.png') ?>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap" rel="stylesheet">
@@ -73,6 +79,13 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="<?= base_url('frontend/css/company-login.css?v=' . $assetV) ?>">
   <script>
+    var UrlBase = <?= json_encode(base_url(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    window.__fvPwaDeferredPrompt = window.__fvPwaDeferredPrompt || null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__fvPwaDeferredPrompt = e;
+      try { window.dispatchEvent(new CustomEvent('fv-pwa-installable')); } catch (err) {}
+    });
     let userId = <?= ! empty($userId) ? json_encode($userId) : 'null' ?>;
     window.loginTranslations = <?= json_encode($translationsByLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.loginCurrentLangId = <?= (int) $currentLangId ?>;
@@ -627,5 +640,31 @@ $heroTitleHtml = $t('hero_title_html', 'Gestiona tu negocio <em>en un solo lugar
     }
   })();
   </script>
+  <a href="#" role="button" id="install-button" class="fv-cl-install-btn" style="display:none;" hidden
+     title="<?= $e($t('install_app', $t('install', ''))) ?>"
+     aria-label="<?= $e($t('install_app', $t('install', ''))) ?>"
+     aria-hidden="true">
+    <i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i>
+  </a>
+  <style>
+    .fv-cl-install-btn {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 40;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 999px;
+      background: #e60000;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+      text-decoration: none;
+    }
+    .fv-cl-install-btn:hover { color: #fff; opacity: 0.95; }
+  </style>
+  <script src="<?= base_url('companyasset/company/installation.js?v=' . $assetV) ?>"></script>
 </body>
 </html>

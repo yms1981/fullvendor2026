@@ -179,9 +179,6 @@ class ErpProductsController extends Controller
 
         foreach ([
             'name' => 'name',
-            'sale_price' => 'sale_price',
-            'fob_price' => 'fob_price',
-            'purchase_price' => 'purchase_price',
             'stock' => 'stock',
             'status' => 'status',
             'unit_id' => 'unit_id',
@@ -196,6 +193,30 @@ class ErpProductsController extends Controller
             if ($request->exists($input)) {
                 $product->{$column} = $request->input($input);
             }
+        }
+
+        // Nunca guardar precios en 0/vacío: conservar el precio actual del producto.
+        $priceSync = app(\App\Services\Erp\ErpProductSyncFromErpService::class);
+        if ($request->exists('sale_price')) {
+            $priceSync->applyPositivePrice(
+                $product,
+                'sale_price',
+                $priceSync->resolvePositiveMoney($request->input('sale_price'))
+            );
+        }
+        if ($request->exists('fob_price')) {
+            $priceSync->applyPositivePrice(
+                $product,
+                'fob_price',
+                $priceSync->resolvePositiveMoney($request->input('fob_price'))
+            );
+        }
+        if ($request->exists('purchase_price')) {
+            $priceSync->applyPositivePrice(
+                $product,
+                'purchase_price',
+                $priceSync->resolvePositiveMoney($request->input('purchase_price'))
+            );
         }
 
         // category_names[] / category_name: asegura cats remotas por nombre y rellena cats_id.
@@ -327,14 +348,27 @@ class ErpProductsController extends Controller
             if (array_key_exists('stock', $item)) {
                 $product->stock = $stock;
             }
+            $priceSync = app(\App\Services\Erp\ErpProductSyncFromErpService::class);
             if (array_key_exists('fob_price', $item)) {
-                $product->fob_price = (float) $item['fob_price'];
+                $priceSync->applyPositivePrice(
+                    $product,
+                    'fob_price',
+                    $priceSync->resolvePositiveMoney($item['fob_price'] ?? null)
+                );
             }
             if (array_key_exists('purchase_price', $item)) {
-                $product->purchase_price = (float) $item['purchase_price'];
+                $priceSync->applyPositivePrice(
+                    $product,
+                    'purchase_price',
+                    $priceSync->resolvePositiveMoney($item['purchase_price'] ?? null)
+                );
             }
             if (array_key_exists('sale_price', $item)) {
-                $product->sale_price = (float) $item['sale_price'];
+                $priceSync->applyPositivePrice(
+                    $product,
+                    'sale_price',
+                    $priceSync->resolvePositiveMoney($item['sale_price'] ?? null)
+                );
             }
             $product->status = $stock > 0 ? 1 : 0;
             $product->save();
